@@ -1,23 +1,24 @@
 import Image from "next/image";
+import CommandCard from "./components/command-card";
 
 const useCases = [
   {
-    title: "Para developers",
+    title: "👨‍💻 Para developers",
     description:
       "Probá depósitos y retiros desde terminal antes de tocar frontend. Menos fricción, más shipping.",
   },
   {
-    title: "Para servidores y scripts",
+    title: "🛠️ Para servidores y scripts",
     description:
       "Integración server-to-server en pipelines, cronjobs y bots. Flujo simple: depositás BTC/USDT y retirás ARS.",
   },
   {
-    title: "Para agentes de IA",
+    title: "🦞 Para agentes de IA",
     description:
       "Un CLI que tu abuela podría usar… y tu agente también. Conectá comandos para ejecutar pagos reales.",
   },
   {
-    title: "Para emprendedores bitcoiners",
+    title: "🚀 Para emprendedores bitcoiners",
     description:
       "Onboardeá comercios pidiendo solo un alias/CBU para retiros. Hiperbitcoinizar sin vueltas.",
   },
@@ -25,11 +26,11 @@ const useCases = [
 
 const benefits = [
   "Sin KYC",
-  "Mercado p2p de arbitradores",
+  "P2P",
   "Open Source",
   "Gratuito",
   "Fácil de integrar a tu app",
-  "Wapu tiene código que vive en producción hace 3 años",
+  "Probado 3 años en producción",
 ];
 
 export default function Home() {
@@ -59,12 +60,12 @@ export default function Home() {
           <div>
             <p className="mb-3 text-sm uppercase tracking-[0.2em] text-cyan-300">Wapu</p>
             <h1 className="text-balance text-4xl leading-tight font-black md:text-6xl">
-              Hiperbitcoinizar pagos ARS
-              <span className="block text-fuchsia-300">con un CLI brutalmente simple.</span>
+              Hacemos Bitcoinizar pagos
+              <span className="block text-fuchsia-300">brutalmente simple.</span>
             </h1>
             <p className="mt-5 max-w-xl text-lg text-zinc-300">
-              Wapu CLI y Wapu API son el mismo músculo: depositás por Lightning y enviás pesos a alias/CBU.
-              Diseñado para bitcoiners, vibe-coders y equipos que quieren shipping rápido.
+              Wapu CLI y Wapu API son el mismo músculo: depositás por Lightning y enviás pesos a un alias/CBU.
+              Diseñado para bitcoiners, programadores y equipos que quieren onbordear rápido.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
@@ -111,18 +112,14 @@ export default function Home() {
 
       <section className="relative mx-auto w-full max-w-6xl px-6 pb-20 md:px-10" id="flujo">
         <h2 className="text-3xl font-extrabold md:text-4xl">Flujo de uso</h2>
-        <p className="mt-3 max-w-2xl text-zinc-300">
-          Propagando Bitcoin como un virus que arregla el dinero: entrás por Lightning, salís en ARS.
-        </p>
+        <p className="mt-3 max-w-2xl text-zinc-300">Propagando Bitcoin como un virus que arregla el dinero.</p>
 
         <div className="mt-10 grid gap-4 md:grid-cols-3">
-          {["Depositas BTC via LN", "Wapu enruta y liquida", "Envías ARS por alias/CBU"].map((step, idx) => (
+          {["Deposita BTC via Lightning", "Wapu enruta", "Recibis ARS por alias/CBU"].map((step, idx) => (
             <div key={step} className="relative rounded-2xl border border-white/10 bg-white/5 p-5">
               <p className="text-xs text-cyan-300">Paso {idx + 1}</p>
               <p className="mt-2 text-lg font-semibold">{step}</p>
-              {idx < 2 && (
-                <span className="electric-line absolute top-1/2 -right-6 hidden h-[2px] w-12 md:block" />
-              )}
+              {idx < 2 && <span className="electric-line absolute top-1/2 -right-6 hidden h-[2px] w-12 md:block" />}
             </div>
           ))}
         </div>
@@ -131,22 +128,15 @@ export default function Home() {
       <section className="mx-auto w-full max-w-6xl px-6 pb-20 md:px-10" id="comandos">
         <h2 className="text-3xl font-extrabold md:text-4xl">Dos comandos. Cero drama.</h2>
         <div className="mt-8 grid gap-5 lg:grid-cols-2">
-          <div className="rounded-2xl border border-white/10 bg-[#0f0a1a] p-5">
-            <p className="mb-3 text-sm text-zinc-400">Crear depósito Lightning</p>
-            <pre className="overflow-x-auto text-sm text-emerald-300">
-              <code>wapu deposit lightning create --amount 10 --currency SAT</code>
-            </pre>
-          </div>
+          <CommandCard
+            label="Crear depósito Lightning"
+            command="wapu deposit lightning create --amount 10 --currency SAT"
+          />
 
-          <div className="rounded-2xl border border-white/10 bg-[#0f0a1a] p-5">
-            <p className="mb-3 text-sm text-zinc-400">Enviar dinero ARS</p>
-            <pre className="overflow-x-auto text-sm text-emerald-300">
-              <code>
-                wapu withdraw ars --type fiat_transfer --alias comercio.alias --amount 1000 --receiver-name
-                &apos;Juan Perez&apos;
-              </code>
-            </pre>
-          </div>
+          <CommandCard
+            label="Enviar dinero ARS"
+            command="wapu withdraw ars --type fiat_transfer --alias comercio.alias --amount 1000 --receiver-name 'Juan Perez'"
+          />
         </div>
       </section>
 

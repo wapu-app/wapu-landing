@@ -30,22 +30,29 @@ body {
 }
 
 .electric-line {
-  background: linear-gradient(90deg, rgba(34, 211, 238, 0.2), rgba(34, 211, 238, 1), rgba(217, 70, 239, 1));
-  box-shadow: 0 0 12px rgba(34, 211, 238, 0.8), 0 0 18px rgba(217, 70, 239, 0.6);
-  animation: pulse-flow 1.2s linear infinite;
+  background: linear-gradient(90deg, #facc15 0%, #fef08a 35%, #facc15 55%, #fde047 80%, #facc15 100%);
+  box-shadow: 0 0 10px rgba(250, 204, 21, 0.9), 0 0 18px rgba(250, 204, 21, 0.55);
+  position: relative;
+  overflow: hidden;
 }
 
-@keyframes pulse-flow {
+.electric-line::after {
+  content: "";
+  position: absolute;
+  top: -3px;
+  left: -30%;
+  width: 30%;
+  height: 8px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.95), transparent);
+  filter: blur(0.4px);
+  animation: electric-flow 1s linear infinite;
+}
+
+@keyframes electric-flow {
   0% {
-    transform: translateX(0) scaleX(0.35);
-    opacity: 0.4;
-  }
-  50% {
-    transform: translateX(3px) scaleX(1);
-    opacity: 1;
+    left: -30%;
   }
   100% {
-    transform: translateX(6px) scaleX(0.35);
-    opacity: 0.4;
+    left: 100%;
   }
 }
