@@ -114,12 +114,18 @@ export default function Home() {
         <h2 className="text-3xl font-extrabold md:text-4xl">Flujo de uso</h2>
         <p className="mt-3 max-w-2xl text-zinc-300">Propagando Bitcoin como un virus que arregla el dinero.</p>
 
-        <div className="mt-10 grid gap-4 md:grid-cols-3">
-          {["Deposita BTC via Lightning", "Wapu enruta", "Recibis ARS por alias/CBU"].map((step, idx) => (
-            <div key={step} className="relative rounded-2xl border border-white/10 bg-white/5 p-5">
-              <p className="text-xs text-cyan-300">Paso {idx + 1}</p>
-              <p className="mt-2 text-lg font-semibold">{step}</p>
-              {idx < 2 && <span className="electric-line absolute top-1/2 -right-6 hidden h-[2px] w-12 md:block" />}
+        <div className="mt-10 flex flex-col gap-4 md:flex-row md:items-stretch md:gap-2">
+          {[
+            "Deposita BTC via Lightning",
+            "Wapu enruta",
+            "Recibis ARS por alias/CBU",
+          ].map((step, idx) => (
+            <div key={step} className="flex items-center gap-2 md:flex-1">
+              <div className="relative w-full rounded-2xl border border-white/10 bg-white/5 p-5">
+                <p className="text-xs text-cyan-300">Paso {idx + 1}</p>
+                <p className="mt-2 text-lg font-semibold">{step}</p>
+              </div>
+              {idx < 2 && <span className="electric-line hidden h-[2px] w-10 shrink-0 md:block" />}
             </div>
           ))}
         </div>
