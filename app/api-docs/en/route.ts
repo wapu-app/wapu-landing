@@ -1,9 +1,25 @@
 import { ApiReference } from '@scalar/nextjs-api-reference'
 
-export const GET = ApiReference({
-  url: '/openapi.en.json',
+const sharedConfig = {
   darkMode: true,
+  layout: 'modern' as const,
+  theme: 'elysiajs' as const,
   proxyUrl: 'https://proxy.scalar.com',
+  defaultOpenAllTags: true,
+  defaultOpenFirstTag: true,
+  showSidebar: true,
+  hideClientButton: false,
+  hideModels: false,
+  hideSearch: false,
+  hideTestRequestButton: false,
+  hideDarkModeToggle: false,
+  showOperationId: false,
+  withDefaultFonts: true,
+  expandAllModelSections: false,
+  expandAllResponses: false,
+  documentDownloadType: 'both' as const,
+  orderSchemaPropertiesBy: 'alpha' as const,
+  orderRequiredPropertiesFirst: true,
   customCss: `
     :root {
       --scalar-background-1: #0a0712;
@@ -21,4 +37,9 @@ export const GET = ApiReference({
       --scalar-sidebar-border-color: rgba(255,255,255,0.08);
     }
   `,
+}
+
+export const GET = ApiReference({
+  ...sharedConfig,
+  url: '/openapi.en.json',
 })
