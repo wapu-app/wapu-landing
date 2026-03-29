@@ -46,14 +46,28 @@ export default function Home() {
               CLI + API
             </span>
           </div>
-          <a
-            href="https://github.com/wapu-app/wapu-cli"
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm transition hover:bg-white/20"
-          >
-            Ver GitHub
-          </a>
+          <div className="flex items-center gap-2">
+            <a
+              href="/api-docs"
+              className="rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-sm text-cyan-300 transition hover:bg-cyan-400/20"
+            >
+              API Docs ES
+            </a>
+            <a
+              href="/api-docs/en"
+              className="rounded-xl border border-cyan-400/10 bg-cyan-400/5 px-3 py-2 text-sm text-cyan-400/70 transition hover:bg-cyan-400/15 hover:text-cyan-300"
+            >
+              API Docs EN
+            </a>
+            <a
+              href="https://github.com/wapu-app/wapu-cli"
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm transition hover:bg-white/20"
+            >
+              Ver GitHub
+            </a>
+          </div>
         </header>
 
         <div className="grid items-center gap-10 lg:grid-cols-2">
