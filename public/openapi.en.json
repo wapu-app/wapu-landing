@@ -3,7 +3,7 @@
   "info": {
     "title": "WapuPay API",
     "version": "0.21.0",
-    "description": "WapuPay is a platform that allows users to pay in local currency (ARS, BRL) using cryptocurrency (USDT) as the underlying asset.\n\n## Authentication\n\nTwo schemes are supported:\n- **Bearer JWT** — obtained via `POST /users/login`. Short-lived; refresh with `GET /users/refresh`.\n- **API Key** — header `X-API-Key`. Requires `api_enabled = true` on the user account.\n\n> Never send both schemes at once — the server returns `400`.\n\n## Rate Limiting\n\nAPI Key requests: **60 requests / 60 seconds** (sliding window). Exceeding returns `429`.\n\n## Error Format\n\nAll errors return `{ \"error\": \"message\" }`.\n\n---\n\n🇦🇷 [Versión en español](/api-docs)"
+    "description": "WapuPay is a platform that allows users to pay in local currency (ARS) using cryptocurrency (USDT) as the underlying asset.\n\n## Authentication\n\nTwo schemes are supported:\n- **Bearer JWT** — obtained via `POST /users/login`. Short-lived; refresh with `GET /users/refresh`.\n- **API Key** — header `X-API-Key`. Requires `api_enabled = true` on the user account.\n\n> Never send both schemes at once — the server returns `400`.\n\n## Rate Limiting\n\nAPI Key requests: **60 requests / 60 seconds** (sliding window). Exceeding returns `429`.\n\n## Error Format\n\nAll errors return `{ \"error\": \"message\" }`.\n\n---\n\n🇦🇷 [Versión en español](/api-docs)"
   },
   "servers": [
     {
@@ -34,63 +34,176 @@
       "Error": {
         "type": "object",
         "properties": {
-          "error": { "type": "string" }
+          "error": {
+            "type": "string"
+          }
         },
-        "example": { "error": "Human-readable error message" }
+        "example": {
+          "error": "Human-readable error message"
+        }
       },
       "AccessToken": {
         "type": "object",
         "properties": {
-          "access_token": { "type": "string" }
+          "access_token": {
+            "type": "string"
+          }
         },
-        "example": { "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." }
+        "example": {
+          "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        }
       },
       "Transaction": {
         "type": "object",
         "properties": {
-          "transaction_id": { "type": "string", "format": "uuid" },
-          "transaction_related_id": { "type": "integer", "nullable": true },
-          "status": { "type": "string", "enum": ["Pending", "Completed", "Taken", "Canceled", "UserPending", "Rejected"] },
-          "type": { "type": "string" },
-          "type_name": { "type": "string" },
-          "is_positive": { "type": "boolean" },
-          "payment_amount": { "type": "number" },
-          "payment_currency": { "type": "string" },
-          "currency_taken": { "type": "string" },
-          "total_amount_taken": { "type": "number" },
-          "fee_taken": { "type": "number" },
-          "current_rate": { "type": "number", "nullable": true },
-          "alias": { "type": "string", "nullable": true },
-          "receiver_name": { "type": "string", "nullable": true },
-          "network": { "type": "string", "nullable": true },
-          "address_destination": { "type": "string", "nullable": true },
-          "source_address": { "type": "string", "nullable": true },
-          "blockchain_trx_id": { "type": "string", "nullable": true },
-          "lnurl_pr_invoice": { "type": "string", "nullable": true },
-          "lnurl_verify_invoice": { "type": "string", "nullable": true },
-          "local_payer_user_id": { "type": "integer", "nullable": true },
-          "note": { "type": "string", "nullable": true },
-          "qr_image_url": { "type": "string", "nullable": true },
-          "receipt_image_url": { "type": "string", "nullable": true },
-          "username": { "type": "string" },
-          "sender_username": { "type": "string", "nullable": true },
-          "created_at": { "type": "string" },
-          "updated_at": { "type": "string" }
+          "transaction_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "transaction_related_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "Pending",
+              "Completed",
+              "Taken",
+              "Canceled",
+              "UserPending",
+              "Rejected"
+            ]
+          },
+          "type": {
+            "type": "string"
+          },
+          "type_name": {
+            "type": "string"
+          },
+          "is_positive": {
+            "type": "boolean"
+          },
+          "payment_amount": {
+            "type": "number"
+          },
+          "payment_currency": {
+            "type": "string"
+          },
+          "currency_taken": {
+            "type": "string"
+          },
+          "total_amount_taken": {
+            "type": "number"
+          },
+          "fee_taken": {
+            "type": "number"
+          },
+          "current_rate": {
+            "type": "number",
+            "nullable": true
+          },
+          "alias": {
+            "type": "string",
+            "nullable": true
+          },
+          "receiver_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "network": {
+            "type": "string",
+            "nullable": true
+          },
+          "address_destination": {
+            "type": "string",
+            "nullable": true
+          },
+          "source_address": {
+            "type": "string",
+            "nullable": true
+          },
+          "blockchain_trx_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "lnurl_pr_invoice": {
+            "type": "string",
+            "nullable": true
+          },
+          "lnurl_verify_invoice": {
+            "type": "string",
+            "nullable": true
+          },
+          "local_payer_user_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "qr_image_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "receipt_image_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "username": {
+            "type": "string"
+          },
+          "sender_username": {
+            "type": "string",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
         }
       },
       "Contact": {
         "type": "object",
         "properties": {
-          "id": { "type": "integer" },
-          "user_id": { "type": "integer" },
-          "name_label": { "type": "string" },
-          "name_label_id": { "type": "integer", "nullable": true },
-          "network": { "type": "string", "nullable": true },
-          "wallet_address": { "type": "string", "nullable": true },
-          "bank_alias": { "type": "string", "nullable": true },
-          "is_favourite": { "type": "boolean" },
-          "created_at": { "type": "string" },
-          "updated_at": { "type": "string", "nullable": true }
+          "id": {
+            "type": "integer"
+          },
+          "user_id": {
+            "type": "integer"
+          },
+          "name_label": {
+            "type": "string"
+          },
+          "name_label_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "network": {
+            "type": "string",
+            "nullable": true
+          },
+          "wallet_address": {
+            "type": "string",
+            "nullable": true
+          },
+          "bank_alias": {
+            "type": "string",
+            "nullable": true
+          },
+          "is_favourite": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string",
+            "nullable": true
+          }
         }
       }
     }
@@ -98,7 +211,9 @@
   "paths": {
     "/ping": {
       "get": {
-        "tags": ["Utils"],
+        "tags": [
+          "Utils"
+        ],
         "summary": "Health check",
         "description": "Returns pong. No authentication required.",
         "operationId": "ping",
@@ -109,9 +224,15 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "properties": { "message": { "type": "string" } }
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
                 },
-                "example": { "message": "pong" }
+                "example": {
+                  "message": "pong"
+                }
               }
             }
           }
@@ -120,7 +241,9 @@
     },
     "/exchange_rates": {
       "get": {
-        "tags": ["Utils"],
+        "tags": [
+          "Utils"
+        ],
         "summary": "Get exchange rates",
         "description": "Returns current exchange rates. No authentication required.",
         "operationId": "getExchangeRates",
@@ -131,9 +254,21 @@
               "application/json": {
                 "example": {
                   "rates": [
-                    { "buy": 1432.50, "pair": "USDT/ARS", "sell": 1498.80 },
-                    { "buy": 5.21, "pair": "USDT/BRL", "sell": 5.33 },
-                    { "buy": 68100, "pair": "BTC/USD", "sell": 70200.00 }
+                    {
+                      "buy": 1432.5,
+                      "pair": "USDT/ARS",
+                      "sell": 1498.8
+                    },
+                    {
+                      "buy": 5.21,
+                      "pair": "USDT/BRL",
+                      "sell": 5.33
+                    },
+                    {
+                      "buy": 68100,
+                      "pair": "BTC/USD",
+                      "sell": 70200
+                    }
                   ]
                 }
               }
@@ -144,7 +279,9 @@
     },
     "/countries": {
       "get": {
-        "tags": ["Utils"],
+        "tags": [
+          "Utils"
+        ],
         "summary": "List supported countries",
         "description": "Returns all supported countries. No authentication required.",
         "operationId": "getCountries",
@@ -154,9 +291,18 @@
             "content": {
               "application/json": {
                 "example": [
-                  { "id": 1, "name": "Afghanistan" },
-                  { "id": 2, "name": "Albania" },
-                  { "id": 3, "name": "Algeria" }
+                  {
+                    "id": 1,
+                    "name": "Afghanistan"
+                  },
+                  {
+                    "id": 2,
+                    "name": "Albania"
+                  },
+                  {
+                    "id": 3,
+                    "name": "Algeria"
+                  }
                 ]
               }
             }
@@ -166,7 +312,9 @@
     },
     "/settings": {
       "get": {
-        "tags": ["Utils"],
+        "tags": [
+          "Utils"
+        ],
         "summary": "Get application settings",
         "description": "Application-wide configuration values. No authentication required.",
         "operationId": "getSettings",
@@ -213,17 +361,25 @@
     },
     "/file/{key}": {
       "get": {
-        "tags": ["Utils"],
+        "tags": [
+          "Utils"
+        ],
         "summary": "Get transaction receipt",
         "description": "Download a receipt or file from S3 storage. Requires JWT.",
         "operationId": "downloadFile",
-        "security": [{ "BearerAuth": [] }],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "key",
             "in": "path",
             "required": true,
-            "schema": { "type": "string" },
+            "schema": {
+              "type": "string"
+            },
             "description": "S3 object key",
             "example": "stage/files/84253134-532a-4dff-bdb8-ca7149c1ca9e_andy_2026-03-29_02:45:38.591134.jpg"
           }
@@ -231,15 +387,28 @@
         "responses": {
           "200": {
             "description": "Binary file stream",
-            "content": { "application/octet-stream": {} }
+            "content": {
+              "application/octet-stream": {}
+            }
           },
-          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/users/login": {
       "post": {
-        "tags": ["Auth & Session"],
+        "tags": [
+          "Auth & Session"
+        ],
         "summary": "Login",
         "description": "Authenticate with email/password or magic-link `temp_password`. Returns JWT and sets `refresh_cookie`.",
         "operationId": "login",
@@ -250,19 +419,32 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "email": { "type": "string", "format": "email" },
-                  "password": { "type": "string" },
-                  "temp_password": { "type": "string", "description": "Magic-link token (alternative to email+password)" }
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "temp_password": {
+                    "type": "string",
+                    "description": "Magic-link token (alternative to email+password)"
+                  }
                 }
               },
               "examples": {
                 "password": {
                   "summary": "Email + password",
-                  "value": { "email": "john@example.com", "password": "SecurePass123!" }
+                  "value": {
+                    "email": "john@example.com",
+                    "password": "SecurePass123!"
+                  }
                 },
                 "magic_link": {
                   "summary": "Magic link",
-                  "value": { "temp_password": "<token_from_login_email>" }
+                  "value": {
+                    "temp_password": "<token_from_login_email>"
+                  }
                 }
               }
             }
@@ -271,31 +453,74 @@
         "responses": {
           "200": {
             "description": "Authenticated. Sets refresh_cookie.",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AccessToken" } } }
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessToken"
+                }
+              }
+            }
           },
-          "400": { "description": "User info incomplete", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-          "401": { "description": "Invalid credentials", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+          "400": {
+            "description": "User info incomplete",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/users/refresh": {
       "get": {
-        "tags": ["Auth & Session"],
+        "tags": [
+          "Auth & Session"
+        ],
         "summary": "Refresh access token",
         "description": "Generate a new JWT access token using the `refresh_cookie`. Cookie must be sent with the request.",
         "operationId": "refreshToken",
         "responses": {
           "200": {
             "description": "New access token",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AccessToken" } } }
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessToken"
+                }
+              }
+            }
           },
-          "400": { "description": "No or invalid refresh cookie", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+          "400": {
+            "description": "No or invalid refresh cookie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/users/logout": {
       "post": {
-        "tags": ["Auth & Session"],
+        "tags": [
+          "Auth & Session"
+        ],
         "summary": "Logout",
         "description": "Clears the refresh token cookie.",
         "operationId": "logout",
@@ -304,7 +529,9 @@
             "description": "Logged out",
             "content": {
               "application/json": {
-                "example": { "message": "User logged out successfully" }
+                "example": {
+                  "message": "User logged out successfully"
+                }
               }
             }
           }
@@ -313,7 +540,9 @@
     },
     "/users/send-verification-email": {
       "post": {
-        "tags": ["Auth & Session"],
+        "tags": [
+          "Auth & Session"
+        ],
         "summary": "Send email verification",
         "description": "Send an email verification link. No authentication required.",
         "operationId": "sendVerificationEmail",
@@ -323,21 +552,39 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["email"],
-                "properties": { "email": { "type": "string", "format": "email" } }
+                "required": [
+                  "email"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                }
               },
-              "example": { "email": "john@example.com" }
+              "example": {
+                "email": "john@example.com"
+              }
             }
           }
         },
         "responses": {
-          "200": { "description": "Email sent", "content": { "application/json": { "example": {} } } }
+          "200": {
+            "description": "Email sent",
+            "content": {
+              "application/json": {
+                "example": {}
+              }
+            }
+          }
         }
       }
     },
     "/users/verify-email/{verification_code}": {
       "get": {
-        "tags": ["Auth & Session"],
+        "tags": [
+          "Auth & Session"
+        ],
         "summary": "Verify email",
         "description": "Verify email using the token received by email.",
         "operationId": "verifyEmail",
@@ -346,22 +593,41 @@
             "name": "verification_code",
             "in": "path",
             "required": true,
-            "schema": { "type": "string" },
+            "schema": {
+              "type": "string"
+            },
             "description": "Token from the verification email"
           }
         ],
         "responses": {
           "200": {
             "description": "Email verified",
-            "content": { "application/json": { "example": { "email_verified": true } } }
+            "content": {
+              "application/json": {
+                "example": {
+                  "email_verified": true
+                }
+              }
+            }
           },
-          "400": { "description": "Invalid code", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+          "400": {
+            "description": "Invalid code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/users/send-recovery-email": {
       "post": {
-        "tags": ["Auth & Session"],
+        "tags": [
+          "Auth & Session"
+        ],
         "summary": "Send password recovery email",
         "description": "Trigger a password recovery email. No authentication required.",
         "operationId": "sendRecoveryEmail",
@@ -371,21 +637,39 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["email"],
-                "properties": { "email": { "type": "string", "format": "email" } }
+                "required": [
+                  "email"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                }
               },
-              "example": { "email": "john@example.com" }
+              "example": {
+                "email": "john@example.com"
+              }
             }
           }
         },
         "responses": {
-          "200": { "description": "Recovery email sent", "content": { "application/json": { "example": {} } } }
+          "200": {
+            "description": "Recovery email sent",
+            "content": {
+              "application/json": {
+                "example": {}
+              }
+            }
+          }
         }
       }
     },
     "/users/password-recovery/{verification_code}": {
       "post": {
-        "tags": ["Auth & Session"],
+        "tags": [
+          "Auth & Session"
+        ],
         "summary": "Reset password",
         "description": "Reset user password using the recovery token sent by email.",
         "operationId": "resetPassword",
@@ -394,7 +678,9 @@
             "name": "verification_code",
             "in": "path",
             "required": true,
-            "schema": { "type": "string" },
+            "schema": {
+              "type": "string"
+            },
             "description": "Token from the recovery email"
           }
         ],
@@ -404,24 +690,40 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["password"],
-                "properties": { "password": { "type": "string" } }
+                "required": [
+                  "password"
+                ],
+                "properties": {
+                  "password": {
+                    "type": "string"
+                  }
+                }
               },
-              "example": { "password": "NewSecurePass456!" }
+              "example": {
+                "password": "NewSecurePass456!"
+              }
             }
           }
         },
         "responses": {
           "200": {
             "description": "Password reset",
-            "content": { "application/json": { "example": { "password_reset": true } } }
+            "content": {
+              "application/json": {
+                "example": {
+                  "password_reset": true
+                }
+              }
+            }
           }
         }
       }
     },
     "/users/send-login-email": {
       "post": {
-        "tags": ["Auth & Session"],
+        "tags": [
+          "Auth & Session"
+        ],
         "summary": "Send magic-link login email",
         "description": "Send a passwordless magic-link login email. Email must be verified. No authentication required.",
         "operationId": "sendLoginEmail",
@@ -431,21 +733,39 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["email"],
-                "properties": { "email": { "type": "string", "format": "email" } }
+                "required": [
+                  "email"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                }
               },
-              "example": { "email": "john@example.com" }
+              "example": {
+                "email": "john@example.com"
+              }
             }
           }
         },
         "responses": {
-          "200": { "description": "Email sent", "content": { "application/json": { "example": {} } } }
+          "200": {
+            "description": "Email sent",
+            "content": {
+              "application/json": {
+                "example": {}
+              }
+            }
+          }
         }
       }
     },
     "/users/usertag": {
       "post": {
-        "tags": ["Auth & Session"],
+        "tags": [
+          "Auth & Session"
+        ],
         "summary": "Check username availability",
         "description": "Check if a username is valid and available (3–20 chars, unique). No authentication required.",
         "operationId": "checkUsertag",
@@ -455,28 +775,48 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["username"],
-                "properties": { "username": { "type": "string" } }
+                "required": [
+                  "username"
+                ],
+                "properties": {
+                  "username": {
+                    "type": "string"
+                  }
+                }
               },
-              "example": { "username": "johndoe" }
+              "example": {
+                "username": "johndoe"
+              }
             }
           }
         },
         "responses": {
           "200": {
             "description": "Availability result",
-            "content": { "application/json": { "example": { "is_valid": true } } }
+            "content": {
+              "application/json": {
+                "example": {
+                  "is_valid": true
+                }
+              }
+            }
           }
         }
       }
     },
     "/users/api-token": {
       "post": {
-        "tags": ["API Token"],
+        "tags": [
+          "API Token"
+        ],
         "summary": "Generate or rotate API token",
         "description": "Generate a new API token for server-to-server use. If a token already exists it is rotated. The plaintext token is returned **only once** — store it securely. Requires `api_enabled = true`.",
         "operationId": "generateApiToken",
-        "security": [{ "BearerAuth": [] }],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "responses": {
           "201": {
             "description": "Token generated",
@@ -490,30 +830,57 @@
               }
             }
           },
-          "403": { "description": "API token access not enabled", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+          "403": {
+            "description": "API token access not enabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
         }
       },
       "delete": {
-        "tags": ["API Token"],
+        "tags": [
+          "API Token"
+        ],
         "summary": "Revoke API token",
         "description": "Immediately revoke the user's current API token.",
         "operationId": "revokeApiToken",
-        "security": [{ "BearerAuth": [] }],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Token revoked",
-            "content": { "application/json": { "example": { "message": "API token revoked" } } }
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "API token revoked"
+                }
+              }
+            }
           }
         }
       }
     },
     "/users/api-token/status": {
       "get": {
-        "tags": ["API Token"],
+        "tags": [
+          "API Token"
+        ],
         "summary": "Get API token status",
         "description": "Check the current API token status without exposing the token value.",
         "operationId": "getApiTokenStatus",
-        "security": [{ "BearerAuth": [] }],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Token status",
@@ -547,11 +914,20 @@
     },
     "/users/home": {
       "get": {
-        "tags": ["Users"],
+        "tags": [
+          "Users"
+        ],
         "summary": "Get home screen data",
         "description": "Returns all home screen data: balance, rates, settings, and account status.",
         "operationId": "getHome",
-        "security": [{ "BearerAuth": [] }, { "ApiKeyAuth": [] }],
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Home data",
@@ -559,7 +935,7 @@
               "application/json": {
                 "example": {
                   "api_enabled": true,
-                  "combined_balance": 2169450.80,
+                  "combined_balance": 2169450.8,
                   "combined_balance_currency": "ARS",
                   "created_at": "2023-08-10 20:57:27",
                   "email": "example@gmail.com",
@@ -573,27 +949,84 @@
                   "kyc_tier": 2,
                   "qr_pending": null,
                   "rates": [
-                    { "buy": 1432.50, "pair": "USDT/ARS", "sell": 1497.20 },
-                    { "buy": 5.21, "pair": "USDT/BRL", "sell": 5.33 },
-                    { "buy": 68100.0, "pair": "BTC/USD", "sell": 70300.00 }
+                    {
+                      "buy": 1432.5,
+                      "pair": "USDT/ARS",
+                      "sell": 1497.2
+                    },
+                    {
+                      "buy": 5.21,
+                      "pair": "USDT/BRL",
+                      "sell": 5.33
+                    },
+                    {
+                      "buy": 68100,
+                      "pair": "BTC/USD",
+                      "sell": 70300
+                    }
                   ],
                   "referral_email": "",
                   "referral_username": "",
                   "settings": {
                     "beta_version": true,
                     "blockchains": [
-                      { "address": "0x3655a50f9ff1136826f1dbf293c1f27acc1f8971", "network": "ETHEREUM", "network_name": "Ethereum", "withdraw_fee": 12.0 },
-                      { "address": "36058311", "network": "BINANCE_ID", "network_name": "Binance ID", "withdraw_fee": 0.0 },
-                      { "address": "0x3655a50f9ff1136826f1dbf293c1f27acc1f8972", "network": "BSC", "network_name": "BNB Smart Chain (BSC)", "withdraw_fee": 0.2 },
-                      { "address": "0x3655a50f9ff1136826f1dbf293c1f27acc1f8972", "network": "POLYGON", "network_name": "Polygon", "withdraw_fee": 1.0 },
-                      { "address": "0x3655a50f9ff1136826f1dbf293c1f27acc1f8973", "network": "ARBITRUM", "network_name": "Arbitrum One", "withdraw_fee": 1.2 },
-                      { "address": "0x3655a50f9ff1136826f1dbf293c1f27acc1f8973", "network": "AVAX", "network_name": "AVAX C-Chain", "withdraw_fee": 0.14 },
-                      { "address": "0x3655a50f9ff1136826f1dbf293c1f27acc1f8974", "network": "OPTIMISM", "network_name": "Optimism", "withdraw_fee": 1.2 },
-                      { "address": "8SoMMBvQ7jm5avrSn1Yf57i9MDToH6re2xsYnuyyRN6A", "network": "SOLANA", "network_name": "Solana", "withdraw_fee": 1.0 },
-                      { "address": "TCZ7Gm6gmZhAFLLZWT12XwNLRwaWaxcVqA", "network": "TRON", "network_name": "Tron (TRC20)", "withdraw_fee": 1.0 }
+                      {
+                        "address": "0x3655a50f9ff1136826f1dbf293c1f27acc1f8971",
+                        "network": "ETHEREUM",
+                        "network_name": "Ethereum",
+                        "withdraw_fee": 12
+                      },
+                      {
+                        "address": "36058311",
+                        "network": "BINANCE_ID",
+                        "network_name": "Binance ID",
+                        "withdraw_fee": 0
+                      },
+                      {
+                        "address": "0x3655a50f9ff1136826f1dbf293c1f27acc1f8972",
+                        "network": "BSC",
+                        "network_name": "BNB Smart Chain (BSC)",
+                        "withdraw_fee": 0.2
+                      },
+                      {
+                        "address": "0x3655a50f9ff1136826f1dbf293c1f27acc1f8972",
+                        "network": "POLYGON",
+                        "network_name": "Polygon",
+                        "withdraw_fee": 1
+                      },
+                      {
+                        "address": "0x3655a50f9ff1136826f1dbf293c1f27acc1f8973",
+                        "network": "ARBITRUM",
+                        "network_name": "Arbitrum One",
+                        "withdraw_fee": 1.2
+                      },
+                      {
+                        "address": "0x3655a50f9ff1136826f1dbf293c1f27acc1f8973",
+                        "network": "AVAX",
+                        "network_name": "AVAX C-Chain",
+                        "withdraw_fee": 0.14
+                      },
+                      {
+                        "address": "0x3655a50f9ff1136826f1dbf293c1f27acc1f8974",
+                        "network": "OPTIMISM",
+                        "network_name": "Optimism",
+                        "withdraw_fee": 1.2
+                      },
+                      {
+                        "address": "8SoMMBvQ7jm5avrSn1Yf57i9MDToH6re2xsYnuyyRN6A",
+                        "network": "SOLANA",
+                        "network_name": "Solana",
+                        "withdraw_fee": 1
+                      },
+                      {
+                        "address": "TCZ7Gm6gmZhAFLLZWT12XwNLRwaWaxcVqA",
+                        "network": "TRON",
+                        "network_name": "Tron (TRC20)",
+                        "withdraw_fee": 1
+                      }
                     ],
                     "discount_referrals_days": 1,
-                    "discount_referrals_percentage": 1.0,
+                    "discount_referrals_percentage": 1,
                     "fast_fiat_transfer_fee": 0,
                     "features": {
                       "alternative_deposit": true,
@@ -623,11 +1056,14 @@
                   "state": "active",
                   "telegram_private_chat_id": "1508435924",
                   "updated_at": "2025-06-04 13:47:14",
-                  "usdt_balance": 1516.20,
+                  "usdt_balance": 1516.2,
                   "username": "johndoe",
                   "wallet_eth_address": "TCZ7Gm6gmZhAFLLZWT12XwNLRwaWaxcVqA",
                   "wallets_balance": [
-                    { "balance": 1516.20, "currency": "USDT" }
+                    {
+                      "balance": 1516.2,
+                      "currency": "USDT"
+                    }
                   ]
                 }
               }
@@ -638,11 +1074,20 @@
     },
     "/users/spending_limit": {
       "get": {
-        "tags": ["Users"],
+        "tags": [
+          "Users"
+        ],
         "summary": "Get spending limits",
         "description": "Returns the user's monthly spending limits based on KYC tier. All amounts in USDT.",
         "operationId": "getSpendingLimit",
-        "security": [{ "BearerAuth": [] }, { "ApiKeyAuth": [] }],
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Spending limit info",
@@ -650,7 +1095,7 @@
               "application/json": {
                 "example": {
                   "kyc_tier": 1,
-                  "current_limit": 500.0,
+                  "current_limit": 500,
                   "spended": 123.45,
                   "available": 376.55
                 }
@@ -662,11 +1107,17 @@
     },
     "/users/profile": {
       "get": {
-        "tags": ["Users"],
+        "tags": [
+          "Users"
+        ],
         "summary": "Get user profile",
         "description": "Returns the authenticated user's profile data.",
         "operationId": "getProfile",
-        "security": [{ "BearerAuth": [] }],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Profile data",
@@ -685,11 +1136,17 @@
         }
       },
       "patch": {
-        "tags": ["Users"],
+        "tags": [
+          "Users"
+        ],
         "summary": "Update user profile",
         "description": "Update profile fields. All fields are optional.",
         "operationId": "updateProfile",
-        "security": [{ "BearerAuth": [] }],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -697,10 +1154,18 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "username": { "type": "string" },
-                  "telegram": { "type": "string" },
-                  "phone": { "type": "string" },
-                  "beta_version": { "type": "string" }
+                  "username": {
+                    "type": "string"
+                  },
+                  "telegram": {
+                    "type": "string"
+                  },
+                  "phone": {
+                    "type": "string"
+                  },
+                  "beta_version": {
+                    "type": "string"
+                  }
                 }
               },
               "example": {
@@ -730,28 +1195,44 @@
     },
     "/users/user_settings": {
       "get": {
-        "tags": ["Users"],
+        "tags": [
+          "Users"
+        ],
         "summary": "Get user preferences",
         "description": "Returns language, beta, and currency preferences.",
         "operationId": "getUserSettings",
-        "security": [{ "BearerAuth": [] }],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "User preferences",
             "content": {
               "application/json": {
-                "example": { "language": "ES", "beta_version": true, "favorite_currency": "ARS" }
+                "example": {
+                  "language": "ES",
+                  "beta_version": true,
+                  "favorite_currency": "ARS"
+                }
               }
             }
           }
         }
       },
       "patch": {
-        "tags": ["Users"],
+        "tags": [
+          "Users"
+        ],
         "summary": "Update user preferences",
         "description": "Update language, beta mode, or favorite currency. All fields optional.",
         "operationId": "updateUserSettings",
-        "security": [{ "BearerAuth": [] }],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -759,30 +1240,62 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "language": { "type": "string", "enum": ["EN", "ES", "PT"] },
-                  "beta_version": { "type": "boolean" },
-                  "favourite_currency": { "type": "string", "enum": ["USD", "ARS", "BRL"] }
+                  "language": {
+                    "type": "string",
+                    "enum": [
+                      "EN",
+                      "ES",
+                      "PT"
+                    ]
+                  },
+                  "beta_version": {
+                    "type": "boolean"
+                  },
+                  "favourite_currency": {
+                    "type": "string",
+                    "enum": [
+                      "USD",
+                      "ARS",
+                      "BRL"
+                    ]
+                  }
                 }
               },
-              "example": { "language": "ES", "beta_version": true, "favourite_currency": "ARS" }
+              "example": {
+                "language": "ES",
+                "beta_version": true,
+                "favourite_currency": "ARS"
+              }
             }
           }
         },
         "responses": {
           "200": {
             "description": "Settings updated",
-            "content": { "application/json": { "example": { "message": "User settings updated successfully" } } }
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "User settings updated successfully"
+                }
+              }
+            }
           }
         }
       }
     },
     "/users/referral": {
       "post": {
-        "tags": ["Users"],
+        "tags": [
+          "Users"
+        ],
         "summary": "Get or create referral link",
         "description": "Returns the user's referral link and code, creating one if it doesn't exist.",
         "operationId": "getReferral",
-        "security": [{ "BearerAuth": [] }],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "requestBody": {
           "required": false,
           "content": {
@@ -790,11 +1303,19 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "email": { "type": "string", "format": "email" },
-                  "phone": { "type": "string" }
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "phone": {
+                    "type": "string"
+                  }
                 }
               },
-              "example": { "email": "friend@example.com", "phone": "5491155556666" }
+              "example": {
+                "email": "friend@example.com",
+                "phone": "5491155556666"
+              }
             }
           }
         },
@@ -815,17 +1336,28 @@
     },
     "/transactions/{id}": {
       "get": {
-        "tags": ["Transactions"],
+        "tags": [
+          "Transactions"
+        ],
         "summary": "Get transaction by ID",
         "description": "Get a single transaction by UUID or numeric ID. For Lightning deposits with PENDING status, the invoice is checked in real-time and may return COMPLETED.",
         "operationId": "getTransaction",
-        "security": [{ "BearerAuth": [] }, { "ApiKeyAuth": [] }],
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": { "type": "string" },
+            "schema": {
+              "type": "string"
+            },
             "description": "Transaction UUID or numeric ID",
             "example": "84253134-532a-4dff-bdb8-ca7149c1ca9e"
           }
@@ -841,15 +1373,15 @@
                   "blockchain_trx_id": null,
                   "created_at": "2026-03-28 23:43:06",
                   "currency_taken": "USDT",
-                  "current_rate": 1432.50,
-                  "fee_taken": 0.0,
+                  "current_rate": 1432.5,
+                  "fee_taken": 0,
                   "is_positive": false,
                   "lnurl_pr_invoice": null,
                   "lnurl_verify_invoice": null,
                   "local_payer_user_id": 3,
                   "network": null,
                   "note": null,
-                  "payment_amount": 10000.0,
+                  "payment_amount": 10000,
                   "payment_currency": "ARS",
                   "qr_image_url": null,
                   "receipt_image_url": "https://be-stage.wapu.app/file/stage/files/84253134-532a-4dff-bdb8-ca7149c1ca9e_andy_2026-03-29_02:45:38.591134.jpg",
@@ -868,21 +1400,41 @@
               }
             }
           },
-          "404": { "description": "Transaction not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+          "404": {
+            "description": "Transaction not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
         }
       },
       "patch": {
-        "tags": ["Transactions"],
+        "tags": [
+          "Transactions"
+        ],
         "summary": "Update transaction status",
         "description": "Update a transaction's status. Currently only `CANCELED` is user-actionable.",
         "operationId": "updateTransaction",
-        "security": [{ "BearerAuth": [] }, { "ApiKeyAuth": [] }],
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": { "type": "string" },
+            "schema": {
+              "type": "string"
+            },
             "description": "Transaction UUID"
           }
         ],
@@ -892,26 +1444,51 @@
             "multipart/form-data": {
               "schema": {
                 "type": "object",
-                "required": ["status"],
+                "required": [
+                  "status"
+                ],
                 "properties": {
-                  "status": { "type": "string", "enum": ["CANCELED"] }
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "CANCELED"
+                    ]
+                  }
                 }
               }
             }
           }
         },
         "responses": {
-          "200": { "description": "Updated transaction", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Transaction" } } } }
+          "200": {
+            "description": "Updated transaction",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Transaction"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/transactions/my_transactions": {
       "get": {
-        "tags": ["Transactions"],
+        "tags": [
+          "Transactions"
+        ],
         "summary": "List my transactions",
         "description": "Get all transactions for the authenticated user, ordered by date descending.",
         "operationId": "listMyTransactions",
-        "security": [{ "BearerAuth": [] }, { "ApiKeyAuth": [] }],
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Transaction list",
@@ -926,7 +1503,7 @@
                       "created_at": "2026-03-28 23:45:39",
                       "currency_taken": "ARS",
                       "current_rate": null,
-                      "fee_taken": 0.0,
+                      "fee_taken": 0,
                       "is_positive": true,
                       "lnurl_pr_invoice": null,
                       "lnurl_verify_invoice": null,
@@ -941,7 +1518,7 @@
                       "sender_username": null,
                       "source_address": null,
                       "status": "Completed",
-                      "total_amount_taken": 0.0,
+                      "total_amount_taken": 0,
                       "transaction_id": "935b3518-2cf6-4038-921d-47907426d22d",
                       "transaction_related_id": 924,
                       "type": "payer_reward",
@@ -955,15 +1532,15 @@
                       "blockchain_trx_id": null,
                       "created_at": "2026-03-28 23:43:06",
                       "currency_taken": "USDT",
-                      "current_rate": 1432.50,
-                      "fee_taken": 0.0,
+                      "current_rate": 1432.5,
+                      "fee_taken": 0,
                       "is_positive": false,
                       "lnurl_pr_invoice": null,
                       "lnurl_verify_invoice": null,
                       "local_payer_user_id": 3,
                       "network": null,
                       "note": null,
-                      "payment_amount": 10000.0,
+                      "payment_amount": 10000,
                       "payment_currency": "ARS",
                       "qr_image_url": null,
                       "receipt_image_url": "https://be-stage.wapu.app/file/stage/files/84253134-532a-4dff-bdb8-ca7149c1ca9e_andy_2026-03-29_02:45:38.591134.jpg",
@@ -989,25 +1566,61 @@
     },
     "/transactions/create": {
       "post": {
-        "tags": ["Transactions"],
+        "tags": [
+          "Transactions"
+        ],
         "summary": "Create payment transaction",
         "description": "Create a new outgoing payment transaction. Supports `fiat_transfer`, `fast_fiat_transfer`, and `qr_payment` types.",
         "operationId": "createTransaction",
-        "security": [{ "BearerAuth": [] }, { "ApiKeyAuth": [] }],
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "multipart/form-data": {
               "schema": {
                 "type": "object",
-                "required": ["type", "payment_amount", "currency_taken"],
+                "required": [
+                  "type",
+                  "payment_amount",
+                  "currency_taken"
+                ],
                 "properties": {
-                  "type": { "type": "string", "enum": ["fiat_transfer", "fast_fiat_transfer", "qr_payment"] },
-                  "payment_amount": { "type": "number", "description": "Amount in ARS" },
-                  "currency_taken": { "type": "string", "enum": ["USDT"] },
-                  "alias": { "type": "string", "description": "Bank alias/CBU — required for fiat_transfer and fast_fiat_transfer" },
-                  "receiver_name": { "type": "string" },
-                  "qr_image_url": { "type": "string", "description": "QR image URL — required for qr_payment" }
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "fiat_transfer",
+                      "fast_fiat_transfer",
+                      "qr_payment"
+                    ]
+                  },
+                  "payment_amount": {
+                    "type": "number",
+                    "description": "Amount in ARS"
+                  },
+                  "currency_taken": {
+                    "type": "string",
+                    "enum": [
+                      "USDT"
+                    ]
+                  },
+                  "alias": {
+                    "type": "string",
+                    "description": "Bank alias/CBU — required for fiat_transfer and fast_fiat_transfer"
+                  },
+                  "receiver_name": {
+                    "type": "string"
+                  },
+                  "qr_image_url": {
+                    "type": "string",
+                    "description": "QR image URL — required for qr_payment"
+                  }
                 }
               },
               "examples": {
@@ -1035,30 +1648,80 @@
           }
         },
         "responses": {
-          "201": { "description": "Transaction created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Transaction" } } } },
-          "400": { "description": "Validation error (insufficient funds, invalid alias, limits exceeded, etc.)", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+          "201": {
+            "description": "Transaction created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Transaction"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error (insufficient funds, invalid alias, limits exceeded, etc.)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/transactions/tentative-amount": {
       "post": {
-        "tags": ["Transactions"],
+        "tags": [
+          "Transactions"
+        ],
         "summary": "Calculate tentative amount",
         "description": "Preview the USDT cost, fee, and exchange rate for a hypothetical transaction — without creating it.",
         "operationId": "tentativeAmount",
-        "security": [{ "BearerAuth": [] }, { "ApiKeyAuth": [] }],
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["amount", "currency_payment", "currency_taken", "type"],
+                "required": [
+                  "amount",
+                  "currency_payment",
+                  "currency_taken",
+                  "type"
+                ],
                 "properties": {
-                  "amount": { "type": "number" },
-                  "currency_payment": { "type": "string", "enum": ["ARS", "BRL", "USD"] },
-                  "currency_taken": { "type": "string", "enum": ["USDT", "SAT"] },
-                  "type": { "type": "string", "description": "Transaction type" }
+                  "amount": {
+                    "type": "number"
+                  },
+                  "currency_payment": {
+                    "type": "string",
+                    "enum": [
+                      "ARS",
+                      "BRL",
+                      "USD"
+                    ]
+                  },
+                  "currency_taken": {
+                    "type": "string",
+                    "enum": [
+                      "USDT",
+                      "SAT"
+                    ]
+                  },
+                  "type": {
+                    "type": "string",
+                    "description": "Transaction type"
+                  }
                 }
               },
               "example": {
@@ -1079,69 +1742,159 @@
                   "usdt_amount": 6.99,
                   "fee": 0.14,
                   "total_amount": 7.13,
-                  "exchange_rate": 1432.50
+                  "exchange_rate": 1432.5
                 }
               }
             }
           },
-          "400": { "description": "Invalid type or unsupported currency", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+          "400": {
+            "description": "Invalid type or unsupported currency",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/transactions/inner_transfer": {
       "post": {
-        "tags": ["Transactions"],
+        "tags": [
+          "Transactions"
+        ],
         "summary": "Internal transfer to another user",
         "description": "Transfer USDT directly to another WapuPay user by username.",
         "operationId": "innerTransfer",
-        "security": [{ "BearerAuth": [] }, { "ApiKeyAuth": [] }],
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "multipart/form-data": {
               "schema": {
                 "type": "object",
-                "required": ["amount", "currency", "receiver_username"],
+                "required": [
+                  "amount",
+                  "currency",
+                  "receiver_username"
+                ],
                 "properties": {
-                  "amount": { "type": "number", "description": "Amount in USDT" },
-                  "currency": { "type": "string", "enum": ["USDT"] },
-                  "receiver_username": { "type": "string" }
+                  "amount": {
+                    "type": "number",
+                    "description": "Amount in USDT"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "enum": [
+                      "USDT"
+                    ]
+                  },
+                  "receiver_username": {
+                    "type": "string"
+                  }
                 }
               },
-              "example": { "amount": 10, "currency": "USDT", "receiver_username": "janedoe" }
+              "example": {
+                "amount": 10,
+                "currency": "USDT",
+                "receiver_username": "janedoe"
+              }
             }
           }
         },
         "responses": {
-          "201": { "description": "Transfer created (sender's debit transaction)", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Transaction" } } } },
-          "400": { "description": "Receiver not found or insufficient balance", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+          "201": {
+            "description": "Transfer created (sender's debit transaction)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Transaction"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Receiver not found or insufficient balance",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/wallet/deposit": {
       "post": {
-        "tags": ["Wallet"],
+        "tags": [
+          "Wallet"
+        ],
         "summary": "Initiate crypto deposit",
         "description": "Initiate a cryptocurrency (USDT/USDC) deposit via on-chain networks. Returns a pending transaction with the destination address.",
         "operationId": "depositCrypto",
-        "security": [{ "BearerAuth": [] }, { "ApiKeyAuth": [] }],
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["amount", "currency", "network"],
+                "required": [
+                  "amount",
+                  "currency",
+                  "network"
+                ],
                 "properties": {
-                  "amount": { "type": "number", "minimum": 1 },
-                  "currency": { "type": "string", "enum": ["USDT", "USDC"] },
+                  "amount": {
+                    "type": "number",
+                    "minimum": 1
+                  },
+                  "currency": {
+                    "type": "string",
+                    "enum": [
+                      "USDT",
+                      "USDC"
+                    ]
+                  },
                   "network": {
                     "type": "string",
-                    "enum": ["ETHEREUM", "BSC", "POLYGON", "ARBITRUM", "OPTIMISM", "AVAX", "TRON", "SOLANA", "BINANCE_ID"]
+                    "enum": [
+                      "ETHEREUM",
+                      "BSC",
+                      "POLYGON",
+                      "ARBITRUM",
+                      "OPTIMISM",
+                      "AVAX",
+                      "TRON",
+                      "SOLANA",
+                      "BINANCE_ID"
+                    ]
                   }
                 }
               },
-              "example": { "amount": 100.0, "currency": "USDT", "network": "POLYGON" }
+              "example": {
+                "amount": 100,
+                "currency": "USDT",
+                "network": "POLYGON"
+              }
             }
           }
         },
@@ -1157,14 +1910,14 @@
                   "created_at": "2026-03-29 00:30:17",
                   "currency_taken": "USDT",
                   "current_rate": null,
-                  "fee_taken": 0.0,
+                  "fee_taken": 0,
                   "is_positive": true,
                   "lnurl_pr_invoice": null,
                   "lnurl_verify_invoice": null,
                   "local_payer_user_id": null,
                   "network": "Polygon",
                   "note": null,
-                  "payment_amount": 100.0,
+                  "payment_amount": 100,
                   "payment_currency": "USDT",
                   "qr_image_url": null,
                   "receipt_image_url": null,
@@ -1172,7 +1925,7 @@
                   "sender_username": null,
                   "source_address": null,
                   "status": "Pending",
-                  "total_amount_taken": 0.0,
+                  "total_amount_taken": 0,
                   "transaction_id": "57750299-80e7-40e0-a422-c37419b1d6e8",
                   "transaction_related_id": null,
                   "type": "deposit",
@@ -1188,23 +1941,39 @@
     },
     "/wallet/deposit_lightning": {
       "post": {
-        "tags": ["Wallet"],
+        "tags": [
+          "Wallet"
+        ],
         "summary": "Initiate Lightning deposit",
         "description": "Generate a Lightning Network invoice to deposit SAT. The deposit is auto-confirmed when the invoice is paid.",
         "operationId": "depositLightning",
-        "security": [{ "BearerAuth": [] }, { "ApiKeyAuth": [] }],
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["amount"],
+                "required": [
+                  "amount"
+                ],
                 "properties": {
-                  "amount": { "type": "number", "description": "Amount in SAT" }
+                  "amount": {
+                    "type": "number",
+                    "description": "Amount in SAT"
+                  }
                 }
               },
-              "example": { "amount": 1000 }
+              "example": {
+                "amount": 1000
+              }
             }
           }
         },
@@ -1219,8 +1988,8 @@
                   "blockchain_trx_id": null,
                   "created_at": "2026-03-29 00:32:26",
                   "currency_taken": "SAT",
-                  "current_rate": 683.10,
-                  "fee_taken": 0.0,
+                  "current_rate": 683.1,
+                  "fee_taken": 0,
                   "is_positive": true,
                   "lnurl_pr_invoice": "lnbc10u1p5u382fhp58xsrl6gyqhec50nydnmjnhe0lqs7er2px7zhj4w7geqhz9pqmanqnp4qgt72s92ak77wsszt7dqs8shkjy0re5r8fs8tnsay4zg7gpjekrr7...",
                   "lnurl_verify_invoice": "https://getalby.com/lnurlp/andycreed/verify/BZYvtE6YYMHprkMgWMAdzxfC",
@@ -1251,55 +2020,128 @@
     },
     "/wallet/withdraw": {
       "post": {
-        "tags": ["Wallet"],
+        "tags": [
+          "Wallet"
+        ],
         "summary": "Withdraw crypto to external address",
         "description": "Initiate a cryptocurrency withdrawal to an external blockchain address.",
         "operationId": "withdrawCrypto",
-        "security": [{ "BearerAuth": [] }, { "ApiKeyAuth": [] }],
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["address", "network", "currency", "amount"],
+                "required": [
+                  "address",
+                  "network",
+                  "currency",
+                  "amount"
+                ],
                 "properties": {
-                  "address": { "type": "string", "description": "Destination blockchain address" },
-                  "network": { "type": "string", "enum": ["ETHEREUM", "BSC", "POLYGON", "ARBITRUM", "OPTIMISM", "AVAX", "TRON", "SOLANA", "BINANCE_ID"] },
-                  "currency": { "type": "string", "enum": ["USDT", "USDC"] },
-                  "amount": { "type": "number" },
-                  "receiver_name": { "type": "string" }
+                  "address": {
+                    "type": "string",
+                    "description": "Destination blockchain address"
+                  },
+                  "network": {
+                    "type": "string",
+                    "enum": [
+                      "ETHEREUM",
+                      "BSC",
+                      "POLYGON",
+                      "ARBITRUM",
+                      "OPTIMISM",
+                      "AVAX",
+                      "TRON",
+                      "SOLANA",
+                      "BINANCE_ID"
+                    ]
+                  },
+                  "currency": {
+                    "type": "string",
+                    "enum": [
+                      "USDT",
+                      "USDC"
+                    ]
+                  },
+                  "amount": {
+                    "type": "number"
+                  },
+                  "receiver_name": {
+                    "type": "string"
+                  }
                 }
               },
               "example": {
                 "address": "TCZ7Gm6gmZhAFLLZWT12XwNLRwaWaxcVqA",
                 "network": "TRON",
                 "currency": "USDT",
-                "amount": 25.0,
+                "amount": 25,
                 "receiver_name": "Jane Doe"
               }
             }
           }
         },
         "responses": {
-          "201": { "description": "Withdrawal pending", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Transaction" } } } },
-          "400": { "description": "Withdrawal info incomplete", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+          "201": {
+            "description": "Withdrawal pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Transaction"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Withdrawal info incomplete",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/contacts": {
       "get": {
-        "tags": ["Contacts"],
+        "tags": [
+          "Contacts"
+        ],
         "summary": "List contacts",
         "description": "Get the current user's contacts. Optionally filter by type.",
         "operationId": "listContacts",
-        "security": [{ "BearerAuth": [] }, { "ApiKeyAuth": [] }],
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "filter_type",
             "in": "query",
             "required": false,
-            "schema": { "type": "string", "enum": ["favourite", "recent"] },
+            "schema": {
+              "type": "string",
+              "enum": [
+                "favourite",
+                "recent"
+              ]
+            },
             "description": "Filter contacts by type"
           }
         ],
@@ -1344,62 +2186,140 @@
     },
     "/contacts/is_favourite": {
       "post": {
-        "tags": ["Contacts"],
+        "tags": [
+          "Contacts"
+        ],
         "summary": "Toggle contact favourite",
         "description": "Mark or unmark a contact as favourite.",
         "operationId": "setContactFavourite",
-        "security": [{ "BearerAuth": [] }, { "ApiKeyAuth": [] }],
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "multipart/form-data": {
               "schema": {
                 "type": "object",
-                "required": ["contact_id", "is_favourite"],
+                "required": [
+                  "contact_id",
+                  "is_favourite"
+                ],
                 "properties": {
-                  "contact_id": { "type": "integer" },
-                  "is_favourite": { "type": "string", "enum": ["true", "false"] }
+                  "contact_id": {
+                    "type": "integer"
+                  },
+                  "is_favourite": {
+                    "type": "string",
+                    "enum": [
+                      "true",
+                      "false"
+                    ]
+                  }
                 }
               },
-              "example": { "contact_id": 1, "is_favourite": "true" }
+              "example": {
+                "contact_id": 1,
+                "is_favourite": "true"
+              }
             }
           }
         },
         "responses": {
-          "200": { "description": "Updated contact", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Contact" } } } },
-          "400": { "description": "Invalid contact_id or is_favourite value", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-          "404": { "description": "Contact not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+          "200": {
+            "description": "Updated contact",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Contact"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid contact_id or is_favourite value",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Contact not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/contacts/{contact_id}": {
       "delete": {
-        "tags": ["Contacts"],
+        "tags": [
+          "Contacts"
+        ],
         "summary": "Delete contact",
         "description": "Permanently delete a contact.",
         "operationId": "deleteContact",
-        "security": [{ "BearerAuth": [] }, { "ApiKeyAuth": [] }],
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "contact_id",
             "in": "path",
             "required": true,
-            "schema": { "type": "integer" },
+            "schema": {
+              "type": "integer"
+            },
             "description": "Numeric contact ID"
           }
         ],
         "responses": {
           "200": {
             "description": "Contact deleted",
-            "content": { "application/json": { "example": { "message": "The contact has been deleted." } } }
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "The contact has been deleted."
+                }
+              }
+            }
           },
-          "404": { "description": "Contact not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+          "404": {
+            "description": "Contact not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/.well-known/lnurlp/{username}": {
       "get": {
-        "tags": ["Lightning Address"],
+        "tags": [
+          "Lightning Address"
+        ],
         "summary": "LNURL-pay metadata",
         "description": "LNURL-pay metadata endpoint used by Lightning wallets to discover payment parameters. Lightning address format: `<username>@wapu.app`.",
         "operationId": "lnurlpMetadata",
@@ -1408,7 +2328,9 @@
             "name": "username",
             "in": "path",
             "required": true,
-            "schema": { "type": "string" },
+            "schema": {
+              "type": "string"
+            },
             "description": "WapuPay username",
             "example": "johndoe"
           }
@@ -1427,9 +2349,15 @@
                   "minSendable": 1000,
                   "nostrPubkey": "79f00d3f5a19ec806189fcab03c1be4ff81d18ee4f653c88fac41fe03570f433",
                   "payerData": {
-                    "email": { "mandatory": false },
-                    "name": { "mandatory": false },
-                    "pubkey": { "mandatory": false }
+                    "email": {
+                      "mandatory": false
+                    },
+                    "name": {
+                      "mandatory": false
+                    },
+                    "pubkey": {
+                      "mandatory": false
+                    }
                   },
                   "status": "OK",
                   "tag": "payRequest"
@@ -1442,7 +2370,9 @@
     },
     "/lnurlp/{username}/callback": {
       "get": {
-        "tags": ["Lightning Address"],
+        "tags": [
+          "Lightning Address"
+        ],
         "summary": "Generate Lightning invoice",
         "description": "Generate a Lightning invoice for the given user. Called by the payer's wallet after fetching LNURL metadata.",
         "operationId": "lnurlpCallback",
@@ -1451,7 +2381,9 @@
             "name": "username",
             "in": "path",
             "required": true,
-            "schema": { "type": "string" },
+            "schema": {
+              "type": "string"
+            },
             "description": "WapuPay username",
             "example": "johndoe"
           },
@@ -1459,7 +2391,9 @@
             "name": "amount",
             "in": "query",
             "required": true,
-            "schema": { "type": "integer" },
+            "schema": {
+              "type": "integer"
+            },
             "description": "Amount in millisatoshis",
             "example": 3000
           }
@@ -1487,13 +2421,37 @@
     }
   },
   "tags": [
-    { "name": "Utils", "description": "Health check, exchange rates, countries, settings" },
-    { "name": "Auth & Session", "description": "Login, token refresh, email verification, password recovery" },
-    { "name": "API Token", "description": "Generate and manage API keys for server-to-server integrations" },
-    { "name": "Users", "description": "Profile, preferences, spending limits, referrals" },
-    { "name": "Transactions", "description": "Create and manage payment transactions (fiat transfers, QR payments, inner transfers)" },
-    { "name": "Wallet", "description": "Crypto deposits (on-chain, Lightning) and withdrawals" },
-    { "name": "Contacts", "description": "Manage saved contacts and favourites" },
-    { "name": "Lightning Address", "description": "LNURL-pay protocol endpoints for <username>@wapu.app Lightning addresses" }
+    {
+      "name": "Utils",
+      "description": "Health check, exchange rates, countries, settings"
+    },
+    {
+      "name": "Auth & Session",
+      "description": "Login, token refresh, email verification, password recovery"
+    },
+    {
+      "name": "API Token",
+      "description": "Generate and manage API keys for server-to-server integrations"
+    },
+    {
+      "name": "Users",
+      "description": "Profile, preferences, spending limits, referrals"
+    },
+    {
+      "name": "Transactions",
+      "description": "Create and manage payment transactions (fiat transfers, QR payments, inner transfers)"
+    },
+    {
+      "name": "Wallet",
+      "description": "Crypto deposits (on-chain, Lightning) and withdrawals"
+    },
+    {
+      "name": "Contacts",
+      "description": "Manage saved contacts and favourites"
+    },
+    {
+      "name": "Lightning Address",
+      "description": "LNURL-pay protocol endpoints for <username>@wapu.app Lightning addresses"
+    }
   ]
 }
