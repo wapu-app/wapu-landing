@@ -1,0 +1,1497 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "WapuPay API",
+    "version": "0.21.0",
+    "description": "WapuPay es una plataforma que permite a los usuarios pagar en moneda local (ARS, BRL) usando criptomonedas (USDT) como activo subyacente.\n\n## Autenticación\n\nSe soportan dos esquemas:\n- **Bearer JWT** — se obtiene via `POST /users/login`. De corta duración; renovar con `GET /users/refresh`.\n- **API Key** — header `X-API-Key`. Requiere `api_enabled = true` en la cuenta del usuario.\n\n> Nunca enviar ambos esquemas a la vez — el servidor retorna `400`.\n\n## Rate Limiting\n\nRequests con API Key: **60 requests / 60 segundos** (ventana deslizante). Si se supera retorna `429`.\n\n## Formato de errores\n\nTodos los errores retornan `{ \"error\": \"mensaje\" }`.\n\n---\n\n🇬🇧 [English version](/api-docs/en)"
+  },
+  "servers": [
+    {
+      "url": "https://be-stage.wapu.app",
+      "description": "Staging (default — usar para pruebas)"
+    },
+    {
+      "url": "https://be-prod.wapu.app",
+      "description": "Producción"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Token JWT de acceso obtenido desde /users/login"
+      },
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "Token de API generado via POST /users/api-token. Requiere api_enabled=true en la cuenta."
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" }
+        },
+        "example": { "error": "Mensaje de error legible" }
+      },
+      "AccessToken": {
+        "type": "object",
+        "properties": {
+          "access_token": { "type": "string" }
+        },
+        "example": { "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." }
+      },
+      "Transaction": {
+        "type": "object",
+        "properties": {
+          "transaction_id": { "type": "string", "format": "uuid" },
+          "transaction_related_id": { "type": "integer", "nullable": true },
+          "status": { "type": "string", "enum": ["Pending", "Completed", "Taken", "Canceled", "UserPending", "Rejected"] },
+          "type": { "type": "string" },
+          "type_name": { "type": "string" },
+          "is_positive": { "type": "boolean" },
+          "payment_amount": { "type": "number" },
+          "payment_currency": { "type": "string" },
+          "currency_taken": { "type": "string" },
+          "total_amount_taken": { "type": "number" },
+          "fee_taken": { "type": "number" },
+          "current_rate": { "type": "number", "nullable": true },
+          "alias": { "type": "string", "nullable": true },
+          "receiver_name": { "type": "string", "nullable": true },
+          "network": { "type": "string", "nullable": true },
+          "address_destination": { "type": "string", "nullable": true },
+          "source_address": { "type": "string", "nullable": true },
+          "blockchain_trx_id": { "type": "string", "nullable": true },
+          "lnurl_pr_invoice": { "type": "string", "nullable": true },
+          "lnurl_verify_invoice": { "type": "string", "nullable": true },
+          "local_payer_user_id": { "type": "integer", "nullable": true },
+          "note": { "type": "string", "nullable": true },
+          "qr_image_url": { "type": "string", "nullable": true },
+          "receipt_image_url": { "type": "string", "nullable": true },
+          "username": { "type": "string" },
+          "sender_username": { "type": "string", "nullable": true },
+          "created_at": { "type": "string" },
+          "updated_at": { "type": "string" }
+        }
+      },
+      "Contact": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "user_id": { "type": "integer" },
+          "name_label": { "type": "string" },
+          "name_label_id": { "type": "integer", "nullable": true },
+          "network": { "type": "string", "nullable": true },
+          "wallet_address": { "type": "string", "nullable": true },
+          "bank_alias": { "type": "string", "nullable": true },
+          "is_favourite": { "type": "boolean" },
+          "created_at": { "type": "string" },
+          "updated_at": { "type": "string", "nullable": true }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/ping": {
+      "get": {
+        "tags": ["Utils"],
+        "summary": "Health check",
+        "description": "Retorna pong. No requiere autenticación.",
+        "operationId": "ping",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "message": { "type": "string" } }
+                },
+                "example": { "message": "pong" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/exchange_rates": {
+      "get": {
+        "tags": ["Utils"],
+        "summary": "Obtener tipos de cambio",
+        "description": "Retorna los tipos de cambio actuales. No requiere autenticación.",
+        "operationId": "getExchangeRates",
+        "responses": {
+          "200": {
+            "description": "Pares de tipos de cambio",
+            "content": {
+              "application/json": {
+                "example": {
+                  "rates": [
+                    { "buy": 1432.50, "pair": "USDT/ARS", "sell": 1498.80 },
+                    { "buy": 5.21, "pair": "USDT/BRL", "sell": 5.33 },
+                    { "buy": 68100, "pair": "BTC/USD", "sell": 70200.00 }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/countries": {
+      "get": {
+        "tags": ["Utils"],
+        "summary": "Listar países soportados",
+        "description": "Retorna todos los países soportados. No requiere autenticación.",
+        "operationId": "getCountries",
+        "responses": {
+          "200": {
+            "description": "Lista de países",
+            "content": {
+              "application/json": {
+                "example": [
+                  { "id": 1, "name": "Afghanistan" },
+                  { "id": 2, "name": "Albania" },
+                  { "id": 3, "name": "Algeria" }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/settings": {
+      "get": {
+        "tags": ["Utils"],
+        "summary": "Obtener configuración de la aplicación",
+        "description": "Valores de configuración globales de la plataforma. No requiere autenticación.",
+        "operationId": "getSettings",
+        "responses": {
+          "200": {
+            "description": "Objeto de configuración",
+            "content": {
+              "application/json": {
+                "example": {
+                  "settings": {
+                    "arg_discount_fee": 0.8,
+                    "buy_spread_usdtars_fee": 0.02,
+                    "buy_spread_usdtbrl_fee": 0.01,
+                    "discount_referrals_days": 1,
+                    "discount_referrals_percentage": 1,
+                    "exchange_source_btcusd": "letsbit",
+                    "external_kyc_url": "https://tally.so/r/3XYa4P",
+                    "fast_fiat_transfer_fee": 0.04,
+                    "feedback_url": "https://forms.gle/NbCa8CeE4WLBZLhJ7",
+                    "fiat_transfer_fee": 0.02,
+                    "file_service": "s3",
+                    "max_payment_amount_usdt_kyc_0": 50,
+                    "max_payment_amount_usdt_kyc_1": 1000,
+                    "max_payment_amount_usdt_kyc_2": 2000,
+                    "max_payment_amount_usdt_kyc_3": 5000,
+                    "min_deposit_usdt": 1,
+                    "min_payment_amount_ars": 10000,
+                    "min_pix_deposit_brl": 100,
+                    "minimum_withdrawal_amount_usdt": 10,
+                    "pix_deposit_fee": 0.01,
+                    "qr_payment_fee": 0.07,
+                    "referral_reward_fee_percentage": 0.5,
+                    "referral_rewards_days": 90,
+                    "sell_spread_usdtars_fee": 0.02,
+                    "sell_spread_usdtbrl_fee": 0.01,
+                    "webapp_design": "tamagui-1.0"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/file/{key}": {
+      "get": {
+        "tags": ["Utils"],
+        "summary": "Obtener comprobante de transacción",
+        "description": "Descarga un comprobante o archivo desde S3. Requiere JWT.",
+        "operationId": "downloadFile",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Clave del objeto en S3",
+            "example": "stage/files/84253134-532a-4dff-bdb8-ca7149c1ca9e_andy_2026-03-29_02:45:38.591134.jpg"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stream binario del archivo",
+            "content": { "application/octet-stream": {} }
+          },
+          "401": { "description": "No autorizado", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/users/login": {
+      "post": {
+        "tags": ["Sesión y Autenticación"],
+        "summary": "Iniciar sesión",
+        "description": "Autenticarse con email/contraseña o con `temp_password` (magic link). Retorna JWT y setea `refresh_cookie`.",
+        "operationId": "login",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string", "format": "email" },
+                  "password": { "type": "string" },
+                  "temp_password": { "type": "string", "description": "Token de magic link (alternativa a email+contraseña)" }
+                }
+              },
+              "examples": {
+                "password": {
+                  "summary": "Email + contraseña",
+                  "value": { "email": "john@example.com", "password": "SecurePass123!" }
+                },
+                "magic_link": {
+                  "summary": "Magic link",
+                  "value": { "temp_password": "<token_del_email_de_login>" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Autenticado. Setea refresh_cookie.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AccessToken" } } }
+          },
+          "400": { "description": "Información de usuario incompleta", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "401": { "description": "Credenciales inválidas", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/users/refresh": {
+      "get": {
+        "tags": ["Sesión y Autenticación"],
+        "summary": "Renovar token de acceso",
+        "description": "Genera un nuevo JWT usando el `refresh_cookie`. La cookie debe enviarse con el request.",
+        "operationId": "refreshToken",
+        "responses": {
+          "200": {
+            "description": "Nuevo token de acceso",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AccessToken" } } }
+          },
+          "400": { "description": "Cookie ausente o inválida", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/users/logout": {
+      "post": {
+        "tags": ["Sesión y Autenticación"],
+        "summary": "Cerrar sesión",
+        "description": "Elimina la cookie de refresh token.",
+        "operationId": "logout",
+        "responses": {
+          "200": {
+            "description": "Sesión cerrada",
+            "content": {
+              "application/json": {
+                "example": { "message": "User logged out successfully" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/send-verification-email": {
+      "post": {
+        "tags": ["Sesión y Autenticación"],
+        "summary": "Enviar verificación de email",
+        "description": "Envía un link de verificación por email. No requiere autenticación.",
+        "operationId": "sendVerificationEmail",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": { "email": { "type": "string", "format": "email" } }
+              },
+              "example": { "email": "john@example.com" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Email enviado", "content": { "application/json": { "example": {} } } }
+        }
+      }
+    },
+    "/users/verify-email/{verification_code}": {
+      "get": {
+        "tags": ["Sesión y Autenticación"],
+        "summary": "Verificar email",
+        "description": "Verifica el email usando el token recibido por email.",
+        "operationId": "verifyEmail",
+        "parameters": [
+          {
+            "name": "verification_code",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Token del email de verificación"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Email verificado",
+            "content": { "application/json": { "example": { "email_verified": true } } }
+          },
+          "400": { "description": "Código inválido", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/users/send-recovery-email": {
+      "post": {
+        "tags": ["Sesión y Autenticación"],
+        "summary": "Enviar email de recuperación de contraseña",
+        "description": "Dispara un email para recuperar la contraseña. No requiere autenticación.",
+        "operationId": "sendRecoveryEmail",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": { "email": { "type": "string", "format": "email" } }
+              },
+              "example": { "email": "john@example.com" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Email de recuperación enviado", "content": { "application/json": { "example": {} } } }
+        }
+      }
+    },
+    "/users/password-recovery/{verification_code}": {
+      "post": {
+        "tags": ["Sesión y Autenticación"],
+        "summary": "Resetear contraseña",
+        "description": "Resetea la contraseña del usuario usando el token de recuperación enviado por email.",
+        "operationId": "resetPassword",
+        "parameters": [
+          {
+            "name": "verification_code",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Token del email de recuperación"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["password"],
+                "properties": { "password": { "type": "string" } }
+              },
+              "example": { "password": "NuevaContraseña456!" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Contraseña reseteada",
+            "content": { "application/json": { "example": { "password_reset": true } } }
+          }
+        }
+      }
+    },
+    "/users/send-login-email": {
+      "post": {
+        "tags": ["Sesión y Autenticación"],
+        "summary": "Enviar email de login sin contraseña",
+        "description": "Envía un magic link de login. El email debe estar verificado. No requiere autenticación.",
+        "operationId": "sendLoginEmail",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": { "email": { "type": "string", "format": "email" } }
+              },
+              "example": { "email": "john@example.com" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Email enviado", "content": { "application/json": { "example": {} } } }
+        }
+      }
+    },
+    "/users/usertag": {
+      "post": {
+        "tags": ["Sesión y Autenticación"],
+        "summary": "Verificar disponibilidad de nombre de usuario",
+        "description": "Verifica si un nombre de usuario es válido y está disponible (3–20 caracteres, único). No requiere autenticación.",
+        "operationId": "checkUsertag",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username"],
+                "properties": { "username": { "type": "string" } }
+              },
+              "example": { "username": "johndoe" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Resultado de disponibilidad",
+            "content": { "application/json": { "example": { "is_valid": true } } }
+          }
+        }
+      }
+    },
+    "/users/api-token": {
+      "post": {
+        "tags": ["Token de API"],
+        "summary": "Generar o rotar token de API",
+        "description": "Genera un nuevo token de API para integraciones servidor a servidor. Si ya existe uno, se rota. El token en texto plano se retorna **solo una vez** — guardarlo de forma segura. Requiere `api_enabled = true`.",
+        "operationId": "generateApiToken",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "201": {
+            "description": "Token generado",
+            "content": {
+              "application/json": {
+                "example": {
+                  "token": "xK9mP2qL8rN5tW3uY7vZ0aB4cD6eF1g",
+                  "token_prefix": "xK9mP2qL8r",
+                  "message": "API token generated"
+                }
+              }
+            }
+          },
+          "403": { "description": "Acceso a token de API no habilitado", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      },
+      "delete": {
+        "tags": ["Token de API"],
+        "summary": "Revocar token de API",
+        "description": "Revoca inmediatamente el token de API actual del usuario.",
+        "operationId": "revokeApiToken",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Token revocado",
+            "content": { "application/json": { "example": { "message": "API token revoked" } } }
+          }
+        }
+      }
+    },
+    "/users/api-token/status": {
+      "get": {
+        "tags": ["Token de API"],
+        "summary": "Estado del token de API",
+        "description": "Verifica el estado actual del token de API sin exponer su valor.",
+        "operationId": "getApiTokenStatus",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Estado del token",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "has_token": {
+                    "summary": "Token existente",
+                    "value": {
+                      "has_token": true,
+                      "is_active": true,
+                      "last_used_at": "2026-03-15T14:30:00Z",
+                      "token_prefix": "xK9mP2qL8r"
+                    }
+                  },
+                  "no_token": {
+                    "summary": "Sin token",
+                    "value": {
+                      "has_token": false,
+                      "is_active": false,
+                      "last_used_at": null,
+                      "token_prefix": null
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/home": {
+      "get": {
+        "tags": ["Usuarios"],
+        "summary": "Datos de pantalla principal",
+        "description": "Retorna todos los datos de la pantalla principal: balance, tasas, configuración y estado de la cuenta.",
+        "operationId": "getHome",
+        "security": [{ "BearerAuth": [] }, { "ApiKeyAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Datos de home",
+            "content": {
+              "application/json": {
+                "example": {
+                  "api_enabled": true,
+                  "combined_balance": 2169450.80,
+                  "combined_balance_currency": "ARS",
+                  "created_at": "2023-08-10 20:57:27",
+                  "email": "example@gmail.com",
+                  "email_verified": true,
+                  "id": 3,
+                  "is_active": true,
+                  "is_admin": false,
+                  "is_business": false,
+                  "is_payer": true,
+                  "kyc_status": "Pending",
+                  "kyc_tier": 2,
+                  "qr_pending": null,
+                  "rates": [
+                    { "buy": 1432.50, "pair": "USDT/ARS", "sell": 1497.20 },
+                    { "buy": 5.21, "pair": "USDT/BRL", "sell": 5.33 },
+                    { "buy": 68100.0, "pair": "BTC/USD", "sell": 70300.00 }
+                  ],
+                  "referral_email": "",
+                  "referral_username": "",
+                  "settings": {
+                    "beta_version": true,
+                    "blockchains": [
+                      { "address": "0x3655a50f9ff1136826f1dbf293c1f27acc1f8971", "network": "ETHEREUM", "network_name": "Ethereum", "withdraw_fee": 12.0 },
+                      { "address": "36058311", "network": "BINANCE_ID", "network_name": "Binance ID", "withdraw_fee": 0.0 },
+                      { "address": "0x3655a50f9ff1136826f1dbf293c1f27acc1f8972", "network": "BSC", "network_name": "BNB Smart Chain (BSC)", "withdraw_fee": 0.2 },
+                      { "address": "0x3655a50f9ff1136826f1dbf293c1f27acc1f8972", "network": "POLYGON", "network_name": "Polygon", "withdraw_fee": 1.0 },
+                      { "address": "0x3655a50f9ff1136826f1dbf293c1f27acc1f8973", "network": "ARBITRUM", "network_name": "Arbitrum One", "withdraw_fee": 1.2 },
+                      { "address": "0x3655a50f9ff1136826f1dbf293c1f27acc1f8973", "network": "AVAX", "network_name": "AVAX C-Chain", "withdraw_fee": 0.14 },
+                      { "address": "0x3655a50f9ff1136826f1dbf293c1f27acc1f8974", "network": "OPTIMISM", "network_name": "Optimism", "withdraw_fee": 1.2 },
+                      { "address": "8SoMMBvQ7jm5avrSn1Yf57i9MDToH6re2xsYnuyyRN6A", "network": "SOLANA", "network_name": "Solana", "withdraw_fee": 1.0 },
+                      { "address": "TCZ7Gm6gmZhAFLLZWT12XwNLRwaWaxcVqA", "network": "TRON", "network_name": "Tron (TRC20)", "withdraw_fee": 1.0 }
+                    ],
+                    "discount_referrals_days": 1,
+                    "discount_referrals_percentage": 1.0,
+                    "fast_fiat_transfer_fee": 0,
+                    "features": {
+                      "alternative_deposit": true,
+                      "deposit": true,
+                      "edit_profile": true,
+                      "fast_fiat_transfer": true,
+                      "fiat_transfer": false,
+                      "lightning_deposit": true,
+                      "pix_deposit": false,
+                      "pwa_pop_up": true,
+                      "qr_payment": false,
+                      "send_inner_transf": true,
+                      "show_recent_fav_contacts": true
+                    },
+                    "fiat_transfer_fee": 0,
+                    "min_deposit_usdt": 1,
+                    "min_payment_amount_ars": 10000,
+                    "min_pix_deposit_brl": 100,
+                    "minimum_withdrawal_amount_usdt": 1000,
+                    "pix_deposit_fee": 0.01,
+                    "qr_payment_available": true,
+                    "qr_payment_fee": 0.07,
+                    "referral_reward_fee_percentage": 0.5,
+                    "referral_rewards_days": 90,
+                    "webapp_design": "tamagui-1.0"
+                  },
+                  "state": "active",
+                  "telegram_private_chat_id": "1508435924",
+                  "updated_at": "2025-06-04 13:47:14",
+                  "usdt_balance": 1516.20,
+                  "username": "johndoe",
+                  "wallet_eth_address": "TCZ7Gm6gmZhAFLLZWT12XwNLRwaWaxcVqA",
+                  "wallets_balance": [{ "balance": 1516.20, "currency": "USDT" }]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/spending_limit": {
+      "get": {
+        "tags": ["Usuarios"],
+        "summary": "Obtener límites de gasto",
+        "description": "Retorna los límites de gasto mensual del usuario según su nivel KYC. Todos los montos en USDT.",
+        "operationId": "getSpendingLimit",
+        "security": [{ "BearerAuth": [] }, { "ApiKeyAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Información de límites",
+            "content": {
+              "application/json": {
+                "example": {
+                  "kyc_tier": 1,
+                  "current_limit": 500.0,
+                  "spended": 123.45,
+                  "available": 376.55
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/profile": {
+      "get": {
+        "tags": ["Usuarios"],
+        "summary": "Obtener perfil de usuario",
+        "description": "Retorna los datos de perfil del usuario autenticado.",
+        "operationId": "getProfile",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Datos de perfil",
+            "content": {
+              "application/json": {
+                "example": {
+                  "username": "johndoe",
+                  "phone": "5491155556666",
+                  "telegram": "johndoe_tg",
+                  "email": "john@example.com",
+                  "beta_version": 0
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Usuarios"],
+        "summary": "Actualizar perfil de usuario",
+        "description": "Actualiza campos del perfil. Todos los campos son opcionales.",
+        "operationId": "updateProfile",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": { "type": "string" },
+                  "telegram": { "type": "string" },
+                  "phone": { "type": "string" },
+                  "beta_version": { "type": "string" }
+                }
+              },
+              "example": {
+                "username": "nuevousuario",
+                "telegram": "mi_telegram",
+                "phone": "5491155556666"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Perfil actualizado",
+            "content": {
+              "application/json": {
+                "example": {
+                  "username": "nuevousuario",
+                  "phone": "5491155556666",
+                  "telegram": "mi_telegram",
+                  "email": "john@example.com"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/user_settings": {
+      "get": {
+        "tags": ["Usuarios"],
+        "summary": "Obtener preferencias del usuario",
+        "description": "Retorna preferencias de idioma, beta y moneda favorita.",
+        "operationId": "getUserSettings",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Preferencias del usuario",
+            "content": {
+              "application/json": {
+                "example": { "language": "ES", "beta_version": true, "favorite_currency": "ARS" }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Usuarios"],
+        "summary": "Actualizar preferencias del usuario",
+        "description": "Actualiza idioma, modo beta o moneda favorita. Todos los campos son opcionales.",
+        "operationId": "updateUserSettings",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "language": { "type": "string", "enum": ["EN", "ES", "PT"] },
+                  "beta_version": { "type": "boolean" },
+                  "favourite_currency": { "type": "string", "enum": ["USD", "ARS", "BRL"] }
+                }
+              },
+              "example": { "language": "ES", "beta_version": true, "favourite_currency": "ARS" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Preferencias actualizadas",
+            "content": { "application/json": { "example": { "message": "User settings updated successfully" } } }
+          }
+        }
+      }
+    },
+    "/users/referral": {
+      "post": {
+        "tags": ["Usuarios"],
+        "summary": "Obtener o crear link de referido",
+        "description": "Retorna el link y código de referido del usuario, creándolo si no existe.",
+        "operationId": "getReferral",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string", "format": "email" },
+                  "phone": { "type": "string" }
+                }
+              },
+              "example": { "email": "amigo@example.com", "phone": "5491155556666" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Link de referido",
+            "content": {
+              "application/json": {
+                "example": {
+                  "referral_link": "https://wapu.app/signup?ref=ABC123",
+                  "referral_code": "ABC123"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/transactions/{id}": {
+      "get": {
+        "tags": ["Transacciones"],
+        "summary": "Obtener transacción por ID",
+        "description": "Obtiene una transacción por UUID o ID numérico. Para depósitos Lightning con estado PENDING, la factura se verifica en tiempo real y puede retornar COMPLETED.",
+        "operationId": "getTransaction",
+        "security": [{ "BearerAuth": [] }, { "ApiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "UUID o ID numérico de la transacción",
+            "example": "84253134-532a-4dff-bdb8-ca7149c1ca9e"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Objeto de transacción",
+            "content": {
+              "application/json": {
+                "example": {
+                  "address_destination": null,
+                  "alias": "alias.bancario.cbu",
+                  "blockchain_trx_id": null,
+                  "created_at": "2026-03-28 23:43:06",
+                  "currency_taken": "USDT",
+                  "current_rate": 1432.50,
+                  "fee_taken": 0.0,
+                  "is_positive": false,
+                  "lnurl_pr_invoice": null,
+                  "lnurl_verify_invoice": null,
+                  "local_payer_user_id": 3,
+                  "network": null,
+                  "note": null,
+                  "payment_amount": 10000.0,
+                  "payment_currency": "ARS",
+                  "qr_image_url": null,
+                  "receipt_image_url": "https://be-stage.wapu.app/file/stage/files/84253134-532a-4dff-bdb8-ca7149c1ca9e_andy_2026-03-29_02:45:38.591134.jpg",
+                  "receiver_name": "Jane Doe",
+                  "sender_username": null,
+                  "source_address": null,
+                  "status": "Completed",
+                  "total_amount_taken": 6.99,
+                  "transaction_id": "84253134-532a-4dff-bdb8-ca7149c1ca9e",
+                  "transaction_related_id": null,
+                  "type": "fast_fiat_transfer",
+                  "type_name": "Fast money sent",
+                  "updated_at": "2026-03-28 23:45:39",
+                  "username": "johndoe"
+                }
+              }
+            }
+          },
+          "404": { "description": "Transacción no encontrada", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      },
+      "patch": {
+        "tags": ["Transacciones"],
+        "summary": "Actualizar estado de transacción",
+        "description": "Actualiza el estado de una transacción. Actualmente solo `CANCELED` es accionable por el usuario.",
+        "operationId": "updateTransaction",
+        "security": [{ "BearerAuth": [] }, { "ApiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "UUID de la transacción"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["status"],
+                "properties": {
+                  "status": { "type": "string", "enum": ["CANCELED"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Transacción actualizada", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Transaction" } } } }
+        }
+      }
+    },
+    "/transactions/my_transactions": {
+      "get": {
+        "tags": ["Transacciones"],
+        "summary": "Listar mis transacciones",
+        "description": "Obtiene todas las transacciones del usuario autenticado, ordenadas por fecha descendente.",
+        "operationId": "listMyTransactions",
+        "security": [{ "BearerAuth": [] }, { "ApiKeyAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Lista de transacciones",
+            "content": {
+              "application/json": {
+                "example": {
+                  "transactions": [
+                    {
+                      "address_destination": null,
+                      "alias": "",
+                      "blockchain_trx_id": null,
+                      "created_at": "2026-03-28 23:45:39",
+                      "currency_taken": "ARS",
+                      "current_rate": null,
+                      "fee_taken": 0.0,
+                      "is_positive": true,
+                      "lnurl_pr_invoice": null,
+                      "lnurl_verify_invoice": null,
+                      "local_payer_user_id": null,
+                      "network": null,
+                      "note": null,
+                      "payment_amount": 6.99,
+                      "payment_currency": "USDT",
+                      "qr_image_url": "",
+                      "receipt_image_url": null,
+                      "receiver_name": "",
+                      "sender_username": null,
+                      "source_address": null,
+                      "status": "Completed",
+                      "total_amount_taken": 0.0,
+                      "transaction_id": "935b3518-2cf6-4038-921d-47907426d22d",
+                      "transaction_related_id": 924,
+                      "type": "payer_reward",
+                      "type_name": "Payer Reward",
+                      "updated_at": "2026-03-28 23:45:39",
+                      "username": "johndoe"
+                    },
+                    {
+                      "address_destination": null,
+                      "alias": "alias.bancario.cbu",
+                      "blockchain_trx_id": null,
+                      "created_at": "2026-03-28 23:43:06",
+                      "currency_taken": "USDT",
+                      "current_rate": 1432.50,
+                      "fee_taken": 0.0,
+                      "is_positive": false,
+                      "lnurl_pr_invoice": null,
+                      "lnurl_verify_invoice": null,
+                      "local_payer_user_id": 3,
+                      "network": null,
+                      "note": null,
+                      "payment_amount": 10000.0,
+                      "payment_currency": "ARS",
+                      "qr_image_url": null,
+                      "receipt_image_url": "https://be-stage.wapu.app/file/stage/files/84253134-532a-4dff-bdb8-ca7149c1ca9e_andy_2026-03-29_02:45:38.591134.jpg",
+                      "receiver_name": "Jane Doe",
+                      "sender_username": null,
+                      "source_address": null,
+                      "status": "Completed",
+                      "total_amount_taken": 6.99,
+                      "transaction_id": "84253134-532a-4dff-bdb8-ca7149c1ca9e",
+                      "transaction_related_id": null,
+                      "type": "fast_fiat_transfer",
+                      "type_name": "Fast money sent",
+                      "updated_at": "2026-03-28 23:45:39",
+                      "username": "johndoe"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/transactions/create": {
+      "post": {
+        "tags": ["Transacciones"],
+        "summary": "Crear transacción de pago",
+        "description": "Crea una nueva transacción de pago saliente. Soporta tipos `fiat_transfer`, `fast_fiat_transfer` y `qr_payment`.",
+        "operationId": "createTransaction",
+        "security": [{ "BearerAuth": [] }, { "ApiKeyAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["type", "payment_amount", "currency_taken"],
+                "properties": {
+                  "type": { "type": "string", "enum": ["fiat_transfer", "fast_fiat_transfer", "qr_payment"] },
+                  "payment_amount": { "type": "number", "description": "Monto en ARS" },
+                  "currency_taken": { "type": "string", "enum": ["USDT"] },
+                  "alias": { "type": "string", "description": "Alias/CBU bancario — requerido para fiat_transfer y fast_fiat_transfer" },
+                  "receiver_name": { "type": "string", "description": "Nombre del destinatario" },
+                  "qr_image_url": { "type": "string", "description": "URL de imagen QR — requerido para qr_payment" }
+                }
+              },
+              "examples": {
+                "fiat_transfer": {
+                  "summary": "Transferencia bancaria",
+                  "value": {
+                    "type": "fiat_transfer",
+                    "payment_amount": 10000,
+                    "currency_taken": "USDT",
+                    "alias": "alias.bancario.cbu",
+                    "receiver_name": "Jane Doe"
+                  }
+                },
+                "qr_payment": {
+                  "summary": "Pago QR",
+                  "value": {
+                    "type": "qr_payment",
+                    "payment_amount": 5000,
+                    "currency_taken": "USDT",
+                    "qr_image_url": "https://be-stage.wapu.app/file/stage/files/example_qr.jpg"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Transacción creada", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Transaction" } } } },
+          "400": { "description": "Error de validación (fondos insuficientes, alias inválido, límite excedido, etc.)", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/transactions/tentative-amount": {
+      "post": {
+        "tags": ["Transacciones"],
+        "summary": "Calcular monto tentativo",
+        "description": "Previsualiza el costo en USDT, fee y tipo de cambio para una transacción hipotética — sin crearla.",
+        "operationId": "tentativeAmount",
+        "security": [{ "BearerAuth": [] }, { "ApiKeyAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["amount", "currency_payment", "currency_taken", "type"],
+                "properties": {
+                  "amount": { "type": "number" },
+                  "currency_payment": { "type": "string", "enum": ["ARS", "BRL", "USD"] },
+                  "currency_taken": { "type": "string", "enum": ["USDT", "SAT"] },
+                  "type": { "type": "string", "description": "Tipo de transacción" }
+                }
+              },
+              "example": {
+                "amount": 10000,
+                "currency_payment": "ARS",
+                "currency_taken": "USDT",
+                "type": "fiat_transfer"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Previsualización de costo",
+            "content": {
+              "application/json": {
+                "example": {
+                  "usdt_amount": 6.99,
+                  "fee": 0.14,
+                  "total_amount": 7.13,
+                  "exchange_rate": 1432.50
+                }
+              }
+            }
+          },
+          "400": { "description": "Tipo inválido o moneda no soportada", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/transactions/inner_transfer": {
+      "post": {
+        "tags": ["Transacciones"],
+        "summary": "Transferencia interna a otro usuario",
+        "description": "Transfiere USDT directamente a otro usuario de WapuPay por nombre de usuario.",
+        "operationId": "innerTransfer",
+        "security": [{ "BearerAuth": [] }, { "ApiKeyAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["amount", "currency", "receiver_username"],
+                "properties": {
+                  "amount": { "type": "number", "description": "Monto en USDT" },
+                  "currency": { "type": "string", "enum": ["USDT"] },
+                  "receiver_username": { "type": "string", "description": "Nombre de usuario del destinatario" }
+                }
+              },
+              "example": { "amount": 10, "currency": "USDT", "receiver_username": "janedoe" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Transferencia creada (transacción de débito del emisor)", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Transaction" } } } },
+          "400": { "description": "Destinatario no encontrado o fondos insuficientes", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/wallet/deposit": {
+      "post": {
+        "tags": ["Billetera"],
+        "summary": "Iniciar depósito cripto",
+        "description": "Inicia un depósito de criptomonedas (USDT/USDC) via redes on-chain. Retorna una transacción pendiente con la dirección de destino.",
+        "operationId": "depositCrypto",
+        "security": [{ "BearerAuth": [] }, { "ApiKeyAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["amount", "currency", "network"],
+                "properties": {
+                  "amount": { "type": "number", "minimum": 1 },
+                  "currency": { "type": "string", "enum": ["USDT", "USDC"] },
+                  "network": {
+                    "type": "string",
+                    "enum": ["ETHEREUM", "BSC", "POLYGON", "ARBITRUM", "OPTIMISM", "AVAX", "TRON", "SOLANA", "BINANCE_ID"]
+                  }
+                }
+              },
+              "example": { "amount": 100.0, "currency": "USDT", "network": "POLYGON" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Depósito pendiente — enviar fondos a address_destination",
+            "content": {
+              "application/json": {
+                "example": {
+                  "address_destination": "0x3655a50f9ff1136826f1dbf293c1f27acc1f897c",
+                  "alias": null,
+                  "blockchain_trx_id": null,
+                  "created_at": "2026-03-29 00:30:17",
+                  "currency_taken": "USDT",
+                  "current_rate": null,
+                  "fee_taken": 0.0,
+                  "is_positive": true,
+                  "lnurl_pr_invoice": null,
+                  "lnurl_verify_invoice": null,
+                  "local_payer_user_id": null,
+                  "network": "Polygon",
+                  "note": null,
+                  "payment_amount": 100.0,
+                  "payment_currency": "USDT",
+                  "qr_image_url": null,
+                  "receipt_image_url": null,
+                  "receiver_name": null,
+                  "sender_username": null,
+                  "source_address": null,
+                  "status": "Pending",
+                  "total_amount_taken": 0.0,
+                  "transaction_id": "57750299-80e7-40e0-a422-c37419b1d6e8",
+                  "transaction_related_id": null,
+                  "type": "deposit",
+                  "type_name": "Deposit",
+                  "updated_at": "2026-03-29 00:30:17",
+                  "username": "johndoe"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/wallet/deposit_lightning": {
+      "post": {
+        "tags": ["Billetera"],
+        "summary": "Iniciar depósito Lightning",
+        "description": "Genera una factura de Lightning Network para depositar SAT. El depósito se confirma automáticamente cuando se paga la factura.",
+        "operationId": "depositLightning",
+        "security": [{ "BearerAuth": [] }, { "ApiKeyAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["amount"],
+                "properties": {
+                  "amount": { "type": "number", "description": "Monto en SAT" }
+                }
+              },
+              "example": { "amount": 1000 }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Factura Lightning creada",
+            "content": {
+              "application/json": {
+                "example": {
+                  "address_destination": null,
+                  "alias": null,
+                  "blockchain_trx_id": null,
+                  "created_at": "2026-03-29 00:32:26",
+                  "currency_taken": "SAT",
+                  "current_rate": 683.10,
+                  "fee_taken": 0.0,
+                  "is_positive": true,
+                  "lnurl_pr_invoice": "lnbc10u1p5u382fhp58xsrl6gyqhec50nydnmjnhe0lqs7er2px7zhj4w7geqhz9pqmanqnp4qgt72s92ak77wsszt7dqs8shkjy0re5r8fs8tnsay4zg7gpjekrr7...",
+                  "lnurl_verify_invoice": "https://getalby.com/lnurlp/andycreed/verify/BZYvtE6YYMHprkMgWMAdzxfC",
+                  "local_payer_user_id": null,
+                  "network": "Lightning Network",
+                  "note": null,
+                  "payment_amount": 0.68,
+                  "payment_currency": "USDT",
+                  "qr_image_url": null,
+                  "receipt_image_url": null,
+                  "receiver_name": null,
+                  "sender_username": null,
+                  "source_address": null,
+                  "status": "Pending",
+                  "total_amount_taken": 1000,
+                  "transaction_id": "361b4052-1269-41d0-a59c-719ab5f3bf6e",
+                  "transaction_related_id": null,
+                  "type": "deposit",
+                  "type_name": "Deposit",
+                  "updated_at": "2026-03-29 00:32:26",
+                  "username": "johndoe"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/wallet/withdraw": {
+      "post": {
+        "tags": ["Billetera"],
+        "summary": "Retirar cripto a dirección externa",
+        "description": "Inicia un retiro de criptomonedas a una dirección blockchain externa.",
+        "operationId": "withdrawCrypto",
+        "security": [{ "BearerAuth": [] }, { "ApiKeyAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["address", "network", "currency", "amount"],
+                "properties": {
+                  "address": { "type": "string", "description": "Dirección blockchain de destino" },
+                  "network": { "type": "string", "enum": ["ETHEREUM", "BSC", "POLYGON", "ARBITRUM", "OPTIMISM", "AVAX", "TRON", "SOLANA", "BINANCE_ID"] },
+                  "currency": { "type": "string", "enum": ["USDT", "USDC"] },
+                  "amount": { "type": "number" },
+                  "receiver_name": { "type": "string", "description": "Nombre del destinatario para registro" }
+                }
+              },
+              "example": {
+                "address": "TCZ7Gm6gmZhAFLLZWT12XwNLRwaWaxcVqA",
+                "network": "TRON",
+                "currency": "USDT",
+                "amount": 25.0,
+                "receiver_name": "Jane Doe"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Retiro pendiente", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Transaction" } } } },
+          "400": { "description": "Información de retiro incompleta", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/contacts": {
+      "get": {
+        "tags": ["Contactos"],
+        "summary": "Listar contactos",
+        "description": "Obtiene los contactos del usuario actual. Opcionalmente filtrar por tipo.",
+        "operationId": "listContacts",
+        "security": [{ "BearerAuth": [] }, { "ApiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "filter_type",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "enum": ["favourite", "recent"] },
+            "description": "Filtrar contactos por tipo"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de contactos",
+            "content": {
+              "application/json": {
+                "example": {
+                  "contacts": [
+                    {
+                      "bank_alias": "234545",
+                      "created_at": "2025-09-14 13:07:00",
+                      "id": 2,
+                      "is_favourite": false,
+                      "name_label": "Hack",
+                      "name_label_id": null,
+                      "network": null,
+                      "updated_at": "2025-09-14 13:07:00",
+                      "user_id": 3,
+                      "wallet_address": null
+                    },
+                    {
+                      "bank_alias": "alias.test.cbu",
+                      "created_at": "2025-09-14 12:14:58",
+                      "id": 1,
+                      "is_favourite": true,
+                      "name_label": "Jane Doe",
+                      "name_label_id": null,
+                      "network": null,
+                      "updated_at": "2025-09-14 12:14:58",
+                      "user_id": 3,
+                      "wallet_address": null
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/contacts/is_favourite": {
+      "post": {
+        "tags": ["Contactos"],
+        "summary": "Marcar/desmarcar contacto como favorito",
+        "description": "Marca o desmarca un contacto como favorito.",
+        "operationId": "setContactFavourite",
+        "security": [{ "BearerAuth": [] }, { "ApiKeyAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["contact_id", "is_favourite"],
+                "properties": {
+                  "contact_id": { "type": "integer" },
+                  "is_favourite": { "type": "string", "enum": ["true", "false"] }
+                }
+              },
+              "example": { "contact_id": 1, "is_favourite": "true" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Contacto actualizado", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Contact" } } } },
+          "400": { "description": "contact_id o valor de is_favourite inválido", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "Contacto no encontrado", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/contacts/{contact_id}": {
+      "delete": {
+        "tags": ["Contactos"],
+        "summary": "Eliminar contacto",
+        "description": "Elimina permanentemente un contacto.",
+        "operationId": "deleteContact",
+        "security": [{ "BearerAuth": [] }, { "ApiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "contact_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" },
+            "description": "ID numérico del contacto"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Contacto eliminado",
+            "content": { "application/json": { "example": { "message": "The contact has been deleted." } } }
+          },
+          "404": { "description": "Contacto no encontrado", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/.well-known/lnurlp/{username}": {
+      "get": {
+        "tags": ["Lightning Address"],
+        "summary": "Metadata LNURL-pay",
+        "description": "Endpoint de metadata LNURL-pay usado por billeteras Lightning para descubrir parámetros de pago. Formato de dirección Lightning: `<username>@wapu.app`.",
+        "operationId": "lnurlpMetadata",
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Nombre de usuario en WapuPay",
+            "example": "johndoe"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Metadata LNURL-pay",
+            "content": {
+              "application/json": {
+                "example": {
+                  "allowsNostr": true,
+                  "callback": "https://be-stage.wapu.app/lnurlp/johndoe/callback",
+                  "commentAllowed": 255,
+                  "maxSendable": 10000000000,
+                  "metadata": "[[\"text/identifier\",\"johndoe@wapu.app\"],[\"text/plain\",\"Sats for johndoe\"]]",
+                  "minSendable": 1000,
+                  "nostrPubkey": "79f00d3f5a19ec806189fcab03c1be4ff81d18ee4f653c88fac41fe03570f433",
+                  "payerData": {
+                    "email": { "mandatory": false },
+                    "name": { "mandatory": false },
+                    "pubkey": { "mandatory": false }
+                  },
+                  "status": "OK",
+                  "tag": "payRequest"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/lnurlp/{username}/callback": {
+      "get": {
+        "tags": ["Lightning Address"],
+        "summary": "Generar factura Lightning",
+        "description": "Genera una factura Lightning para el usuario indicado. Llamado por la billetera del pagador tras obtener la metadata LNURL.",
+        "operationId": "lnurlpCallback",
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Nombre de usuario en WapuPay",
+            "example": "johndoe"
+          },
+          {
+            "name": "amount",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "integer" },
+            "description": "Monto en milisatoshis",
+            "example": 3000
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Factura Lightning",
+            "content": {
+              "application/json": {
+                "example": {
+                  "pr": "lnbc30n1p5u3ggyhp58xsrl6gyqhec50nydnmjnhe0lqs7er2px7zhj4w7geqhz9pqmanqnp4qgt72s92ak77wsszt7dqs8shkjy0re5r8fs8tnsay4zg7gpjekrr7...",
+                  "routes": [],
+                  "status": "OK",
+                  "successAction": {
+                    "message": "Thanks, sats received!",
+                    "tag": "message"
+                  },
+                  "verify": "https://getalby.com/lnurlp/andycreed/verify/VhMVYnmDaQDdCdNvHNAGhADt"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    { "name": "Utils", "description": "Health check, tipos de cambio, países, configuración" },
+    { "name": "Sesión y Autenticación", "description": "Login, renovación de token, verificación de email, recuperación de contraseña" },
+    { "name": "Token de API", "description": "Generar y gestionar API keys para integraciones servidor a servidor" },
+    { "name": "Usuarios", "description": "Perfil, preferencias, límites de gasto, referidos" },
+    { "name": "Transacciones", "description": "Crear y gestionar transacciones de pago (transferencias bancarias, pagos QR, transferencias internas)" },
+    { "name": "Billetera", "description": "Depósitos cripto (on-chain, Lightning) y retiros" },
+    { "name": "Contactos", "description": "Gestionar contactos guardados y favoritos" },
+    { "name": "Lightning Address", "description": "Endpoints del protocolo LNURL-pay para direcciones Lightning <username>@wapu.app" }
+  ]
+}
