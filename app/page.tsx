@@ -65,7 +65,15 @@ export default function Home() {
               rel="noreferrer"
               className="rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm transition hover:bg-white/20"
             >
-              Ver GitHub
+              GitHub del CLI
+            </a>
+            <a
+              href="https://wapupay.com"
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-xl border border-fuchsia-300/20 bg-fuchsia-400/10 px-3 py-2 text-sm text-fuchsia-200 transition hover:bg-fuchsia-400/20"
+            >
+              Volver a Wapupay
             </a>
           </div>
         </header>
