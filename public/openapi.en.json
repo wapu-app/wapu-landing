@@ -166,6 +166,148 @@
           }
         }
       },
+      "DirectFiatTentative": {
+        "type": "object",
+        "description": "Direct fiat payment tentative with a frozen quote for crypto funding.",
+        "required": [
+          "uuid",
+          "status",
+          "expires_at",
+          "funding_currency",
+          "funding_network",
+          "exchange_rate",
+          "fee_amount_usdt",
+          "funding_amount_usdt",
+          "total_amount_usdt"
+        ],
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "CREATED",
+              "FUNDING_ISSUED",
+              "EXECUTED",
+              "EXPIRED",
+              "SETTLED_TO_BALANCE",
+              "FAILED"
+            ]
+          },
+          "expires_at": {
+            "type": "string",
+            "description": "Tentative expiration date.",
+            "example": "2026-05-24 14:35:00"
+          },
+          "funding_currency": {
+            "type": "string",
+            "enum": [
+              "USDT",
+              "SAT"
+            ]
+          },
+          "funding_network": {
+            "type": "string",
+            "enum": [
+              "LIGHTNING",
+              "ETHEREUM",
+              "POLYGON",
+              "ARBITRUM",
+              "LIQUID"
+            ]
+          },
+          "exchange_rate": {
+            "type": "number",
+            "description": "Frozen USDT/ARS exchange rate."
+          },
+          "fee_amount_usdt": {
+            "type": "number"
+          },
+          "funding_amount_usdt": {
+            "type": "number"
+          },
+          "funding_amount_sat": {
+            "type": "integer",
+            "nullable": true
+          },
+          "total_amount_usdt": {
+            "type": "number"
+          },
+          "refund_address": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "example": {
+          "uuid": "7f4b8b8d-39a4-4f80-8e89-44d1f8dff111",
+          "status": "CREATED",
+          "expires_at": "2026-05-24 14:35:00",
+          "funding_currency": "USDT",
+          "funding_network": "POLYGON",
+          "exchange_rate": 1432.5,
+          "fee_amount_usdt": 0.14,
+          "funding_amount_usdt": 6.99,
+          "total_amount_usdt": 7.13,
+          "refund_address": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"
+        }
+      },
+      "DirectFiatFundingInstructions": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/DirectFiatTentative"
+          },
+          {
+            "type": "object",
+            "description": "Tentative with issued funding instructions.",
+            "required": [
+              "deposit_transaction_id"
+            ],
+            "properties": {
+              "deposit_transaction_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "address_destination": {
+                "type": "string",
+                "description": "USDT deposit address."
+              },
+              "asset_id": {
+                "type": "string",
+                "description": "Liquid USDT asset ID, when applicable."
+              },
+              "funding_expires_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Liquid funding instructions expiration."
+              },
+              "lightning_pr": {
+                "type": "string",
+                "description": "BOLT11 invoice for Lightning funding."
+              },
+              "lightning_verify_url": {
+                "type": "string",
+                "format": "uri",
+                "description": "LNURL verification URL."
+              }
+            },
+            "example": {
+              "uuid": "7f4b8b8d-39a4-4f80-8e89-44d1f8dff111",
+              "status": "FUNDING_ISSUED",
+              "expires_at": "2026-05-24 14:35:00",
+              "funding_currency": "USDT",
+              "funding_network": "POLYGON",
+              "exchange_rate": 1432.5,
+              "fee_amount_usdt": 0.14,
+              "funding_amount_usdt": 6.99,
+              "total_amount_usdt": 7.13,
+              "deposit_transaction_id": "2b1ec8dc-1c1b-4e82-b220-fb33dd16cb2a",
+              "address_destination": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"
+            }
+          }
+        ]
+      },
       "Contact": {
         "type": "object",
         "properties": {
@@ -1749,6 +1891,307 @@
           },
           "400": {
             "description": "Invalid type or unsupported currency",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/transactions/direct-fiat/tentatives": {
+      "post": {
+        "tags": [
+          "Transactions"
+        ],
+        "summary": "Create direct fiat payment tentative",
+        "description": "Create a tentative with a frozen quote to pay ARS and fund it with USDT or Lightning. Funding instructions are not issued until the `/funding` endpoint is called.",
+        "operationId": "createDirectFiatTentative",
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "amount_ars",
+                  "type",
+                  "alias",
+                  "funding_method",
+                  "network"
+                ],
+                "properties": {
+                  "amount_ars": {
+                    "type": "number",
+                    "description": "Amount to pay in ARS.",
+                    "example": 10000
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "fiat_transfer",
+                      "fast_fiat_transfer"
+                    ],
+                    "description": "Fiat transfer type."
+                  },
+                  "alias": {
+                    "type": "string",
+                    "description": "Recipient bank alias/CBU/CVU.",
+                    "example": "alias.bancario.cbu"
+                  },
+                  "receiver_name": {
+                    "type": "string",
+                    "description": "Recipient name.",
+                    "example": "Jane Doe"
+                  },
+                  "funding_method": {
+                    "type": "string",
+                    "enum": [
+                      "USDT",
+                      "LIGHTNING"
+                    ],
+                    "description": "Asset or rail used to fund the tentative."
+                  },
+                  "network": {
+                    "type": "string",
+                    "enum": [
+                      "LIGHTNING",
+                      "ETHEREUM",
+                      "POLYGON",
+                      "ARBITRUM",
+                      "LIQUID"
+                    ],
+                    "description": "Funding network. Use LIGHTNING for Lightning."
+                  },
+                  "refund_address": {
+                    "type": "string",
+                    "description": "Optional refund address if funding cannot be executed."
+                  }
+                }
+              },
+              "examples": {
+                "usdt": {
+                  "summary": "USDT funding",
+                  "value": {
+                    "amount_ars": 10000,
+                    "type": "fiat_transfer",
+                    "alias": "alias.bancario.cbu",
+                    "receiver_name": "Jane Doe",
+                    "funding_method": "USDT",
+                    "network": "POLYGON",
+                    "refund_address": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"
+                  }
+                },
+                "lightning": {
+                  "summary": "Lightning funding",
+                  "value": {
+                    "amount_ars": 10000,
+                    "type": "fast_fiat_transfer",
+                    "alias": "alias.bancario.cbu",
+                    "receiver_name": "Jane Doe",
+                    "funding_method": "LIGHTNING",
+                    "network": "LIGHTNING"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Tentative created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectFiatTentative"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Tentative not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Tentative cannot be reused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/transactions/direct-fiat/tentatives/{tentative_id}": {
+      "get": {
+        "tags": [
+          "Transactions"
+        ],
+        "summary": "Get direct fiat payment tentative",
+        "description": "Return the authenticated user's tentative. If funding instructions were already issued, the response may include deposit data.",
+        "operationId": "getDirectFiatTentative",
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tentative_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Tentative UUID."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tentative",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/DirectFiatTentative"
+                    },
+                    {
+                      "$ref": "#/components/schemas/DirectFiatFundingInstructions"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Tentative not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Tentative cannot be reused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/transactions/direct-fiat/tentatives/{tentative_id}/funding": {
+      "post": {
+        "tags": [
+          "Transactions"
+        ],
+        "summary": "Issue funding instructions",
+        "description": "Generate the deposit transaction needed to fund the tentative. For Lightning it returns an invoice; for USDT it returns a deposit address.",
+        "operationId": "issueDirectFiatFunding",
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tentative_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Tentative UUID."
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Funding instructions issued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectFiatFundingInstructions"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Tentative not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Tentative cannot be reused",
             "content": {
               "application/json": {
                 "schema": {
