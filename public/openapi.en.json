@@ -143,10 +143,6 @@
             "type": "string",
             "nullable": true
           },
-          "qr_image_url": {
-            "type": "string",
-            "nullable": true
-          },
           "receipt_image_url": {
             "type": "string",
             "nullable": true
@@ -170,7 +166,7 @@
         "type": "object",
         "description": "Direct fiat payment tentative with a frozen quote for crypto funding.",
         "required": [
-          "uuid",
+          "tentative_id",
           "status",
           "expires_at",
           "funding_currency",
@@ -181,7 +177,7 @@
           "total_amount_usdt"
         ],
         "properties": {
-          "uuid": {
+          "tentative_id": {
             "type": "string",
             "format": "uuid"
           },
@@ -241,7 +237,7 @@
           }
         },
         "example": {
-          "uuid": "7f4b8b8d-39a4-4f80-8e89-44d1f8dff111",
+          "tentative_id": "7f4b8b8d-39a4-4f80-8e89-44d1f8dff111",
           "status": "CREATED",
           "expires_at": "2026-05-24 14:35:00",
           "funding_currency": "USDT",
@@ -262,12 +258,21 @@
             "type": "object",
             "description": "Tentative with issued funding instructions.",
             "required": [
-              "deposit_transaction_id"
+              "funding_transaction_id",
+              "executed_transaction_id"
             ],
             "properties": {
-              "deposit_transaction_id": {
+              "funding_transaction_id": {
                 "type": "string",
-                "format": "uuid"
+                "format": "uuid",
+                "nullable": true,
+                "description": "UUID of the deposit transaction used to fund the tentative, or null if it does not exist yet."
+              },
+              "executed_transaction_id": {
+                "type": "string",
+                "format": "uuid",
+                "nullable": true,
+                "description": "UUID of the executed fiat transaction, or null if it has not executed yet."
               },
               "address_destination": {
                 "type": "string",
@@ -293,7 +298,7 @@
               }
             },
             "example": {
-              "uuid": "7f4b8b8d-39a4-4f80-8e89-44d1f8dff111",
+              "tentative_id": "7f4b8b8d-39a4-4f80-8e89-44d1f8dff111",
               "status": "FUNDING_ISSUED",
               "expires_at": "2026-05-24 14:35:00",
               "funding_currency": "USDT",
@@ -302,7 +307,8 @@
               "fee_amount_usdt": 0.14,
               "funding_amount_usdt": 6.99,
               "total_amount_usdt": 7.13,
-              "deposit_transaction_id": "2b1ec8dc-1c1b-4e82-b220-fb33dd16cb2a",
+              "funding_transaction_id": "2b1ec8dc-1c1b-4e82-b220-fb33dd16cb2a",
+              "executed_transaction_id": null,
               "address_destination": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"
             }
           }
@@ -347,6 +353,49 @@
             "nullable": true
           }
         }
+      },
+      "DirectFiatTentativeStatus": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/DirectFiatTentative"
+          },
+          {
+            "type": "object",
+            "description": "Tentative returned by GET, with transaction identifiers always present.",
+            "required": [
+              "funding_transaction_id",
+              "executed_transaction_id"
+            ],
+            "properties": {
+              "funding_transaction_id": {
+                "type": "string",
+                "format": "uuid",
+                "nullable": true,
+                "description": "UUID of the deposit transaction used to fund the tentative, or null if it does not exist yet."
+              },
+              "executed_transaction_id": {
+                "type": "string",
+                "format": "uuid",
+                "nullable": true,
+                "description": "UUID of the executed fiat transaction, or null if it has not executed yet."
+              }
+            },
+            "example": {
+              "tentative_id": "7f4b8b8d-39a4-4f80-8e89-44d1f8dff111",
+              "status": "CREATED",
+              "expires_at": "2026-05-24 14:35:00",
+              "funding_currency": "USDT",
+              "funding_network": "POLYGON",
+              "exchange_rate": 1432.5,
+              "fee_amount_usdt": 0.14,
+              "funding_amount_usdt": 6.99,
+              "total_amount_usdt": 7.13,
+              "refund_address": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+              "funding_transaction_id": null,
+              "executed_transaction_id": null
+            }
+          }
+        ]
       }
     }
   },
@@ -487,7 +536,6 @@
                     "min_pix_deposit_brl": 100,
                     "minimum_withdrawal_amount_usdt": 10,
                     "pix_deposit_fee": 0.01,
-                    "qr_payment_fee": 0.07,
                     "referral_reward_fee_percentage": 0.5,
                     "referral_rewards_days": 90,
                     "sell_spread_usdtars_fee": 0.02,
@@ -1179,7 +1227,6 @@
                       "lightning_deposit": true,
                       "pix_deposit": false,
                       "pwa_pop_up": true,
-                      "qr_payment": false,
                       "send_inner_transf": true,
                       "show_recent_fav_contacts": true
                     },
@@ -1189,8 +1236,6 @@
                     "min_pix_deposit_brl": 100,
                     "minimum_withdrawal_amount_usdt": 1000,
                     "pix_deposit_fee": 0.01,
-                    "qr_payment_available": true,
-                    "qr_payment_fee": 0.07,
                     "referral_reward_fee_percentage": 0.5,
                     "referral_rewards_days": 90,
                     "webapp_design": "tamagui-1.0"
@@ -1525,7 +1570,6 @@
                   "note": null,
                   "payment_amount": 10000,
                   "payment_currency": "ARS",
-                  "qr_image_url": null,
                   "receipt_image_url": "https://be-stage.wapu.app/file/stage/files/84253134-532a-4dff-bdb8-ca7149c1ca9e_andy_2026-03-29_02:45:38.591134.jpg",
                   "receiver_name": "Jane Doe",
                   "sender_username": null,
@@ -1654,7 +1698,6 @@
                       "note": null,
                       "payment_amount": 6.99,
                       "payment_currency": "USDT",
-                      "qr_image_url": "",
                       "receipt_image_url": null,
                       "receiver_name": "",
                       "sender_username": null,
@@ -1684,7 +1727,6 @@
                       "note": null,
                       "payment_amount": 10000,
                       "payment_currency": "ARS",
-                      "qr_image_url": null,
                       "receipt_image_url": "https://be-stage.wapu.app/file/stage/files/84253134-532a-4dff-bdb8-ca7149c1ca9e_andy_2026-03-29_02:45:38.591134.jpg",
                       "receiver_name": "Jane Doe",
                       "sender_username": null,
@@ -1712,7 +1754,7 @@
           "Transactions"
         ],
         "summary": "Create payment transaction",
-        "description": "Create a new outgoing payment transaction. Supports `fiat_transfer`, `fast_fiat_transfer`, and `qr_payment` types.",
+        "description": "Create a new outgoing payment transaction. Supports `fiat_transfer` and `fast_fiat_transfer` types.",
         "operationId": "createTransaction",
         "security": [
           {
@@ -1738,8 +1780,7 @@
                     "type": "string",
                     "enum": [
                       "fiat_transfer",
-                      "fast_fiat_transfer",
-                      "qr_payment"
+                      "fast_fiat_transfer"
                     ]
                   },
                   "payment_amount": {
@@ -1758,10 +1799,6 @@
                   },
                   "receiver_name": {
                     "type": "string"
-                  },
-                  "qr_image_url": {
-                    "type": "string",
-                    "description": "QR image URL — required for qr_payment"
                   }
                 }
               },
@@ -1774,15 +1811,6 @@
                     "currency_taken": "USDT",
                     "alias": "alias.bancario.cbu",
                     "receiver_name": "Jane Doe"
-                  }
-                },
-                "qr_payment": {
-                  "summary": "QR payment",
-                  "value": {
-                    "type": "qr_payment",
-                    "payment_amount": 5000,
-                    "currency_taken": "USDT",
-                    "qr_image_url": "https://be-stage.wapu.app/file/stage/files/example_qr.jpg"
                   }
                 }
               }
@@ -2088,7 +2116,7 @@
                 "schema": {
                   "anyOf": [
                     {
-                      "$ref": "#/components/schemas/DirectFiatTentative"
+                      "$ref": "#/components/schemas/DirectFiatTentativeStatus"
                     },
                     {
                       "$ref": "#/components/schemas/DirectFiatFundingInstructions"
@@ -2362,7 +2390,6 @@
                   "note": null,
                   "payment_amount": 100,
                   "payment_currency": "USDT",
-                  "qr_image_url": null,
                   "receipt_image_url": null,
                   "receiver_name": null,
                   "sender_username": null,
@@ -2441,7 +2468,6 @@
                   "note": null,
                   "payment_amount": 0.68,
                   "payment_currency": "USDT",
-                  "qr_image_url": null,
                   "receipt_image_url": null,
                   "receiver_name": null,
                   "sender_username": null,
@@ -2882,7 +2908,7 @@
     },
     {
       "name": "Transactions",
-      "description": "Create and manage payment transactions (fiat transfers, QR payments, inner transfers)"
+      "description": "Create and manage payment transactions (fiat transfers, inner transfers)"
     },
     {
       "name": "Wallet",
