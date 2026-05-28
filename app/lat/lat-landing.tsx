@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Fragment } from "react";
 
 const SHOW_BUY_BTC_MODULE = false;
 const WAPU_SIGNUP_URL = "https://my.wapu.app/newSignUp";
@@ -113,6 +114,38 @@ const operationSteps = [
   },
 ];
 
+const flowBoltPaths = [
+  "M2 27 L14 27 L20 10 L29 40 L39 17 L49 30 L61 16 L70 28 L94 28",
+  "M2 25 L16 25 L24 14 L31 37 L42 20 L53 31 L64 12 L73 26 L94 26",
+  "M2 29 L17 29 L23 17 L32 39 L44 14 L55 30 L66 20 L74 28 L94 28",
+];
+
+const flowBoltVerticalPaths = [
+  "M26 2 L26 15 L10 22 L40 31 L17 41 L31 53 L14 65 L27 74 L27 94",
+  "M24 2 L24 16 L38 24 L13 34 L35 44 L18 55 L40 66 L25 76 L25 94",
+  "M27 2 L27 14 L14 25 L41 34 L20 45 L35 55 L15 68 L28 78 L28 94",
+];
+
+function FlowConnector({ index }: { index: number }) {
+  const boltPath = flowBoltPaths[index % flowBoltPaths.length];
+  const verticalBoltPath = flowBoltVerticalPaths[index % flowBoltVerticalPaths.length];
+
+  return (
+    <div className={`lat-flow-connector lat-flow-connector-${index + 1}`} aria-hidden="true">
+      <svg className="lat-flow-bolt lat-flow-bolt-horizontal" viewBox="0 0 96 52" preserveAspectRatio="none">
+        <path className="lat-flow-bolt-glow" d={boltPath} />
+        <path className="lat-flow-bolt-core" d={boltPath} />
+        <path className="lat-flow-bolt-surge" d={boltPath} />
+      </svg>
+      <svg className="lat-flow-bolt lat-flow-bolt-vertical" viewBox="0 0 52 96" preserveAspectRatio="none">
+        <path className="lat-flow-bolt-glow" d={verticalBoltPath} />
+        <path className="lat-flow-bolt-core" d={verticalBoltPath} />
+        <path className="lat-flow-bolt-surge" d={verticalBoltPath} />
+      </svg>
+    </div>
+  );
+}
+
 const audience = [
   {
     title: "Bitcoiner con autocustodia",
@@ -195,6 +228,87 @@ const contactItems: Array<{ kind: ContactKind; label: string; value: string; hre
   },
 ];
 
+function ContactForm() {
+  return (
+    <form
+      action="/w/open"
+      aria-describedby="lat-contact-form-note"
+      className="lat-contact-form"
+      method="post"
+      target="_blank"
+    >
+      <input name="source" type="hidden" value="lat-contact-form" />
+      <input
+        aria-hidden="true"
+        autoComplete="off"
+        className="lat-contact-honeypot"
+        name="website"
+        tabIndex={-1}
+        type="text"
+      />
+
+      <div className="lat-contact-form-head">
+        <p className="lat-section-kicker">Mensaje directo</p>
+        <h3>Contanos qué querés resolver.</h3>
+        <p id="lat-contact-form-note">
+          Armamos el mensaje para que puedas enviarlo por el canal oficial sin perder contexto.
+        </p>
+      </div>
+
+      <div className="lat-contact-fields">
+        <label className="lat-contact-field" htmlFor="lat-contact-name">
+          <span>Nombre</span>
+          <input
+            autoComplete="name"
+            id="lat-contact-name"
+            name="name"
+            placeholder="Tu nombre"
+            required
+            type="text"
+          />
+        </label>
+
+        <label className="lat-contact-field" htmlFor="lat-contact-email">
+          <span>Email</span>
+          <input
+            autoComplete="email"
+            id="lat-contact-email"
+            name="email"
+            placeholder="tu@email.com"
+            required
+            type="email"
+          />
+        </label>
+
+        <label className="lat-contact-field lat-contact-field-wide" htmlFor="lat-contact-subject">
+          <span>Asunto</span>
+          <input
+            id="lat-contact-subject"
+            name="subject"
+            placeholder="Integración, soporte, partnership..."
+            required
+            type="text"
+          />
+        </label>
+
+        <label className="lat-contact-field lat-contact-field-wide" htmlFor="lat-contact-message">
+          <span>Mensaje</span>
+          <textarea
+            id="lat-contact-message"
+            name="message"
+            placeholder="Danos contexto y un contacto para responderte."
+            rows={5}
+          />
+        </label>
+      </div>
+
+      <button className="lat-primary-btn lat-contact-submit" type="submit">
+        Abrir mensaje
+      </button>
+    </form>
+  );
+}
+
 export default function LatLanding() {
   return (
     <main className="lat-page min-h-screen overflow-x-hidden bg-[#020202] text-white">
@@ -211,6 +325,9 @@ export default function LatLanding() {
               <a href="#escrow">Escrow</a>
               <a href="#ayuda">Ayuda</a>
               <a href="#contacto">Contacto</a>
+              <Link aria-label="Ir a la landing de Wapu CLI y API" className="lat-nav-cta lat-nav-cli-api" href="/">
+                CLI + API
+              </Link>
               <a className="lat-nav-cta" href={WAPU_SIGNUP_URL}>
                 Entrar a Wapu
               </a>
@@ -296,13 +413,16 @@ export default function LatLanding() {
           </div>
         </div>
 
-        <div className="lat-steps">
-          {operationSteps.map((step) => (
-            <article className="lat-step" key={step.eyebrow}>
-              <span>{step.eyebrow}</span>
-              <h3>{step.title}</h3>
-              <p>{step.body}</p>
-            </article>
+        <div className="lat-steps" aria-label="Flujo para convertir cripto en pesos con Wapu">
+          {operationSteps.map((step, index) => (
+            <Fragment key={step.eyebrow}>
+              <article className="lat-step lat-flow-node">
+                <span>{step.eyebrow}</span>
+                <h3>{step.title}</h3>
+                <p>{step.body}</p>
+              </article>
+              {index < operationSteps.length - 1 ? <FlowConnector index={index} /> : null}
+            </Fragment>
           ))}
         </div>
       </section>
@@ -416,23 +536,33 @@ export default function LatLanding() {
             <p className="lat-section-kicker">Contacto</p>
             <h2>Elegí el canal.</h2>
           </div>
+          <p>
+            Dejanos nombre, email, asunto y contexto. Si preferís algo más directo, abajo tenés los canales oficiales.
+          </p>
         </div>
 
-        <div className="lat-contact-grid" aria-label="Canales de contacto">
-          {contactItems.map((item) => (
-            <a
-              aria-label={`Abrir ${item.label} de Wapu`}
-              className="lat-contact-link"
-              href={item.href}
-              key={item.label}
-              rel="noreferrer"
-              target="_blank"
-            >
-              <ContactIcon kind={item.kind} />
-              <span>{item.label}</span>
-              <strong>{item.value}</strong>
-            </a>
-          ))}
+        <div className="lat-contact-layout">
+          <ContactForm />
+
+          <div className="lat-contact-channels">
+            <p className="lat-section-kicker">Canales directos</p>
+            <div className="lat-contact-grid" aria-label="Canales de contacto">
+              {contactItems.map((item) => (
+                <a
+                  aria-label={`Abrir ${item.label} de Wapu`}
+                  className="lat-contact-link"
+                  href={item.href}
+                  key={item.label}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  <ContactIcon kind={item.kind} />
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                </a>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
