@@ -1,10 +1,10 @@
-"use client";
-
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
 
 const SHOW_BUY_BTC_MODULE = false;
+const WAPU_SIGNUP_URL = "https://my.wapu.app/newSignUp";
+
+type ContactKind = "instagram" | "discord" | "whatsapp" | "x" | "linkedin";
 
 function BitcoinMark() {
   return (
@@ -48,6 +48,48 @@ function UsdtMark() {
   );
 }
 
+function ContactIcon({ kind }: { kind: ContactKind }) {
+  if (kind === "instagram") {
+    return (
+      <svg className="lat-contact-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.22.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.05.41 2.22.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.22-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.05.36-2.22.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.22-.41-.56-.22-.96-.48-1.38-.9-.42-.42-.68-.82-.9-1.38-.16-.42-.36-1.05-.41-2.22-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.22.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.05-.36 2.22-.41 1.27-.06 1.65-.07 4.85-.07m0-2.16C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.78.3-1.44.71-2.1 1.37C1.38 2.66.97 3.32.67 4.1.37 4.86.17 5.74.11 7.01.05 8.29.04 8.7.04 11.96s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.3.78.71 1.44 1.37 2.1.66.66 1.32 1.07 2.1 1.37.76.3 1.64.5 2.91.56 1.28.06 1.69.07 4.95.07s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56.78-.3 1.44-.71 2.1-1.37.66-.66 1.07-1.32 1.37-2.1.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91-.3-.78-.71-1.44-1.37-2.1-.66-.66-1.32-1.07-2.1-1.37-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0Z" />
+        <path d="M12 5.84a6.16 6.16 0 1 0 0 12.32 6.16 6.16 0 0 0 0-12.32Zm0 10.16a4 4 0 1 1 0-8 4 4 0 0 1 0 8Z" />
+        <path d="M18.4 4.16a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88Z" />
+      </svg>
+    );
+  }
+
+  if (kind === "discord") {
+    return (
+      <svg className="lat-contact-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M20.32 4.37A19.8 19.8 0 0 0 16.56 3c-.18.32-.39.76-.53 1.1a18.27 18.27 0 0 0-4.05 0c-.14-.34-.35-.78-.53-1.1a19.74 19.74 0 0 0-3.76 1.37C5.32 7.91 4.68 11.36 5 14.76a19.9 19.9 0 0 0 4.61 2.34c.37-.51.7-1.05.98-1.61-.54-.2-1.06-.45-1.55-.74.13-.1.26-.2.38-.3a14.16 14.16 0 0 0 12.17 0c.12.1.25.2.38.3-.49.29-1.01.54-1.55.74.28.56.61 1.1.98 1.61A19.85 19.85 0 0 0 26 14.76c.38-3.92-.64-7.34-2.68-10.39ZM10.46 12.66c-.9 0-1.64-.82-1.64-1.84 0-1.01.72-1.84 1.64-1.84.92 0 1.65.83 1.64 1.84 0 1.02-.72 1.84-1.64 1.84Zm5.84 0c-.9 0-1.64-.82-1.64-1.84 0-1.01.72-1.84 1.64-1.84.92 0 1.65.83 1.64 1.84 0 1.02-.72 1.84-1.64 1.84Z" transform="translate(-3)" />
+      </svg>
+    );
+  }
+
+  if (kind === "whatsapp") {
+    return (
+      <svg className="lat-contact-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.16-.17.2-.35.22-.64.07-.3-.15-1.26-.46-2.39-1.47-.88-.79-1.48-1.76-1.65-2.06-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.03-.52-.07-.15-.67-1.61-.92-2.2-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.88 1.22 3.07.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.23 1.36.2 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.69.25-1.29.17-1.41-.07-.13-.27-.2-.57-.35ZM12.05 21.78h-.01a9.87 9.87 0 0 1-5.03-1.38l-.36-.21-3.74.98 1-3.65-.24-.37a9.86 9.86 0 0 1-1.51-5.26c0-5.45 4.44-9.88 9.89-9.88 2.64 0 5.12 1.03 6.99 2.9a9.83 9.83 0 0 1 2.89 6.99c0 5.45-4.44 9.88-9.88 9.88ZM20.46 3.49A11.82 11.82 0 0 0 12.05 0C5.49 0 .16 5.34.16 11.89c0 2.1.55 4.14 1.59 5.95L.06 24l6.3-1.65a11.88 11.88 0 0 0 5.68 1.45h.01c6.55 0 11.89-5.34 11.89-11.89a11.82 11.82 0 0 0-3.48-8.42Z" />
+      </svg>
+    );
+  }
+
+  if (kind === "x") {
+    return (
+      <svg className="lat-contact-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M18.9 1.15h3.68l-8.04 9.19L24 22.85h-7.4l-5.8-7.58-6.63 7.58H.49l8.6-9.83L0 1.15h7.59l5.23 6.92Zm-1.29 19.5h2.04L6.48 3.23H4.29Z" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg className="lat-contact-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M20.45 20.45h-3.56v-5.57c0-1.33-.03-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46ZM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12Zm1.78 13.02H3.56V9h3.56ZM22.23 0H1.77C.8 0 0 .77 0 1.72v20.56C0 23.23.8 24 1.77 24h20.46c.98 0 1.77-.77 1.77-1.72V1.72C24 .77 23.2 0 22.23 0Z" />
+    </svg>
+  );
+}
+
 const operationSteps = [
   {
     eyebrow: "01",
@@ -75,14 +117,20 @@ const audience = [
   {
     title: "Bitcoiner con autocustodia",
     body: "Tenés hardware wallet, cuidás tu privacidad y no querés pasar por un exchange para cada movimiento.",
+    image: "/audience/bitcoiner-autocustodia-argentina.webp",
+    imageAlt: "Hardware wallet, mate y nodo personal en una cocina argentina de departamento.",
   },
   {
     title: "Freelancer cripto",
     body: "Cobrás en cripto y necesitás usar pesos en Argentina sin hacer malabares con bancos.",
+    image: "/audience/freelancer-cripto-barrio.webp",
+    imageAlt: "Freelancer trabajando desde un cafe de barrio con laptop, celular, pesos y cortado.",
   },
   {
     title: "Builder de Latam",
     body: "Querés una experiencia simple, mobile y directa para mover valor sin pedir permiso.",
+    image: "/audience/builder-latam-taller.webp",
+    imageAlt: "Builder probando prototipos en un taller con mate, cables y mapa de Latinoamerica.",
   },
 ];
 
@@ -114,65 +162,40 @@ const helpItems = [
   },
 ];
 
-const contactItems = [
+const contactItems: Array<{ kind: ContactKind; label: string; value: string; href: string }> = [
   {
-    label: "App",
-    value: "Entrar a Wapu",
-    href: "https://my.wapu.app/newSignUp?ref=a0447a8d",
+    kind: "instagram",
+    label: "Instagram",
+    value: "@wapu.app",
+    href: "https://www.instagram.com/wapu.app/",
   },
   {
-    label: "Soporte",
-    value: "support@wapupay.com",
-    href: "mailto:support@wapupay.com?Subject=Quiero%20usar%20Wapu%20sin%20KYC",
+    kind: "discord",
+    label: "Discord",
+    value: "Comunidad",
+    href: "https://discord.gg/m9AJ7SWxPB",
   },
   {
+    kind: "whatsapp",
     label: "WhatsApp",
-    value: "+54 9 11 2406-0850",
-    href: "https://api.whatsapp.com/send?phone=5491124060850&text=Hola,%20quiero%20saber%20mas%20sobre%20Wapu",
+    value: "Abrir chat",
+    href: "/w",
   },
   {
+    kind: "x",
     label: "X",
     value: "@wapupay",
     href: "https://twitter.com/wapupay",
   },
+  {
+    kind: "linkedin",
+    label: "LinkedIn",
+    value: "WapuPay",
+    href: "https://www.linkedin.com/company/wapupay/",
+  },
 ];
 
-const tabs = [
-  { id: "help", label: "Ayuda" },
-  { id: "contact", label: "Contacto" },
-] as const;
-
-type TabId = (typeof tabs)[number]["id"];
-
 export default function LatLanding() {
-  const [activeTab, setActiveTab] = useState<TabId>("help");
-
-  const activePanel = useMemo(() => {
-    if (activeTab === "contact") {
-      return (
-        <div className="lat-contact-grid">
-          {contactItems.map((item) => (
-            <a className="lat-contact-link" href={item.href} key={item.label} target="_blank" rel="noreferrer">
-              <span>{item.label}</span>
-              <strong>{item.value}</strong>
-            </a>
-          ))}
-        </div>
-      );
-    }
-
-    return (
-      <div className="lat-help-list">
-        {helpItems.map((item) => (
-          <details className="lat-help-item" key={item.question}>
-            <summary>{item.question}</summary>
-            <p>{item.answer}</p>
-          </details>
-        ))}
-      </div>
-    );
-  }, [activeTab]);
-
   return (
     <main className="lat-page min-h-screen overflow-x-hidden bg-[#020202] text-white">
       <section className="lat-hero">
@@ -187,7 +210,8 @@ export default function LatLanding() {
               <a href="#flujo">Flujo</a>
               <a href="#escrow">Escrow</a>
               <a href="#ayuda">Ayuda</a>
-              <a className="lat-nav-cta" href="https://my.wapu.app/newSignUp?ref=a0447a8d">
+              <a href="#contacto">Contacto</a>
+              <a className="lat-nav-cta" href={WAPU_SIGNUP_URL}>
                 Entrar a Wapu
               </a>
             </nav>
@@ -202,7 +226,7 @@ export default function LatLanding() {
                 liquidación a pesos cuando querés salir al mundo real.
               </p>
               <div className="lat-actions">
-                <a className="lat-primary-btn" href="https://my.wapu.app/newSignUp?ref=a0447a8d">
+                <a className="lat-primary-btn" href={WAPU_SIGNUP_URL}>
                   Entrar a Wapu
                 </a>
                 <a className="lat-secondary-btn" href="#video">
@@ -211,7 +235,7 @@ export default function LatLanding() {
               </div>
               <div className="lat-proof-row" aria-label="Atributos del producto">
                 <span>Sin formularios de identidad</span>
-                <span>Escrow cripto</span>
+                <span>P2P cripto</span>
                 <span>Salida a ARS</span>
               </div>
             </div>
@@ -258,7 +282,6 @@ export default function LatLanding() {
       </section>
 
       <section className="lat-section lat-manifest">
-        <p className="lat-section-kicker">Manifiesto</p>
         <h2>No necesitás pedir permiso para mover tu dinero.</h2>
         <p>
           Wapu no te obliga a convertir tu privacidad en un formulario. Es una experiencia P2P asistida para operar con
@@ -269,13 +292,8 @@ export default function LatLanding() {
       <section className="lat-section" id="flujo">
         <div className="lat-section-head">
           <div>
-            <p className="lat-section-kicker">Flujo real</p>
             <h2>Cripto entra. Pesos salen.</h2>
           </div>
-          <p>
-            El usuario no busca contraparte. Wapu coordina la ruta por detras con operadores confiables y el flujo se
-            mantiene simple en la app.
-          </p>
         </div>
 
         <div className="lat-steps">
@@ -313,7 +331,7 @@ export default function LatLanding() {
             <h2>No negociás con desconocidos.</h2>
           </div>
           <p>
-            Wapu trabaja con contrapartes de confianza por detras. Para el usuario, el proceso se siente como una app:
+            Wapu trabaja con contrapartes de confianza por detras:
             depositar, elegir destino, esperar y recibir.
           </p>
         </div>
@@ -342,19 +360,25 @@ export default function LatLanding() {
       <section className="lat-section" id="personas">
         <div className="lat-section-head">
           <div>
-            <p className="lat-section-kicker">Para quien es</p>
             <h2>Privacidad sin teatro corporativo.</h2>
           </div>
-          <p>
-            Wapu habla con usuarios que ya entienden Bitcoin, autocustodia y privacidad. La landing no tiene que
-            explicarles por que importa: tiene que mostrarles que funciona.
-          </p>
+
         </div>
         <div className="lat-audience-grid">
           {audience.map((item) => (
-            <article key={item.title}>
-              <h3>{item.title}</h3>
-              <p>{item.body}</p>
+            <article className="lat-audience-card" key={item.title}>
+              <div className="lat-audience-media">
+                <Image
+                  src={item.image}
+                  alt={item.imageAlt}
+                  fill
+                  sizes="(max-width: 620px) calc(100vw - 48px), (max-width: 980px) calc((100vw - 80px) / 2), 384px"
+                />
+              </div>
+              <div className="lat-audience-content">
+                <h3>{item.title}</h3>
+                <p>{item.body}</p>
+              </div>
             </article>
           ))}
         </div>
@@ -363,40 +387,43 @@ export default function LatLanding() {
       <section className="lat-section lat-tabs-section" id="ayuda">
         <div className="lat-section-head">
           <div>
-            <p className="lat-section-kicker">Ayuda y contacto</p>
-            <h2>Todo en la misma página.</h2>
+            <h2>Ayuda.</h2>
           </div>
-          <p>
-            Las pestañas estan precargadas y cambian sin navegar a otra ruta. Rapido para el usuario, simple para
-            mantener.
-          </p>
         </div>
 
-        <div className="lat-tabs">
-          <div aria-label="Contenido de soporte" className="lat-tab-list" role="tablist">
-            {tabs.map((tab) => (
-              <button
-                aria-controls={`lat-panel-${tab.id}`}
-                aria-selected={activeTab === tab.id}
-                className={activeTab === tab.id ? "is-active" : ""}
-                id={`lat-tab-${tab.id}`}
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                role="tab"
-                type="button"
-              >
-                {tab.label}
-              </button>
-            ))}
+        <div className="lat-help-list">
+          {helpItems.map((item) => (
+            <details className="lat-help-item" key={item.question}>
+              <summary>{item.question}</summary>
+              <p>{item.answer}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      <section className="lat-section lat-contact-section" id="contacto">
+        <div className="lat-section-head">
+          <div>
+            <p className="lat-section-kicker">Contacto</p>
+            <h2>Elegí el canal.</h2>
           </div>
-          <div
-            aria-labelledby={`lat-tab-${activeTab}`}
-            className="lat-tab-panel"
-            id={`lat-panel-${activeTab}`}
-            role="tabpanel"
-          >
-            {activePanel}
-          </div>
+        </div>
+
+        <div className="lat-contact-grid" aria-label="Canales de contacto">
+          {contactItems.map((item) => (
+            <a
+              aria-label={`Abrir ${item.label} de Wapu`}
+              className="lat-contact-link"
+              href={item.href}
+              key={item.label}
+              rel="noreferrer"
+              target="_blank"
+            >
+              <ContactIcon kind={item.kind} />
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
+            </a>
+          ))}
         </div>
       </section>
 
@@ -406,7 +433,7 @@ export default function LatLanding() {
           <h2>Entrá, depositá y mové Bitcoin sin KYC.</h2>
           <p>Rebelde no es prometer magia. Rebelde es hacer que el flujo funcione sin pedirte una carpeta de papeles.</p>
         </div>
-        <a className="lat-primary-btn" href="https://my.wapu.app/newSignUp?ref=a0447a8d">
+        <a className="lat-primary-btn" href={WAPU_SIGNUP_URL}>
           Entrar a Wapu
         </a>
       </section>

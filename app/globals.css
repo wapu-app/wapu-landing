@@ -545,6 +545,49 @@ body {
   padding: 22px;
 }
 
+.lat-audience-grid .lat-audience-card {
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
+
+.lat-audience-media {
+  position: relative;
+  min-height: 178px;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(231, 53, 124, 0.14), transparent 44%),
+    rgba(255, 255, 255, 0.04);
+}
+
+.lat-audience-media img {
+  object-fit: cover;
+  filter: saturate(1.05) contrast(1.05);
+  transition: transform 260ms ease, filter 260ms ease;
+}
+
+.lat-audience-media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, transparent 54%, rgba(24, 22, 25, 0.92) 100%),
+    linear-gradient(90deg, rgba(2, 2, 2, 0.12), transparent 42%);
+  pointer-events: none;
+}
+
+.lat-audience-card:hover .lat-audience-media img {
+  filter: saturate(1.15) contrast(1.08);
+  transform: scale(1.035);
+}
+
+.lat-audience-content {
+  padding: 20px 22px 24px;
+}
+
 .lat-step span {
   color: var(--lat-pink-hot);
   font-size: 13px;
@@ -556,6 +599,10 @@ body {
   margin: 16px 0 0;
   font-size: 22px;
   line-height: 1.08;
+}
+
+.lat-audience-content h3 {
+  margin-top: 0;
 }
 
 .lat-step p,
@@ -690,42 +737,7 @@ body {
 }
 
 .lat-tabs-section {
-  padding-bottom: 96px;
-}
-
-.lat-tabs {
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 24px;
-  background: rgba(24, 22, 25, 0.72);
-  overflow: hidden;
-}
-
-.lat-tab-list {
-  display: flex;
-  gap: 8px;
-  padding: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
-}
-
-.lat-tab-list button {
-  min-height: 46px;
-  border: 1px solid transparent;
-  border-radius: 14px;
-  padding: 0 18px;
-  color: var(--lat-soft);
-  background: transparent;
-  font-weight: 900;
-  cursor: pointer;
-}
-
-.lat-tab-list button.is-active {
-  border-color: rgba(231, 53, 124, 0.46);
-  color: #fff;
-  background: rgba(231, 53, 124, 0.16);
-}
-
-.lat-tab-panel {
-  padding: 22px;
+  padding-bottom: 82px;
 }
 
 .lat-help-list {
@@ -750,32 +762,77 @@ body {
 
 .lat-contact-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(5, minmax(92px, 1fr));
+  gap: 14px;
+  align-items: stretch;
+  padding: 24px 0 4px;
 }
 
 .lat-contact-link {
-  display: grid;
-  gap: 8px;
-  border-radius: 16px;
-  padding: 18px;
+  display: flex;
+  min-height: 132px;
+  border: 1px solid rgba(124, 255, 216, 0.18);
+  border-radius: 18px;
+  padding: 20px 14px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 10px;
+  color: #7cffd8;
+  background: rgba(5, 18, 16, 0.62);
+  font: inherit;
   text-decoration: none;
-  transition: border-color 160ms ease, transform 160ms ease;
+  cursor: pointer;
+  transition: border-color 160ms ease, transform 160ms ease, background 160ms ease, box-shadow 160ms ease;
 }
 
 .lat-contact-link:hover {
-  border-color: rgba(231, 53, 124, 0.48);
+  border-color: rgba(124, 255, 216, 0.52);
+  background: rgba(124, 255, 216, 0.08);
+  box-shadow: 0 0 42px rgba(124, 255, 216, 0.18);
   transform: translateY(-2px);
 }
 
+.lat-contact-link:focus-visible {
+  outline: 2px solid #7cffd8;
+  outline-offset: 4px;
+}
+
+.lat-contact-icon {
+  width: 34px;
+  height: 34px;
+  fill: currentColor;
+  filter: drop-shadow(0 0 14px rgba(124, 255, 216, 0.34));
+}
+
+.lat-contact-icon :is(path, circle, rect) {
+  fill: currentColor;
+}
+
+.lat-contact-icon-stroke {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.9;
+}
+
+.lat-contact-icon-fill {
+  fill: currentColor;
+}
+
 .lat-contact-link span {
-  color: var(--lat-soft);
+  color: #fff;
   font-size: 12px;
   font-weight: 900;
+  line-height: 1;
   text-transform: uppercase;
 }
 
 .lat-contact-link strong {
+  color: #b8fff0;
+  font-size: 13px;
+  font-weight: 800;
   overflow-wrap: anywhere;
 }
 
@@ -791,6 +848,57 @@ body {
 .lat-final-cta p {
   max-width: 760px;
   margin-bottom: 0;
+}
+
+.wapu-contact-gate {
+  display: grid;
+  place-items: center;
+  padding: 28px;
+}
+
+.wapu-contact-gate-inner {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 28px;
+  width: min(100%, 620px);
+  border: 1px solid rgba(124, 255, 216, 0.18);
+  border-radius: 28px;
+  padding: clamp(28px, 6vw, 56px);
+  background:
+    linear-gradient(135deg, rgba(124, 255, 216, 0.1), transparent 42%),
+    rgba(5, 18, 16, 0.72);
+  box-shadow: 0 28px 100px rgba(0, 0, 0, 0.38), 0 0 54px rgba(124, 255, 216, 0.12);
+}
+
+.wapu-contact-gate-copy {
+  display: grid;
+  gap: 16px;
+}
+
+.wapu-contact-gate-copy h1 {
+  font-size: clamp(38px, 7vw, 76px);
+  line-height: 0.96;
+}
+
+.wapu-contact-gate-copy p:last-child {
+  margin: 0;
+}
+
+.wapu-contact-gate form {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.wapu-contact-gate-field {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
 }
 
 @keyframes lat-float {
@@ -989,14 +1097,29 @@ body {
   }
 
   .lat-steps,
-  .lat-audience-grid,
-  .lat-contact-grid {
+  .lat-audience-grid {
     grid-template-columns: 1fr;
+  }
+
+  .lat-contact-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .lat-contact-link {
+    min-height: 118px;
   }
 
   .lat-step,
   .lat-audience-grid article {
     min-height: 0;
+  }
+
+  .lat-audience-grid .lat-audience-card {
+    min-height: 0;
+  }
+
+  .lat-audience-media {
+    min-height: 210px;
   }
 
   .lat-video-frame,
