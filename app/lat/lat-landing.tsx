@@ -317,10 +317,19 @@ export default function LatLanding() {
           </p>
         </div>
         <div className="lat-video-frame">
-          <div className="lat-video-placeholder">
-            <span>VIDEO APP</span>
-            <strong>depositar → enviar → confirmar</strong>
-          </div>
+          <video
+            aria-label="Grabacion placeholder del flujo de Wapu"
+            autoPlay
+            className="lat-video-player"
+            disablePictureInPicture
+            loop
+            muted
+            playsInline
+            preload="metadata"
+          >
+            <source src="/lat/video/placeholder-video.mp4" type="video/mp4" />
+            Tu navegador no puede reproducir este video.
+          </video>
         </div>
       </section>
 
