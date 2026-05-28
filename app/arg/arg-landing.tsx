@@ -77,7 +77,7 @@ const audience = [
     body: "Necesitas una herramienta simple y directa para mover guita sin pedir permiso",
     image: "/audience/builder-latam-taller.webp",
     imageAlt: "Builder probando prototipos en un taller con mate, cables y mapa de Latinoamerica.",
-    tag: "Builder",
+    tag: "Nómada digital",
     tagBg: "var(--lat-pink-hot)",
     tagColor: "#fff",
   },
