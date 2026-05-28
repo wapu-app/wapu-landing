@@ -605,8 +605,8 @@ body {
   margin-top: 28px;
 }
 
-.lat-escrow-band span,
-.lat-escrow-band strong {
+.lat-escrow-band > span,
+.lat-escrow-band > strong {
   display: grid;
   min-height: 86px;
   place-items: center;
@@ -620,6 +620,46 @@ body {
 .lat-escrow-band strong {
   color: var(--lat-pink-hot);
   box-shadow: 0 0 44px rgba(231, 53, 124, 0.18);
+}
+
+.lat-escrow-band > strong.lat-escrow-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-inline: 24px;
+  white-space: nowrap;
+}
+
+.lat-escrow-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  outline: 0;
+}
+
+.lat-escrow-label .lat-escrow-word {
+  display: inline-block;
+  color: var(--lat-pink-hot);
+  font-size: 21px;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.lat-escrow-logo-mark {
+  display: block;
+  width: 66px;
+  height: 23px;
+  flex: 0 0 66px;
+  border: 0;
+  background: url("/wapuLogo.svg") center / contain no-repeat;
+  box-shadow: none;
+  outline: 0;
 }
 
 .lat-escrow-band i {
@@ -837,6 +877,10 @@ body {
 
   .lat-escrow-band {
     grid-template-columns: 1fr;
+  }
+
+  .lat-escrow-copy {
+    gap: 12px;
   }
 
   .lat-escrow-band i {

@@ -272,7 +272,12 @@ export default function LatLanding() {
         <div className="lat-escrow-band">
           <span>BTC</span>
           <i />
-          <strong>Escrow Wapu</strong>
+          <strong className="lat-escrow-label">
+            <span className="lat-escrow-copy">
+              <span className="lat-escrow-word">Escrow</span>
+              <span className="lat-escrow-logo-mark" role="img" aria-label="Wapu" />
+            </span>
+          </strong>
           <i />
           <span>ARS</span>
         </div>
