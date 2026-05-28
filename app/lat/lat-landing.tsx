@@ -56,7 +56,7 @@ const videoBullets = [
 const audience = [
   {
     title: "Bitcoiner con autocustodia",
-    body: "Tenés hardware wallet, cuidás tu privacidad y no querés pasar por un exchange para cada movimiento.",
+    body: "Cuidás tu privacidad y no querés pasar por un exchange para cada movimiento.",
     image: "/audience/bitcoiner-autocustodia-argentina.webp",
     imageAlt: "Hardware wallet, mate y nodo personal en una cocina argentina de departamento.",
     tag: "Autocustodia",
@@ -73,8 +73,8 @@ const audience = [
     tagColor: "#0a1d18",
   },
   {
-    title: "Builder de Latam",
-    body: "Querés una experiencia simple, mobile y directa para mover valor sin pedir permiso.",
+    title: "Nómada digital",
+    body: "Necesitas una herramienta simple y directa para mover guita sin pedir permiso",
     image: "/audience/builder-latam-taller.webp",
     imageAlt: "Builder probando prototipos en un taller con mate, cables y mapa de Latinoamerica.",
     tag: "Builder",
