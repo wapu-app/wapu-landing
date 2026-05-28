@@ -6,6 +6,48 @@ import { useMemo, useState } from "react";
 
 const SHOW_BUY_BTC_MODULE = false;
 
+function BitcoinMark() {
+  return (
+    <svg className="lat-token-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+      <circle cx="16" cy="16" r="15" fill="#f7931a" />
+      <text
+        x="16"
+        y="22"
+        fill="#fff"
+        fontFamily="Arial, Helvetica, sans-serif"
+        fontSize="17"
+        fontWeight="900"
+        textAnchor="middle"
+      >
+        ₿
+      </text>
+    </svg>
+  );
+}
+
+function UsdtMark() {
+  return (
+    <svg className="lat-token-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+      <circle cx="16" cy="16" r="15" fill="#26a17b" />
+      <path d="M8 8h16v4.1h-5.9v3.2h-4.2v-3.2H8z" fill="#fff" />
+      <path d="M13.9 16.6h4.2v7.4h-4.2z" fill="#fff" />
+      <path
+        d="M9.6 16.4c0-1.3 2.9-2.4 6.4-2.4s6.4 1.1 6.4 2.4-2.9 2.4-6.4 2.4-6.4-1.1-6.4-2.4Z"
+        fill="none"
+        stroke="#fff"
+        strokeWidth="1.7"
+      />
+      <path
+        d="M12.2 16.4c0 .45 1.7.85 3.8.85s3.8-.4 3.8-.85"
+        fill="none"
+        stroke="#26a17b"
+        strokeLinecap="round"
+        strokeWidth="1.2"
+      />
+    </svg>
+  );
+}
+
 const operationSteps = [
   {
     eyebrow: "01",
@@ -185,7 +227,7 @@ export default function LatLanding() {
                 <div className="lat-balance-label">Total balance</div>
                 <div className="lat-balance-card">
                   <strong>0.184 BTC</strong>
-                  <span>escrow ready</span>
+                  <span>P2P ready</span>
                 </div>
                 <div className="lat-action-grid">
                   <i />
@@ -195,14 +237,20 @@ export default function LatLanding() {
                 </div>
                 <div className="lat-send-sheet">
                   <span>Enviar a alias</span>
-                  <strong>mate.bitcoin</strong>
+                  <strong>mate.bitcoin.mp</strong>
                   <em>Normal · ARS</em>
                 </div>
               </div>
-              <div className="lat-coin lat-coin-a">BTC</div>
-              <div className="lat-coin lat-coin-b">USDT</div>
+              <div className="lat-coin lat-coin-a">
+                <BitcoinMark />
+                <span>BTC</span>
+              </div>
+              <div className="lat-coin lat-coin-b">
+                <UsdtMark />
+                <span>USDT</span>
+              </div>
               <div className="lat-escrow-cube">
-                <span>ESCROW</span>
+                <span>P2P</span>
               </div>
             </div>
           </div>

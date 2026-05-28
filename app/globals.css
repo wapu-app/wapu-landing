@@ -444,10 +444,27 @@ body {
 }
 
 .lat-coin {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
   width: 82px;
   height: 82px;
   border-radius: 50%;
   color: #fff;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.lat-coin span {
+  transform: rotate(-5deg);
+}
+
+.lat-token-mark {
+  width: 30px;
+  height: 30px;
+  filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.18));
 }
 
 .lat-coin-a {
@@ -953,6 +970,11 @@ body {
     width: 64px;
     height: 64px;
     font-size: 13px;
+  }
+
+  .lat-token-mark {
+    width: 24px;
+    height: 24px;
   }
 
   .lat-escrow-cube {
