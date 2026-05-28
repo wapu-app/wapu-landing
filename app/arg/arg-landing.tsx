@@ -611,7 +611,7 @@ export default function LatLanding() {
               playsInline
               preload="metadata"
             >
-              <source src="/lat/video/placeholder-video.mp4" type="video/mp4" />
+              <source src="/arg/video/placeholder-video.mp4" type="video/mp4" />
               Tu navegador no puede reproducir este video.
             </video>
           </div>

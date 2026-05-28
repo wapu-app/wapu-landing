@@ -15,7 +15,7 @@ export default function WhatsAppGatePage() {
     <main className="lat-page wapu-contact-gate min-h-screen overflow-x-hidden bg-[#020202] text-white">
       <div className="lat-grid-bg" />
       <section className="wapu-contact-gate-inner">
-        <Link className="lat-brand" href="/lat">
+        <Link className="lat-brand" href="/arg">
           <Image src="/wapuLogo.svg" alt="Wapu" width={118} height={34} priority />
           <span>Contacto</span>
         </Link>
@@ -40,7 +40,7 @@ export default function WhatsAppGatePage() {
           </button>
         </form>
 
-        <Link className="lat-secondary-btn" href="/lat#contacto">
+        <Link className="lat-secondary-btn" href="/arg#contacto">
           Volver
         </Link>
       </section>
