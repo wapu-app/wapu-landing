@@ -63,14 +63,14 @@ const videoTimelineSteps = [
   {
     eyebrow: "02",
     title: "Depósito por Lightning",
-    body: "Sats equivalentes a 100 dólares.",
-    metric: "135,593 SAT",
+    body: "Sats equivalentes a 360 dólares.",
+    metric: "488,136 SAT",
   },
   {
     eyebrow: "03",
     title: "Depósito confirmado",
     body: "Wapu actualiza el saldo disponible.",
-    metric: "$100.00",
+    metric: "$360.00",
   },
   {
     eyebrow: "04",
@@ -709,7 +709,6 @@ export default function LatLanding() {
           <div className="lat-video-frame">
             <span className="lat-video-corner lat-video-corner-tl">Live demo</span>
             <span className="lat-video-corner lat-video-corner-br">v0.9</span>
-            <span className="lat-video-rec">REC</span>
             <iframe
               aria-label="Animacion del flujo de Wapu"
               className="lat-tutorial-player"
