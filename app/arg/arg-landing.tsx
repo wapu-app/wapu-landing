@@ -141,6 +141,26 @@ function UsdtMark() {
   );
 }
 
+function ArsMark() {
+  return (
+    <svg className="lat-token-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+      <defs>
+        <clipPath id="ars-token-clip">
+          <circle cx="16" cy="16" r="15" />
+        </clipPath>
+      </defs>
+      <circle cx="16" cy="16" r="15" fill="#f7fbff" />
+      <g clipPath="url(#ars-token-clip)">
+        <rect width="32" height="10.5" fill="#74acdf" />
+        <rect y="21.5" width="32" height="10.5" fill="#74acdf" />
+        <circle cx="16" cy="16" r="3.6" fill="#f6b40e" />
+        <path d="M16 9.6v2.1M16 20.3v2.1M9.6 16h2.1M20.3 16h2.1M11.5 11.5l1.5 1.5M19 19l1.5 1.5M20.5 11.5 19 13M13 19l-1.5 1.5" stroke="#d88900" strokeLinecap="round" strokeWidth="1" />
+      </g>
+      <circle cx="16" cy="16" r="15" fill="none" stroke="#d7ecff" strokeWidth="1.4" />
+    </svg>
+  );
+}
+
 function ContactIcon({ kind }: { kind: ContactKind }) {
   if (kind === "instagram") {
     return (
@@ -516,6 +536,10 @@ export default function LatLanding() {
               <div className="lat-coin lat-coin-b">
                 <UsdtMark />
                 <span>USDT</span>
+              </div>
+              <div className="lat-coin lat-coin-c">
+                <ArsMark />
+                <span>ARS</span>
               </div>
 
               <div className="lat-sticker lat-sticker-hero" aria-hidden="true">

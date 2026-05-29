@@ -845,6 +845,13 @@ a, button {
 .lat-coin-b {
   animation: lat-token-orbit-usdt 18s linear infinite;
 }
+.lat-coin-c {
+  animation: lat-token-orbit-btc 18s linear infinite;
+  animation-delay: -12s;
+  border-color: rgba(116, 172, 223, 0.42);
+  background: rgba(10, 28, 46, 0.78);
+  box-shadow: 0 0 34px rgba(116, 172, 223, 0.36), 0 0 54px rgba(246, 180, 14, 0.16);
+}
 .lat-escrow-cube {
   left: 0;
   bottom: 8%;
@@ -2066,6 +2073,7 @@ a, button {
   }
   .lat-coin-a { animation-name: lat-token-orbit-btc-mobile; }
   .lat-coin-b { animation-name: lat-token-orbit-usdt-mobile; }
+  .lat-coin-c { animation-name: lat-token-orbit-btc-mobile; }
   .lat-token-mark { width: 26px; height: 26px; }
   .lat-send-sheet { right: -8px; bottom: -28px; width: min(200px, 70vw); padding: 12px 14px; }
   .lat-send-sheet strong { font-size: 16px; }
