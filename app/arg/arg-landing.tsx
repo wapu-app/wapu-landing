@@ -610,7 +610,7 @@ export default function LatLanding() {
         <div className="lat-shell lat-video-grid">
           <div className="lat-video-copy">
             <p className="lat-section-kicker">El flujo, en vivo</p>
-            <h2>Así se ve <span className="lat-it">funcionando</span>.</h2>
+            <h2>¿Cómo  <span className="lat-it">funciona?</span></h2>
             <p>
               Depositás cripto, elegís a dónde mandar, definís la velocidad y confirmás. Sin formularios, sin esperar
               una contraparte, sin pelear con el banco: la app resuelve el resto.
