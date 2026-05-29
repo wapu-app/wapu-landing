@@ -468,22 +468,11 @@ function useLatAnimations() {
     const orangeWrap = $<HTMLDivElement>(".lat-visual-wrap");
     const orangeSticker = orangeWrap ? $<HTMLDivElement>(".lat-sticker-hero", orangeWrap) : null;
     if (orangeWrap) {
-      const ORANGE_UNLOCK_STORAGE_KEY = "wapu-orange-orbit-clicks-v1";
       const ORANGE_UNLOCK_CLICKS = 20;
       let orangeClickCount = 0;
       const unlockOrange = () => {
         orangeWrap.classList.add("lat-orange-easter-active");
-        try {
-          sessionStorage.setItem(ORANGE_UNLOCK_STORAGE_KEY, "1");
-        } catch {
-          // Storage can be unavailable in hardened browser modes; the live unlock still works.
-        }
       };
-      try {
-        if (sessionStorage.getItem(ORANGE_UNLOCK_STORAGE_KEY) === "1") unlockOrange();
-      } catch {
-        // Keep the easter egg non-persistent when sessionStorage is blocked.
-      }
       const onOrangePress = (event: PointerEvent) => {
         if (!orangeSticker || orangeWrap.classList.contains("lat-orange-easter-active")) return;
         const rect = orangeSticker.getBoundingClientRect();
