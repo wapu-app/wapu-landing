@@ -1610,6 +1610,61 @@ a, button {
 }
 .lat-contact-submit { width: fit-content; cursor: pointer; }
 
+/* ---------- WhatsApp gate ---------- */
+.wapu-contact-gate-inner {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 24px;
+  width: min(100% - 32px, 520px);
+  min-height: 100svh;
+  margin: 0 auto;
+  padding: 56px 0;
+  align-content: center;
+}
+.wapu-contact-gate-copy {
+  display: grid;
+  gap: 14px;
+}
+.wapu-contact-gate-copy h1 {
+  margin: 0;
+  font-size: clamp(42px, 8vw, 74px);
+  font-weight: 950;
+  line-height: 0.92;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+.wapu-contact-gate-copy p {
+  margin: 0;
+  color: var(--lat-muted);
+  font-size: 17px;
+  line-height: 1.55;
+}
+.wapu-contact-gate form {
+  display: grid;
+  gap: 14px;
+}
+.wapu-contact-gate-field {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.wapu-turnstile {
+  min-height: 65px;
+  overflow: hidden;
+}
+.lat-contact-turnstile {
+  margin-top: -4px;
+}
+.wapu-captcha-error {
+  margin: -4px 0 0;
+  color: #ff8fb5;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
 .lat-contact-channels { display: grid; align-content: start; gap: 16px; }
 .lat-contact-grid {
   display: grid;

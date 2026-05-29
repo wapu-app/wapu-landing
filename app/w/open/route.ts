@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { verifyTurnstileToken } from "../turnstile";
 
 const DEFAULT_PHONE_CODES = [58, 57, 62, 54, 54, 55, 57, 53, 59, 53, 61, 58, 53];
 const DEFAULT_MESSAGE = "Hola, quiero saber mas sobre Wapu";
@@ -60,11 +61,22 @@ export async function POST(request: Request) {
   const contentType = request.headers.get("content-type") ?? "";
   const formData = contentType.includes("form") ? await request.formData() : null;
 
+  if (!formData) {
+    return NextResponse.redirect(new URL("/w?captcha=failed", request.url), 303);
+  }
+
   if (formData?.get("website")) {
     return new NextResponse(null, { status: 204 });
   }
 
-  const response = NextResponse.redirect(getWhatsAppUrl(formData ? getContactMessage(formData) : null), 303);
+  const contactMessage = getContactMessage(formData);
+  const isHuman = await verifyTurnstileToken(request, formData.get("cf-turnstile-response"));
+
+  if (!isHuman) {
+    return NextResponse.redirect(new URL("/w?captcha=failed", request.url), 303);
+  }
+
+  const response = NextResponse.redirect(getWhatsAppUrl(contactMessage), 303);
   response.headers.set("Cache-Control", "no-store");
 
   return response;

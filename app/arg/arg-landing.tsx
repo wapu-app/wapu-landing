@@ -2,9 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import Script from "next/script";
 import { Fragment, useEffect } from "react";
+import { getTurnstileSiteKey } from "../w/turnstile-config";
 
 const SHOW_BUY_BTC_MODULE = false;
+const TURNSTILE_SITE_KEY = getTurnstileSiteKey();
 const WAPU_SIGNUP_URL = "https://my.wapu.app/newSignUp";
 
 type ContactKind = "instagram" | "discord" | "whatsapp" | "x" | "linkedin";
@@ -272,6 +275,18 @@ function ContactForm() {
         </label>
       </div>
 
+      {TURNSTILE_SITE_KEY ? (
+        <div
+          className="cf-turnstile wapu-turnstile lat-contact-turnstile"
+          data-sitekey={TURNSTILE_SITE_KEY}
+          data-theme="dark"
+        />
+      ) : (
+        <p className="wapu-captcha-error">
+          Falta configurar la proteccion anti-bot. Defini NEXT_PUBLIC_TURNSTILE_SITE_KEY.
+        </p>
+      )}
+
       <button className="lat-primary-btn lat-contact-submit" type="submit">Abrir mensaje →</button>
     </form>
   );
@@ -459,6 +474,7 @@ export default function LatLanding() {
 
   return (
     <main className="lat-page">
+      <Script async defer src="https://challenges.cloudflare.com/turnstile/v0/api.js" strategy="afterInteractive" />
       <div className="lat-spotlight" aria-hidden="true" />
       <div className="lat-noise" aria-hidden="true" />
 

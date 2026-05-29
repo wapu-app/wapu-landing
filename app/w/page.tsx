@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import Script from "next/script";
+import { getTurnstileSiteKey } from "./turnstile-config";
 
 export const metadata: Metadata = {
   title: "Contacto | Wapu",
@@ -10,9 +12,22 @@ export const metadata: Metadata = {
   },
 };
 
-export default function WhatsAppGatePage() {
+export const dynamic = "force-dynamic";
+
+type WhatsAppGatePageProps = {
+  searchParams?: Promise<{
+    captcha?: string;
+  }>;
+};
+
+export default async function WhatsAppGatePage({ searchParams }: WhatsAppGatePageProps) {
+  const turnstileSiteKey = getTurnstileSiteKey();
+  const resolvedSearchParams = await searchParams;
+  const hasCaptchaError = resolvedSearchParams?.captcha === "failed";
+
   return (
     <main className="lat-page wapu-contact-gate min-h-screen overflow-x-hidden bg-[#020202] text-white">
+      <Script async defer src="https://challenges.cloudflare.com/turnstile/v0/api.js" strategy="afterInteractive" />
       <div className="lat-grid-bg" />
       <section className="wapu-contact-gate-inner">
         <Link className="lat-brand" href="/arg">
@@ -35,6 +50,22 @@ export default function WhatsAppGatePage() {
             tabIndex={-1}
             type="text"
           />
+          {turnstileSiteKey ? (
+            <div
+              className="cf-turnstile wapu-turnstile"
+              data-sitekey={turnstileSiteKey}
+              data-theme="dark"
+            />
+          ) : (
+            <p className="wapu-captcha-error">
+              Falta configurar la proteccion anti-bot. Defini NEXT_PUBLIC_TURNSTILE_SITE_KEY.
+            </p>
+          )}
+          {hasCaptchaError ? (
+            <p className="wapu-captcha-error" id="captcha-error">
+              La verificacion anti-bot fallo o expiro. Intenta de nuevo.
+            </p>
+          ) : null}
           <button className="lat-primary-btn" type="submit">
             Abrir WhatsApp
           </button>
