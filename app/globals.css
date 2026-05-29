@@ -1255,7 +1255,7 @@ a, button {
   grid-template-columns: 32px minmax(0, 1fr);
   align-items: start;
   gap: 10px;
-  min-height: 94px;
+  min-height: 84px;
   padding: 12px;
   border: 1px solid rgba(255,255,255,0.08);
   border-left: 2px solid rgba(248,244,107,0.22);
@@ -1315,20 +1315,6 @@ a, button {
   color: rgba(236, 234, 239, 0.68);
   font-size: 12px;
   line-height: 1.35;
-}
-.lat-video-timeline li > strong {
-  grid-column: 2;
-  justify-self: start;
-  align-self: end;
-  margin-top: 4px;
-  padding: 6px 8px;
-  border-radius: 7px;
-  background: rgba(124, 255, 216, 0.08);
-  color: var(--lat-electric-cold);
-  font-family: var(--font-geist-mono), ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
-  font-size: 11px;
-  font-weight: 900;
-  white-space: nowrap;
 }
 @keyframes lat-video-progress {
   0% { transform: scaleX(0.04); }
@@ -1401,7 +1387,6 @@ a, button {
   border-radius: 4px;
   z-index: 3;
 }
-.lat-video-corner-tl { top: -10px; left: 20px; transform: rotate(-4deg); }
 .lat-video-corner-br { bottom: -10px; right: 20px; background: var(--lat-pink-hot); color: #fff; transform: rotate(3deg); }
 
 .lat-tutorial-player {
@@ -2264,11 +2249,6 @@ a, button {
   .lat-video-step-index {
     width: 28px;
     height: 28px;
-  }
-  .lat-video-timeline li > strong {
-    grid-column: 2;
-    justify-self: start;
-    margin-top: 2px;
   }
 }
 @media (max-width: 380px) {

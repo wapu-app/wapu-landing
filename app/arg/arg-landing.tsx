@@ -57,50 +57,42 @@ const videoTimelineSteps = [
   {
     eyebrow: "01",
     title: "Inicio en la billetera",
-    body: "Saldo inicial en cero.",
-    metric: "$0.00",
+    body: "Punto de partida de la operación.",
   },
   {
     eyebrow: "02",
     title: "Depósito por Lightning",
-    body: "Sats equivalentes a 360 dólares.",
-    metric: "488,136 SAT",
+    body: "El saldo entra por Lightning.",
   },
   {
     eyebrow: "03",
     title: "Depósito confirmado",
     body: "Wapu actualiza el saldo disponible.",
-    metric: "$360.00",
   },
   {
     eyebrow: "04",
     title: "Envío en pesos",
-    body: "Elige enviar moneda local argentina.",
-    metric: "ARS",
+    body: "Elegís enviar moneda local argentina.",
   },
   {
     eyebrow: "05",
     title: "Destinatario",
-    body: "satoshi vía mate.bitcoin.mp.",
-    metric: "satoshi",
+    body: "Cargás el alias o cuenta destino.",
   },
   {
     eyebrow: "06",
     title: "Monto a enviar",
-    body: "21.000 pesos equivalen a 15 USDT.",
-    metric: "21,000 ARS",
+    body: "Definís cuánto querés mandar.",
   },
   {
     eyebrow: "07",
     title: "Revisión",
-    body: "Monto, cambio, comisión y total.",
-    metric: "15 USDT",
+    body: "Confirmás monto, cambio, comisión y total.",
   },
   {
     eyebrow: "08",
     title: "Recibo final",
     body: "Procesamiento y comprobante final.",
-    metric: "Completado",
   },
 ];
 
@@ -700,14 +692,12 @@ export default function LatLanding() {
                       <h3>{step.title}</h3>
                       <p>{step.body}</p>
                     </div>
-                    <strong>{step.metric}</strong>
                   </li>
                 ))}
               </ol>
             </div>
           </div>
           <div className="lat-video-frame">
-            <span className="lat-video-corner lat-video-corner-tl">Live demo</span>
             <span className="lat-video-corner lat-video-corner-br">v0.9</span>
             <iframe
               aria-label="Animacion del flujo de Wapu"

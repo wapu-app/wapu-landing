@@ -79,20 +79,6 @@ function homeScreen(balance){
     </div>
   </div>
 
-  <div class="home-feed">
-    <div class="feed-head"><span>Recent activity</span><em>Live</em></div>
-    <div class="feed-row">
-      <span class="feed-token btc">BTC</span>
-      <div class="feed-copy"><strong>Lightning deposit</strong><small>Ready in seconds</small></div>
-      <b class="feed-amt plus">+${TUTORIAL_FLOW.depositSatsLabel}</b>
-    </div>
-    <div class="feed-row">
-      <span class="feed-token ars">ARS</span>
-      <div class="feed-copy"><strong>Fast Send route</strong><small>Bank transfer available</small></div>
-      <b class="feed-amt">2h</b>
-    </div>
-  </div>
-
   <div class="home-status">
     <span>Escrow ready</span>
     <strong>Operators online</strong>

@@ -192,32 +192,8 @@ body{
 .rate .price-row .pic{ width:22px; height:14px; border-radius:4px; background:linear-gradient(90deg,#2bb17f,#1b8f8f); }
 .rate .buy{ font-family:var(--font-display); font-weight:700; font-size:17px; color:#fff; margin-top:8px; }
 
-.home-feed{
-  margin-top:14px; padding:14px 15px 12px; border-radius:18px;
-  background:linear-gradient(180deg,#17171b,#101013);
-  border:1px solid rgba(255,255,255,.055);
-}
-.feed-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; }
-.feed-head span{ font-family:var(--font-display); font-weight:700; font-size:15px; color:#fff; }
-.feed-head em{
-  font-family:var(--font-mono); font-style:normal; font-weight:700; font-size:10px;
-  color:var(--green); background:rgba(43,177,127,.14); border-radius:999px; padding:4px 8px;
-}
-.feed-row{ display:flex; align-items:center; gap:10px; padding:11px 0; border-top:1px solid rgba(255,255,255,.055); }
-.feed-token{
-  width:34px; height:34px; border-radius:12px; display:grid; place-items:center; flex:none;
-  font-family:var(--font-display); font-weight:700; font-size:10px; color:#fff;
-}
-.feed-token.btc{ background:linear-gradient(135deg,#f7931a,#e5287a); }
-.feed-token.ars{ background:linear-gradient(135deg,#74acdf,#3a39d6); }
-.feed-copy{ min-width:0; flex:1; display:flex; flex-direction:column; gap:3px; }
-.feed-copy strong{ font-family:var(--font-display); font-weight:600; font-size:13px; color:#fff; }
-.feed-copy small{ font-family:var(--font-mono); font-size:10px; color:var(--muted-2); }
-.feed-amt{ font-family:var(--font-mono); font-size:11px; color:#fff; white-space:nowrap; }
-.feed-amt.plus{ color:var(--green); }
-
 .home-status{
-  margin-top:12px; display:flex; align-items:center; justify-content:space-between; gap:12px;
+  margin-top:auto; margin-bottom:82px; display:flex; align-items:center; justify-content:space-between; gap:12px;
   border-radius:16px; padding:13px 15px;
   background:rgba(229,40,122,.09); border:1px solid rgba(229,40,122,.18);
 }
