@@ -797,7 +797,7 @@ export default function LatLanding() {
           <div>
             <p className="lat-section-kicker">Argentina primero</p>
             <h2>Entrá, depositá y mové Bitcoin sin <span className="lat-strike">KYC</span>.</h2>
-            <p>Rebelde no es prometer magia. Rebelde es hacer que el flujo funcione sin pedirte una carpeta de papeles.</p>
+            <p>La privacidad es un derecho, no nos interesa juntar tus datos.</p>
           </div>
           <a
             className="lat-primary-btn"
