@@ -1245,7 +1245,7 @@ a, button {
   max-width: 100%;
   border: 1px solid rgba(124, 255, 216, 0.18);
   border-radius: 34px;
-  padding: 14px;
+  padding: 0;
   background:
     radial-gradient(circle at 18% 12%, rgba(231, 53, 124, 0.22), transparent 38%),
     linear-gradient(145deg, rgba(255, 255, 255, 0.06), transparent 48%),
@@ -1286,15 +1286,16 @@ a, button {
 .lat-video-corner-tl { top: -10px; left: 20px; transform: rotate(-4deg); }
 .lat-video-corner-br { bottom: -10px; right: 20px; background: var(--lat-pink-hot); color: #fff; transform: rotate(3deg); }
 
-.lat-video-player {
+.lat-tutorial-player {
   display: block;
-  width: 100%;
-  max-width: 320px;
-  aspect-ratio: 1080 / 2100;
-  border: 1px solid rgba(124, 255, 216, 0.18);
-  border-radius: 22px;
+  width: min(360px, calc(100vw - 64px));
+  height: auto;
+  max-width: 100%;
+  aspect-ratio: 384 / 768;
+  border: 0;
+  border-radius: 34px;
   background: #050306;
-  object-fit: contain;
+  overflow: hidden;
   outline: none;
 }
 .lat-video-rec {
@@ -2055,8 +2056,8 @@ a, button {
   }
   .lat-visual-wrap { min-height: 540px; }
   .lat-video-copy { position: static; }
-  .lat-video-frame { padding: 10px; border-radius: 28px; }
-  .lat-video-player { max-width: 280px; border-radius: 18px; }
+  .lat-video-frame { border-radius: 28px; }
+  .lat-tutorial-player { max-width: 300px; border-radius: 28px; }
   .lat-steps {
     grid-template-columns: minmax(0, 1fr);
     width: min(100%, 560px);

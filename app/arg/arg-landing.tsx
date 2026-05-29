@@ -630,7 +630,7 @@ export default function LatLanding() {
         </div>
       </section>
 
-      {/* VIDEO */}
+      {/* TUTORIAL ANIMATION */}
       <section className="lat-video-section r-fade" id="video">
         <div className="lat-shell lat-video-grid">
           <div className="lat-video-copy">
@@ -654,19 +654,14 @@ export default function LatLanding() {
             <span className="lat-video-corner lat-video-corner-tl">Live demo</span>
             <span className="lat-video-corner lat-video-corner-br">v0.9</span>
             <span className="lat-video-rec">REC</span>
-            <video
-              aria-label="Grabacion placeholder del flujo de Wapu"
-              autoPlay
-              className="lat-video-player"
-              disablePictureInPicture
-              loop
-              muted
-              playsInline
-              preload="metadata"
-            >
-              <source src="/arg/video/guide.mp4" type="video/mp4" />
-              Tu navegador no puede reproducir este video.
-            </video>
+            <iframe
+              aria-label="Animacion del flujo de Wapu"
+              className="lat-tutorial-player"
+              loading="lazy"
+              sandbox="allow-scripts"
+              src="/arg/tutorial/index.html"
+              title="Animacion del flujo de Wapu"
+            />
           </div>
         </div>
       </section>
