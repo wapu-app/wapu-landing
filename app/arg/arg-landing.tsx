@@ -3,12 +3,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import Script from "next/script";
-import { Fragment, useEffect } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { getTurnstileSiteKey } from "../w/turnstile-config";
 
 const SHOW_BUY_BTC_MODULE = false;
 const TURNSTILE_SITE_KEY = getTurnstileSiteKey();
 const WAPU_SIGNUP_URL = "https://my.wapu.app/newSignUp";
+const TUTORIAL_STEP_EVENT = "wapu:tutorial-step";
 const WAPU_SIGNUP_LINK_PROPS = {
   rel: "noopener noreferrer",
   target: "_blank",
@@ -85,6 +86,9 @@ const videoTimelineSteps = [
     body: "Procesamiento y comprobante final.",
   },
 ];
+
+const DEFAULT_TUTORIAL_STEP = videoTimelineSteps[0]?.eyebrow ?? "01";
+const TUTORIAL_STEP_IDS = new Set(videoTimelineSteps.map((step) => step.eyebrow));
 
 const audience = [
   {
@@ -557,10 +561,31 @@ function useLatAnimations() {
   }, []);
 }
 
+function useTutorialTimelineStep() {
+  const [activeStep, setActiveStep] = useState(DEFAULT_TUTORIAL_STEP);
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      const data = event.data as Partial<{ type: string; step: string }> | null;
+
+      if (data?.type !== TUTORIAL_STEP_EVENT || typeof data.step !== "string") return;
+      if (!TUTORIAL_STEP_IDS.has(data.step)) return;
+
+      setActiveStep(data.step);
+    };
+
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+
+  return activeStep;
+}
+
 /* ----------------------------- PAGE ----------------------------- */
 
 export default function LatLanding() {
   useLatAnimations();
+  const activeTutorialStep = useTutorialTimelineStep();
 
   return (
     <main className="lat-page">
@@ -740,7 +765,11 @@ export default function LatLanding() {
               </div>
               <ol>
                 {videoTimelineSteps.map((step) => (
-                  <li key={step.eyebrow}>
+                  <li
+                    aria-current={step.eyebrow === activeTutorialStep ? "step" : undefined}
+                    data-active={step.eyebrow === activeTutorialStep ? "true" : "false"}
+                    key={step.eyebrow}
+                  >
                     <span className="lat-video-step-index">{step.eyebrow}</span>
                     <div>
                       <h3>{step.title}</h3>

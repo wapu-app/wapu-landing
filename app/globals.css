@@ -2210,6 +2210,77 @@ a, button {
   .lat-video-copy { position: static; }
   .lat-video-frame { border-radius: 28px; }
   .lat-tutorial-player { max-width: 300px; border-radius: 28px; }
+  .lat-video-grid {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .lat-video-copy { display: contents; }
+  .lat-video-frame { align-self: center; }
+  .lat-video-timeline {
+    order: 1;
+    max-width: 100%;
+    margin-top: 0;
+    padding: 12px 14px 14px;
+    position: sticky;
+    bottom: 12px;
+    z-index: 5;
+    border-radius: 18px;
+    background: rgba(15, 13, 18, 0.88);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 16px 44px rgba(0, 0, 0, 0.5);
+  }
+  .lat-video-timeline-bar {
+    height: 5px;
+    margin-bottom: 10px;
+  }
+  .lat-video-timeline ol {
+    position: relative;
+    display: block;
+    min-height: 120px;
+  }
+  .lat-video-timeline li {
+    position: absolute;
+    inset: 0;
+    grid-template-columns: 30px minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+    min-height: 0;
+    padding: 10px 12px;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(8px) scale(0.985);
+    transition: opacity 240ms ease, transform 240ms ease, border-color 240ms ease, background 240ms ease, box-shadow 240ms ease;
+    animation: none;
+    z-index: 0;
+  }
+  .lat-video-timeline li::after {
+    animation: none;
+    opacity: 0;
+    transform: translateX(-12%);
+    transition: opacity 260ms ease, transform 260ms ease;
+  }
+  .lat-video-timeline li[data-active="true"] {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+    border-color: rgba(248, 244, 107, 0.58);
+    border-left-color: var(--lat-electric);
+    background: rgba(34, 31, 28, 0.94);
+    color: #fff;
+    box-shadow: 0 16px 46px rgba(248, 244, 107, 0.08);
+    z-index: 1;
+  }
+  .lat-video-timeline li[data-active="true"]::after {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  .lat-video-step-index {
+    width: 28px;
+    height: 28px;
+  }
   .lat-steps {
     grid-template-columns: minmax(0, 1fr);
     width: min(100%, 560px);
@@ -2324,20 +2395,15 @@ a, button {
   .lat-tape { width: 72px; height: 18px; }
   .lat-kicker-pill { font-size: 10px; padding: 6px 12px 6px 8px; }
   .lat-sticker-hero { width: 84px; height: 84px; font-size: 9px; }
-  .lat-video-timeline {
-    padding-left: 0;
+  .lat-video-grid { gap: 24px !important; }
+  .lat-video-status { margin-top: 14px; }
+  .lat-video-copy p {
+    margin-top: 16px;
+    font-size: 16px;
+    line-height: 1.5;
   }
   .lat-video-timeline ol {
-    grid-template-columns: 1fr;
-  }
-  .lat-video-timeline li {
-    grid-template-columns: 30px minmax(0, 1fr);
-    gap: 10px;
-    align-items: start;
-  }
-  .lat-video-step-index {
-    width: 28px;
-    height: 28px;
+    min-height: 132px;
   }
 }
 @media (max-width: 380px) {

@@ -5,6 +5,13 @@
   const pointer = document.getElementById('pointer');
   const capWrap = document.getElementById('caption');
   const dotsWrap = document.getElementById('dots');
+  const TUTORIAL_STEP_EVENT = 'wapu:tutorial-step';
+
+  function publishStep(step){
+    if(window.parent && window.parent !== window){
+      window.parent.postMessage({ type: TUTORIAL_STEP_EVENT, step }, '*');
+    }
+  }
 
   // ---- screen registry ----
   const SCREENS = {
@@ -194,6 +201,7 @@
     caption('');
     cut('home');
     blackout(false);
+    publishStep('01');
   }
 
   // ---- the tutorial timeline ----
@@ -223,6 +231,7 @@
     await wait(900);
     await tap('[data-tap="sat-next"]');
     await fadeTo('deposit-done'); badgePulse();
+    publishStep('02');
     dot(1); caption('¡Depósito realizado!');
     await wait(2000);
 
@@ -231,6 +240,7 @@
     caption('Saldo actualizado');
     await wait(1300);
     await tap('[data-tap="fab"]');
+    publishStep('03');
     openSheet(true); caption('Ahora, envía dinero');
     await wait(1300);
 
@@ -241,6 +251,7 @@
     await wait(1300);
     await tap('[data-tap="fast"]');
     await pushTo('transfer-to');
+    publishStep('04');
     caption('¿A quién le envías?');
     await wait(1100);
     await tap('[data-tap="recent"]');
@@ -258,10 +269,12 @@
     await wait(350);
     await tap('[data-tap="amt-next"]');
     await pushTo('ticket');
+    publishStep('05');
     dot(4); caption('Revisa los detalles');
     await wait(2000);
     await tap('[data-tap="confirm"]');
     await fadeTo('progress');
+    publishStep('06');
     caption('Procesando el envío…');
     await wait(2300);
     await fadeTo('sent');
