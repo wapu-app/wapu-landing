@@ -97,7 +97,7 @@ const helpItems = [
   {
     question: "¿Qué es un escrow?",
     answer:
-      "Escrow es una garantia temporal: Wapu puede bloquear BTC, USDT o USDC durante la operacion para que el intercambio avance con reglas claras.",
+      "Escrow es una garantia temporal: Wapu puede bloquear BTC, USDT o USDC durante la operacion para que el intercambio avance con mayor seguridad para ambas partes y no se pierdan los activos en el proceso.",
   },
   {
     question: "¿A dónde puedo enviar?",
