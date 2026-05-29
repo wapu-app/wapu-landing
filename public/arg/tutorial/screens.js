@@ -34,10 +34,10 @@ const tetherCircle = '<span style="width:42px;height:42px;border-radius:50%;back
 
 const TUTORIAL_FLOW = {
   initialBalanceUsd: '$0.00',
-  finalBalanceUsd: '$100.00',
-  depositSatsInput: '135593',
-  depositSatsLabel: '135,593 SAT',
-  depositUsdLabel: '$100.00',
+  finalBalanceUsd: '$360.00',
+  depositSatsInput: '488136',
+  depositSatsLabel: '488,136 SAT',
+  depositUsdLabel: '$360.00',
   exchangeRateArs: '1400.00',
   sendArsInput: '21000',
   sendArsLabel: '21,000 ARS',

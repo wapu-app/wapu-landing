@@ -53,11 +53,55 @@ const flowBoltVerticalPaths = [
   "M27 2 L27 14 L14 25 L41 34 L20 45 L35 55 L15 68 L28 78 L28 94",
 ];
 
-const videoBullets = [
-  { eyebrow: "01", text: "Depósito de BTC o USDT" },
-  { eyebrow: "02", text: "Destino: CBU, alias, MP o Wapu ID" },
-  { eyebrow: "03", text: "Velocidad: rápido o normal" },
-  { eyebrow: "04", text: "Confirmación y liquidación a ARS" },
+const videoTimelineSteps = [
+  {
+    eyebrow: "01",
+    title: "Inicio en la billetera",
+    body: "Saldo inicial en cero.",
+    metric: "$0.00",
+  },
+  {
+    eyebrow: "02",
+    title: "Depósito por Lightning",
+    body: "Sats equivalentes a 100 dólares.",
+    metric: "135,593 SAT",
+  },
+  {
+    eyebrow: "03",
+    title: "Depósito confirmado",
+    body: "Wapu actualiza el saldo disponible.",
+    metric: "$100.00",
+  },
+  {
+    eyebrow: "04",
+    title: "Envío en pesos",
+    body: "Elige enviar moneda local argentina.",
+    metric: "ARS",
+  },
+  {
+    eyebrow: "05",
+    title: "Destinatario",
+    body: "satoshi vía mate.bitcoin.mp.",
+    metric: "satoshi",
+  },
+  {
+    eyebrow: "06",
+    title: "Monto a enviar",
+    body: "21.000 pesos equivalen a 15 USDT.",
+    metric: "21,000 ARS",
+  },
+  {
+    eyebrow: "07",
+    title: "Revisión",
+    body: "Monto, cambio, comisión y total.",
+    metric: "15 USDT",
+  },
+  {
+    eyebrow: "08",
+    title: "Recibo final",
+    body: "Procesamiento y comprobante final.",
+    metric: "Completado",
+  },
 ];
 
 const audience = [
@@ -636,19 +680,31 @@ export default function LatLanding() {
           <div className="lat-video-copy">
             <p className="lat-section-kicker">El flujo, en vivo</p>
             <h2>¿Cómo  <span className="lat-it">funciona?</span></h2>
-            <div>
-            <p></p>
+            <div className="lat-video-status">
+              <span>Demo guiada</span>
+              <strong>8 escenas</strong>
             </div>
-            <h3 className="lat-kicker-pill">3 años  <span className="lat-it">en produccion?</span></h3>
             <p>
-              Depositás cripto, elegís a dónde mandar, definís la velocidad y confirmás. Sin formularios, sin esperar
-              una contraparte, sin pelear con el banco: la app resuelve el resto.
+              La animación recorre una operación completa: depositar Bitcoin por Lightning y usar ese saldo para enviar
+              pesos argentinos a un alias.
             </p>
-            <ul className="lat-video-bullets">
-              {videoBullets.map((b) => (
-                <li key={b.eyebrow}><span>{b.eyebrow}</span>{b.text}</li>
-              ))}
-            </ul>
+            <div className="lat-video-timeline" aria-label="Paso a paso animado del flujo de Wapu">
+              <div className="lat-video-timeline-bar" aria-hidden="true">
+                <i />
+              </div>
+              <ol>
+                {videoTimelineSteps.map((step) => (
+                  <li key={step.eyebrow}>
+                    <span className="lat-video-step-index">{step.eyebrow}</span>
+                    <div>
+                      <h3>{step.title}</h3>
+                      <p>{step.body}</p>
+                    </div>
+                    <strong>{step.metric}</strong>
+                  </li>
+                ))}
+              </ol>
+            </div>
           </div>
           <div className="lat-video-frame">
             <span className="lat-video-corner lat-video-corner-tl">Live demo</span>
