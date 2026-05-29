@@ -964,8 +964,8 @@ a, button {
   border-radius: 50%;
   box-shadow: 0 0 14px var(--lat-pink);
 }
-.lat-marquee span:nth-child(2n)::after { background: var(--lat-electric); box-shadow: 0 0 14px var(--lat-electric); }
-.lat-marquee span:nth-child(3n)::after { background: var(--lat-electric-cold); box-shadow: 0 0 14px var(--lat-electric-cold); }
+.lat-marquee .lat-marquee-dot-pink::after { background: var(--lat-pink); box-shadow: 0 0 14px var(--lat-pink); }
+.lat-marquee .lat-marquee-dot-yellow::after { background: var(--lat-electric); box-shadow: 0 0 14px var(--lat-electric); }
 
 /* ---------- Manifest ---------- */
 .lat-manifest { max-width: 1180px; padding: 110px 0; }

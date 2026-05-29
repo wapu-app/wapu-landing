@@ -553,12 +553,12 @@ export default function LatLanding() {
       {/* MARQUEE STRIP */}
       <div className="lat-marquee-wrap" aria-hidden="true">
         <div className="lat-marquee">
-          <span>Sin KYC</span>
-          <span>P2P asistido</span>
-          <span>Escrow real</span>
-          <span>Salida ARS</span>
-          <span>Sin permiso</span>
-          <span>Argentina primero</span>
+          <span className="lat-marquee-dot-pink">Sin KYC</span>
+          <span className="lat-marquee-dot-yellow">P2P AUTOMÁTICO</span>
+          <span className="lat-marquee-dot-pink">Escrow real</span>
+          <span className="lat-marquee-dot-yellow">Salida ARS</span>
+          <span className="lat-marquee-dot-pink">Sin permiso</span>
+          <span className="lat-marquee-dot-yellow">Argentina primero</span>
         </div>
       </div>
 
