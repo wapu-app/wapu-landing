@@ -56,41 +56,31 @@ const flowBoltVerticalPaths = [
 const videoTimelineSteps = [
   {
     eyebrow: "01",
-    title: "Inicio en la billetera",
-    body: "Punto de partida de la operación.",
-  },
-  {
-    eyebrow: "02",
     title: "Depósito por Lightning",
     body: "El saldo entra por Lightning.",
   },
   {
-    eyebrow: "03",
+    eyebrow: "02",
     title: "Depósito confirmado",
     body: "Wapu actualiza el saldo disponible.",
   },
   {
-    eyebrow: "04",
+    eyebrow: "03",
     title: "Envío en pesos",
     body: "Elegís enviar moneda local argentina.",
   },
   {
+    eyebrow: "04",
+    title: "Destinatario y monto",
+    body: "Cargás el alias o cuenta destino y definís cuánto querés mandar.",
+  },
+  {
     eyebrow: "05",
-    title: "Destinatario",
-    body: "Cargás el alias o cuenta destino.",
-  },
-  {
-    eyebrow: "06",
-    title: "Monto a enviar",
-    body: "Definís cuánto querés mandar.",
-  },
-  {
-    eyebrow: "07",
     title: "Revisión",
     body: "Confirmás monto, cambio, comisión y total.",
   },
   {
-    eyebrow: "08",
+    eyebrow: "06",
     title: "Recibo final",
     body: "Procesamiento y comprobante final.",
   },
@@ -698,7 +688,6 @@ export default function LatLanding() {
             </div>
           </div>
           <div className="lat-video-frame">
-            <span className="lat-video-corner lat-video-corner-br">v0.9</span>
             <iframe
               aria-label="Animacion del flujo de Wapu"
               className="lat-tutorial-player"
