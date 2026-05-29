@@ -96,7 +96,7 @@ function HeroTerminal() {
       </div>
       <div className="dev-term-body">
         <div className={"dev-term-panel" + (tab === "deposit" ? " is-active" : "")} role="tabpanel">
-          <div className="dev-term-line"><span className="dev-term-prompt" /><span className="dev-term-cmd">wapu deposit lightning create </span><span className="dev-term-flag">--amount</span> 10 <span className="dev-term-flag">--currency</span> SAT</div>
+          <div className="dev-term-line"><span className="dev-term-prompt" /><span className="dev-term-cmd">wapu deposit lightning create </span><span className="dev-term-flag">--amount</span> 10 <br /> <span className="dev-term-flag">--currency</span> SAT</div>
           <div className="dev-term-line dev-term-comment">{" "}</div>
           <div className="dev-term-line dev-term-out">{"| field            | value        |"}</div>
           <div className="dev-term-line dev-term-out">{"|------------------|--------------|"}</div>
