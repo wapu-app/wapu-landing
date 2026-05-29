@@ -95,7 +95,7 @@ const helpItems = [
       "No. Ese es el punto: Wapu simplifica el proceso y resuelve la contraparte sin exponerte a negociar con desconocidos.",
   },
   {
-    question: "¿Qué es escrow?",
+    question: "¿Qué es un escrow?",
     answer:
       "Escrow es una garantia temporal: Wapu puede bloquear BTC, USDT o USDC durante la operacion para que el intercambio avance con reglas claras.",
   },
