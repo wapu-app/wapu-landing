@@ -8,7 +8,7 @@
 
   // ---- screen registry ----
   const SCREENS = {
-    'home':           homeScreen('$0.50'),
+    'home':           homeScreen(TUTORIAL_FLOW.initialBalanceUsd),
     'deposit-method': depositMethodScreen(),
     'send-sat':       sendSatScreen(),
     'deposit-done':   depositDoneScreen(),
@@ -179,7 +179,7 @@
   // ---- reset to start ----
   function reset(){
     showKeypad(false); openSheet(false);
-    setBalance('$0.50');
+    setBalance(TUTORIAL_FLOW.initialBalanceUsd);
     // reset sat screen
     const s=els['send-sat']; const sf=q('[data-sat]',s); sf.textContent='Enter amount in Satoshis'; sf.classList.add('ph'); clearCaret('send-sat','satcaret');
     q('[data-usd]',s).textContent='$0.00'; q('[data-btn]',s).classList.add('disabled');
@@ -216,17 +216,17 @@
     await tap('[data-tap="sat-field"]');
     setField('send-sat','sat','satcaret','');
     showKeypad(true); await wait(650);
-    await typeKeypad('send-sat','sat','satcaret','800', updateUsd);
+    await typeKeypad('send-sat','sat','satcaret', TUTORIAL_FLOW.depositSatsInput, updateUsd);
     await wait(550); showKeypad(false); clearCaret('send-sat','satcaret');
     await wait(350); enableBtn('[data-btn]');
-    caption('800 SAT ≈ <b>$0.59</b>');
+    caption(`${TUTORIAL_FLOW.depositSatsLabel} ≈ <b>${TUTORIAL_FLOW.depositUsdLabel}</b>`);
     await wait(900);
     await tap('[data-tap="sat-next"]');
     await fadeTo('deposit-done'); badgePulse();
     dot(1); caption('¡Depósito realizado!');
     await wait(2000);
 
-    setBalance('$1.09');
+    setBalance(TUTORIAL_FLOW.finalBalanceUsd);
     await fadeTo('home');
     caption('Saldo actualizado');
     await wait(1300);
@@ -253,7 +253,7 @@
     await tap('[data-tap="amt-field"]');
     setField('send-amount','amt','amtcaret','');
     showKeypad(true); await wait(650);
-    await typeKeypad('send-amount','amt','amtcaret','1000', updateAmtState);
+    await typeKeypad('send-amount','amt','amtcaret', TUTORIAL_FLOW.sendArsInput, updateAmtState);
     await wait(550); showKeypad(false); clearCaret('send-amount','amtcaret');
     await wait(350);
     await tap('[data-tap="amt-next"]');

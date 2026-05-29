@@ -32,6 +32,18 @@ const flagAR = '<span style="width:42px;height:42px;border-radius:50%;overflow:h
 
 const tetherCircle = '<span style="width:42px;height:42px;border-radius:50%;background:#2bb17f;display:grid;place-items:center;flex:none;color:#fff;">'+I.tether+'</span>';
 
+const TUTORIAL_FLOW = {
+  initialBalanceUsd: '$0.00',
+  finalBalanceUsd: '$100.00',
+  depositSatsInput: '135593',
+  depositSatsLabel: '135,593 SAT',
+  depositUsdLabel: '$100.00',
+  exchangeRateArs: '1400.00',
+  sendArsInput: '21000',
+  sendArsLabel: '21,000 ARS',
+  sendUsdtLabel: '15 USDT',
+};
+
 function statusbar(){
   return `<div class="statusbar"><span>9:41</span>
     <span class="sb-icons">${I.signal}${I.wifi}${I.battery}</span></div>`;
@@ -62,7 +74,7 @@ function homeScreen(balance){
       <div class="rtoken"><span class="tdot">T</span> USDT</div>
     </div>
     <div class="rr">
-      <div class="price-row"><span class="pic"></span> $1449.48</div>
+      <div class="price-row"><span class="pic"></span> $${TUTORIAL_FLOW.exchangeRateArs}</div>
       <div class="buy">Buy Price</div>
     </div>
   </div>
@@ -72,7 +84,7 @@ function homeScreen(balance){
     <div class="feed-row">
       <span class="feed-token btc">BTC</span>
       <div class="feed-copy"><strong>Lightning deposit</strong><small>Ready in seconds</small></div>
-      <b class="feed-amt plus">+800 SAT</b>
+      <b class="feed-amt plus">+${TUTORIAL_FLOW.depositSatsLabel}</b>
     </div>
     <div class="feed-row">
       <span class="feed-token ars">ARS</span>
@@ -182,12 +194,12 @@ function ticketScreen(){
   return `${navHeader('Fast Send')}
     <div class="ticket">
       <div class="t-h">Receive amount</div>
-      <div class="t-amt">1000 ARS</div>
+      <div class="t-amt">${TUTORIAL_FLOW.sendArsLabel}</div>
       <div class="t-div"></div>
       <div class="trow"><span class="tk">Network</span><span class="tv">Bank transfer</span></div>
-      <div class="trow"><span class="tk">Exchange ratio</span><span class="tv">1 USDT = 1449.48 ARS</span></div>
+      <div class="trow"><span class="tk">Exchange ratio</span><span class="tv">1 USDT = ${TUTORIAL_FLOW.exchangeRateArs} ARS</span></div>
       <div class="trow"><span class="tk">Transaction fee</span><span class="tv">0 USDT</span></div>
-      <div class="trow total"><span class="tk">Total amount</span><span class="tv">0.69 USDT</span></div>
+      <div class="trow total"><span class="tk">Total amount</span><span class="tv">${TUTORIAL_FLOW.sendUsdtLabel}</span></div>
       <div class="t-arrow">${I.arrowDown}</div>
       <div class="t-to">To</div>
       <div class="t-recip"><div class="gl">${I.globe}</div>
@@ -226,7 +238,7 @@ function sentScreen(){
   return `<div class="nav"><div class="back"></div><div class="ntitle"></div><div class="nclose">${I.close}</div></div>
     <div class="ticket">
       <div class="t-h" style="font-size:18px;">Fast money sent</div>
-      <div class="t-amt" style="margin-top:4px;">1000 ARS</div>
+      <div class="t-amt" style="margin-top:4px;">${TUTORIAL_FLOW.sendArsLabel}</div>
       <div class="t-div"></div>
       <div class="trow"><span class="tk">Date</span><span class="tv">2026-05-28 00:12:32</span></div>
       <div class="trow"><span class="tk">Status</span><span class="tv"><span class="status-pill">Completed</span></span></div>
@@ -234,12 +246,12 @@ function sentScreen(){
       <div class="t-to">To</div>
       <div class="t-recip">
         <div class="gl">${I.globe}</div>
-        <div class="recip-id"><div class="rn">pepe</div><div class="rh">soyalcayaga</div></div>
+        <div class="recip-id"><div class="rn">satoshi</div><div class="rh">mate.bitcoin.mp</div></div>
       </div>
       <div class="t-div"></div>
       <div class="trow"><span class="tk">Transaction ID</span><span class="tv tid">fc8d84c5… <span class="copy">${I.copy}</span></span></div>
       <div class="trow"><span class="tk">Transaction fee</span><span class="tv">0 USDT</span></div>
-      <div class="trow total" style="margin-bottom:0;"><span class="tk">Total</span><span class="tv">$0.69 USDT</span></div>
+      <div class="trow total" style="margin-bottom:0;"><span class="tk">Total</span><span class="tv">${TUTORIAL_FLOW.sendUsdtLabel}</span></div>
     </div>
     <div class="spacer"></div>
     <div class="btn">View Receipt</div>`;
