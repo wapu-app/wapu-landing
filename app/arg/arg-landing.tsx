@@ -109,6 +109,11 @@ const helpItems = [
     answer:
       "Esta pagina esta pensada para Argentina. La disponibilidad de metodos, tiempos y comisiones puede depender de la operacion.",
   },
+  {
+    question: "¿Cuál es el límite de gasto?",
+    answer:
+      "Actualmente, el límite de gasto es de 5000 USD por mes.",
+  },
 ];
 
 const contactItems: Array<{ kind: ContactKind; label: string; value: string; href: string }> = [
