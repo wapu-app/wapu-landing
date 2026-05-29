@@ -30,7 +30,7 @@ export default async function WhatsAppGatePage({ searchParams }: WhatsAppGatePag
       <Script async defer src="https://challenges.cloudflare.com/turnstile/v0/api.js" strategy="afterInteractive" />
       <div className="lat-grid-bg" />
       <section className="wapu-contact-gate-inner">
-        <Link className="lat-brand" href="/arg">
+        <Link className="lat-brand" href="/">
           <Image src="/wapuLogo.svg" alt="Wapu" width={118} height={34} priority />
           <span>Contacto</span>
         </Link>
@@ -71,7 +71,7 @@ export default async function WhatsAppGatePage({ searchParams }: WhatsAppGatePag
           </button>
         </form>
 
-        <Link className="lat-secondary-btn" href="/arg#contacto">
+        <Link className="lat-secondary-btn" href="/#contacto">
           Volver
         </Link>
       </section>

@@ -494,7 +494,7 @@ export default function LatLanding() {
             <a href="#escrow">Escrow</a>
             <a href="#ayuda">Ayuda</a>
             <a href="#contacto">Contacto</a>
-            <Link aria-label="Ir a la landing de Wapu CLI y API" className="lat-nav-cta lat-nav-cli-api" href="/">CLI + API</Link>
+            <Link aria-label="Ir a la landing de Wapu CLI y API" className="lat-nav-cta lat-nav-cli-api" href="/dev">CLI + API</Link>
             <a className="lat-nav-cta" href={WAPU_SIGNUP_URL} {...WAPU_SIGNUP_LINK_PROPS}>Entrar a Wapu</a>
           </nav>
         </header>
