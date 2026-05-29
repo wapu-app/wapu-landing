@@ -199,6 +199,28 @@ function ArsMark() {
   );
 }
 
+function OrangeMark() {
+  return (
+    <svg className="lat-token-mark lat-orange-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+      <defs>
+        <radialGradient id="lat-orange-token-glow" cx="34%" cy="24%" r="72%">
+          <stop offset="0%" stopColor="#ffe48a" />
+          <stop offset="42%" stopColor="#ff9b2f" />
+          <stop offset="100%" stopColor="#d84b11" />
+        </radialGradient>
+      </defs>
+      <path d="M16.4 5.8c1.4-3 4-4.6 7.7-4.8.1 3.4-2.2 5.8-6.6 6.8" fill="#54d46f" />
+      <path d="M18.4 7c-.2-2.3-1-3.8-2.5-4.7" fill="none" stroke="#7a3b11" strokeLinecap="round" strokeWidth="1.4" />
+      <circle cx="16" cy="17" r="12.2" fill="url(#lat-orange-token-glow)" />
+      <circle cx="16" cy="17" r="12.2" fill="none" stroke="#ffd36a" strokeWidth="1.4" />
+      <circle cx="11.2" cy="14.8" r="0.8" fill="#f16d19" opacity="0.72" />
+      <circle cx="19.7" cy="13.6" r="0.9" fill="#f16d19" opacity="0.62" />
+      <circle cx="14.9" cy="21.8" r="0.75" fill="#f16d19" opacity="0.66" />
+      <path d="M8.8 18.4c2.5 1.1 5.1 1.3 7.7.7 2.1-.5 4.3-.4 6.7.4" fill="none" stroke="#ffcf62" strokeLinecap="round" strokeWidth="1.2" opacity="0.5" />
+    </svg>
+  );
+}
+
 function ContactIcon({ kind }: { kind: ContactKind }) {
   if (kind === "instagram") {
     return (
@@ -438,6 +460,44 @@ function useLatAnimations() {
       });
     }
 
+    /* Orange token easter egg: insist on the No KYC sticker */
+    const orangeWrap = $<HTMLDivElement>(".lat-visual-wrap");
+    const orangeSticker = orangeWrap ? $<HTMLDivElement>(".lat-sticker-hero", orangeWrap) : null;
+    if (orangeWrap) {
+      const ORANGE_UNLOCK_STORAGE_KEY = "wapu-orange-orbit-clicks-v1";
+      const ORANGE_UNLOCK_CLICKS = 20;
+      let orangeClickCount = 0;
+      const unlockOrange = () => {
+        orangeWrap.classList.add("lat-orange-easter-active");
+        try {
+          sessionStorage.setItem(ORANGE_UNLOCK_STORAGE_KEY, "1");
+        } catch {
+          // Storage can be unavailable in hardened browser modes; the live unlock still works.
+        }
+      };
+      try {
+        if (sessionStorage.getItem(ORANGE_UNLOCK_STORAGE_KEY) === "1") unlockOrange();
+      } catch {
+        // Keep the easter egg non-persistent when sessionStorage is blocked.
+      }
+      const onOrangePress = (event: PointerEvent) => {
+        if (!orangeSticker || orangeWrap.classList.contains("lat-orange-easter-active")) return;
+        const rect = orangeSticker.getBoundingClientRect();
+        const isInsideSticker =
+          event.clientX >= rect.left &&
+          event.clientX <= rect.right &&
+          event.clientY >= rect.top &&
+          event.clientY <= rect.bottom;
+        if (!isInsideSticker) return;
+        orangeClickCount += 1;
+        if (orangeClickCount >= ORANGE_UNLOCK_CLICKS) unlockOrange();
+      };
+      orangeWrap.addEventListener("pointerdown", onOrangePress);
+      cleanups.push(() => {
+        orangeWrap.removeEventListener("pointerdown", onOrangePress);
+      });
+    }
+
     /* Flow: scroll-driven progress + active step */
     const flowTrack = $<HTMLDivElement>(".lat-flow-track");
     const flowNodes = $$<HTMLElement>(".lat-flow-node");
@@ -591,6 +651,10 @@ export default function LatLanding() {
               <div className="lat-coin lat-coin-c">
                 <ArsMark />
                 <span>ARS</span>
+              </div>
+              <div className="lat-coin lat-coin-orange">
+                <OrangeMark />
+                <span>NARANJA</span>
               </div>
 
               <div className="lat-sticker lat-sticker-hero" aria-hidden="true">

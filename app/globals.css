@@ -593,6 +593,18 @@ a, button {
   --usdt-orbit-reveal-1-y: -132px;
   --usdt-orbit-reveal-2-x: 216px;
   --usdt-orbit-reveal-2-y: -58px;
+  --orange-orbit-1-x: 254px;
+  --orange-orbit-1-y: -150px;
+  --orange-orbit-2-x: 92px;
+  --orange-orbit-2-y: -190px;
+  --orange-orbit-3-x: -210px;
+  --orange-orbit-3-y: -96px;
+  --orange-orbit-front-x: -164px;
+  --orange-orbit-front-y: 60px;
+  --orange-orbit-4-x: 44px;
+  --orange-orbit-4-y: 118px;
+  --orange-orbit-rear-x: 230px;
+  --orange-orbit-rear-y: -8px;
 }
 .lat-orbit {
   position: absolute;
@@ -851,6 +863,21 @@ a, button {
   border-color: rgba(116, 172, 223, 0.42);
   background: rgba(10, 28, 46, 0.78);
   box-shadow: 0 0 34px rgba(116, 172, 223, 0.36), 0 0 54px rgba(246, 180, 14, 0.16);
+}
+.lat-coin-orange {
+  visibility: hidden;
+  border-color: rgba(255, 147, 45, 0.5);
+  background: rgba(58, 31, 12, 0.78);
+  box-shadow: 0 0 36px rgba(255, 139, 34, 0.38), 0 0 70px rgba(248, 244, 107, 0.16);
+  animation: lat-token-orbit-orange 21s linear infinite;
+  animation-play-state: paused;
+}
+.lat-visual-wrap.lat-orange-easter-active .lat-coin-orange {
+  visibility: visible;
+  animation-play-state: running;
+}
+.lat-orange-mark {
+  filter: drop-shadow(0 0 14px rgba(255, 139, 34, 0.4));
 }
 .lat-escrow-cube {
   left: 0;
@@ -1975,6 +2002,48 @@ a, button {
     transform: translate(-50%, -50%) translate3d(var(--usdt-orbit-reveal-2-x), var(--usdt-orbit-reveal-2-y), 0) scale(0.96) rotate(7deg);
   }
 }
+@keyframes lat-token-orbit-orange {
+  0%, 100% {
+    z-index: 3;
+    opacity: 0.74;
+    transform: translate(-50%, -50%) translate3d(var(--orange-orbit-1-x), var(--orange-orbit-1-y), 0) scale(0.78) rotate(-10deg);
+  }
+  13.5% {
+    z-index: 3;
+    opacity: 0.82;
+    transform: translate(-50%, -50%) translate3d(var(--orange-orbit-2-x), var(--orange-orbit-2-y), 0) scale(0.86) rotate(-3deg);
+  }
+  31.4% {
+    z-index: 2;
+    opacity: 0.66;
+    transform: translate(-50%, -50%) translate3d(var(--orange-orbit-3-x), var(--orange-orbit-3-y), 0) scale(0.76) rotate(5deg);
+  }
+  47.8% {
+    z-index: 2;
+    opacity: 0.72;
+    transform: translate(-50%, -50%) translate3d(var(--orange-orbit-front-x), var(--orange-orbit-front-y), 0) scale(0.9) rotate(9deg);
+  }
+  47.9% {
+    z-index: 9;
+    opacity: 0.9;
+    transform: translate(-50%, -50%) translate3d(var(--orange-orbit-front-x), var(--orange-orbit-front-y), 0) scale(0.9) rotate(9deg);
+  }
+  62.6% {
+    z-index: 9;
+    opacity: 1;
+    transform: translate(-50%, -50%) translate3d(var(--orange-orbit-4-x), var(--orange-orbit-4-y), 0) scale(1.08) rotate(2deg);
+  }
+  78.3% {
+    z-index: 8;
+    opacity: 0.92;
+    transform: translate(-50%, -50%) translate3d(var(--orange-orbit-rear-x), var(--orange-orbit-rear-y), 0) scale(0.96) rotate(-4deg);
+  }
+  93.7% {
+    z-index: 3;
+    opacity: 0.78;
+    transform: translate(-50%, -50%) translate3d(var(--orange-orbit-1-x), var(--orange-orbit-1-y), 0) scale(0.8) rotate(-9deg);
+  }
+}
 @keyframes lat-token-orbit-btc-mobile {
   0%, 100% {
     opacity: 0.66;
@@ -2200,6 +2269,18 @@ a, button {
     --usdt-orbit-reveal-1-y: -98px;
     --usdt-orbit-reveal-2-x: 125px;
     --usdt-orbit-reveal-2-y: -43px;
+    --orange-orbit-1-x: 148px;
+    --orange-orbit-1-y: -108px;
+    --orange-orbit-2-x: 54px;
+    --orange-orbit-2-y: -138px;
+    --orange-orbit-3-x: -120px;
+    --orange-orbit-3-y: -70px;
+    --orange-orbit-front-x: -94px;
+    --orange-orbit-front-y: 45px;
+    --orange-orbit-4-x: 32px;
+    --orange-orbit-4-y: 86px;
+    --orange-orbit-rear-x: 134px;
+    --orange-orbit-rear-y: -4px;
   }
   .lat-phone { width: min(86vw, 280px); min-height: 460px; border-radius: 28px; padding: 22px 18px; }
   .lat-phone-bar { gap: 12px; }
@@ -2299,6 +2380,18 @@ a, button {
     --usdt-orbit-reveal-1-y: -92px;
     --usdt-orbit-reveal-2-x: 106px;
     --usdt-orbit-reveal-2-y: -41px;
+    --orange-orbit-1-x: 126px;
+    --orange-orbit-1-y: -98px;
+    --orange-orbit-2-x: 46px;
+    --orange-orbit-2-y: -125px;
+    --orange-orbit-3-x: -104px;
+    --orange-orbit-3-y: -64px;
+    --orange-orbit-front-x: -82px;
+    --orange-orbit-front-y: 38px;
+    --orange-orbit-4-x: 27px;
+    --orange-orbit-4-y: 77px;
+    --orange-orbit-rear-x: 116px;
+    --orange-orbit-rear-y: -2px;
   }
   .lat-phone { width: 88vw; padding: 18px 16px; }
   .lat-balance-card strong { font-size: 28px; }
