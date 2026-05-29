@@ -176,10 +176,7 @@ export default function DevPage() {
             </div>
             <div className="dev-reveal">
               <HeroTerminal />
-              <p className="dev-term-note">
-                <span><strong>Endpoints:</strong> <code>deposit</code> → <code>POST /wallet/deposit_lightning</code> · <code>withdraw ARS</code> → <code>POST /transactions/create</code>.</span>
-                <span><strong>Auth server-to-server (servidor a servidor):</strong> <code>X-API-Key</code> generado vía <code>POST /users/api-token</code> desde una sesión <code>Bearer</code> autorizada; requiere <code>api_enabled=true</code>.</span>
-              </p>
+
             </div>
           </div>
         </div>
