@@ -552,14 +552,53 @@ a, button {
 /* ----- Hero visual (phone + orbits + coins) ----- */
 .lat-visual-wrap {
   position: relative;
+  width: 100%;
   min-height: 640px;
   perspective: 1100px;
   transform-style: preserve-3d;
+  isolation: isolate;
+  --btc-orbit-1-x: -248px;
+  --btc-orbit-1-y: -128px;
+  --btc-orbit-2-x: -28px;
+  --btc-orbit-2-y: -172px;
+  --btc-orbit-reveal-1-x: -118px;
+  --btc-orbit-reveal-1-y: -170px;
+  --btc-orbit-reveal-2-x: 160px;
+  --btc-orbit-reveal-2-y: -94px;
+  --btc-orbit-reveal-3-x: 218px;
+  --btc-orbit-reveal-3-y: -56px;
+  --btc-orbit-3-x: 150px;
+  --btc-orbit-3-y: 36px;
+  --btc-orbit-4-x: 26px;
+  --btc-orbit-4-y: 92px;
+  --btc-orbit-hide-1-x: -132px;
+  --btc-orbit-hide-1-y: 18px;
+  --btc-orbit-hide-2-x: -218px;
+  --btc-orbit-hide-2-y: -86px;
+  --usdt-orbit-1-x: 232px;
+  --usdt-orbit-1-y: -46px;
+  --usdt-orbit-front-1-x: 162px;
+  --usdt-orbit-front-1-y: 52px;
+  --usdt-orbit-2-x: 12px;
+  --usdt-orbit-2-y: 104px;
+  --usdt-orbit-hide-1-x: -126px;
+  --usdt-orbit-hide-1-y: 42px;
+  --usdt-orbit-hide-2-x: -218px;
+  --usdt-orbit-hide-2-y: -66px;
+  --usdt-orbit-3-x: -236px;
+  --usdt-orbit-3-y: -86px;
+  --usdt-orbit-4-x: 34px;
+  --usdt-orbit-4-y: -150px;
+  --usdt-orbit-reveal-1-x: 132px;
+  --usdt-orbit-reveal-1-y: -132px;
+  --usdt-orbit-reveal-2-x: 216px;
+  --usdt-orbit-reveal-2-y: -58px;
 }
 .lat-orbit {
   position: absolute;
   border: 1px solid rgba(231, 53, 124, 0.32);
   border-radius: 50%;
+  z-index: 1;
   transform: rotateX(70deg) rotateZ(-20deg);
   animation: lat-spin 22s linear infinite;
   pointer-events: none;
@@ -594,6 +633,7 @@ a, button {
   position: absolute;
   left: 50%;
   top: 50%;
+  z-index: 5;
   transform: translate(-50%, -50%);
   transform-style: preserve-3d;
   transition: transform 240ms cubic-bezier(.2,.7,.2,1);
@@ -790,11 +830,21 @@ a, button {
   color: #fff;
   font-size: 11px;
   line-height: 1;
+  left: 50%;
+  top: 50%;
+  right: auto;
+  bottom: auto;
+  transform-style: preserve-3d;
+  will-change: transform, opacity;
 }
 .lat-coin span { transform: rotate(-4deg); letter-spacing: 0.04em; }
 .lat-token-mark { width: 32px; height: 32px; filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.18)); }
-.lat-coin-a { left: 2%; top: 18%; animation: lat-drift-a 6.6s ease-in-out infinite; }
-.lat-coin-b { right: -2%; top: 38%; animation: lat-drift-b 5.9s ease-in-out infinite; }
+.lat-coin-a {
+  animation: lat-token-orbit-btc 18s linear infinite;
+}
+.lat-coin-b {
+  animation: lat-token-orbit-usdt 18s linear infinite;
+}
 .lat-escrow-cube {
   left: 0;
   bottom: 8%;
@@ -1665,6 +1715,196 @@ a, button {
   from { transform: rotateX(70deg) rotateZ(0deg); }
   to   { transform: rotateX(70deg) rotateZ(360deg); }
 }
+@keyframes lat-token-orbit-btc {
+  0%, 100% {
+    z-index: 2;
+    opacity: 0.66;
+    transform: translate(-50%, -50%) translate3d(var(--btc-orbit-1-x), var(--btc-orbit-1-y), 0) scale(0.78) rotate(-9deg);
+  }
+  12.3% {
+    z-index: 2;
+    opacity: 0.72;
+    transform: translate(-50%, -50%) translate3d(var(--btc-orbit-reveal-1-x), var(--btc-orbit-reveal-1-y), 0) scale(0.84) rotate(-2deg);
+  }
+  20.4% {
+    z-index: 3;
+    opacity: 0.78;
+    transform: translate(-50%, -50%) translate3d(var(--btc-orbit-2-x), var(--btc-orbit-2-y), 0) scale(0.88) rotate(2deg);
+  }
+  38.7% {
+    z-index: 3;
+    opacity: 0.86;
+    transform: translate(-50%, -50%) translate3d(var(--btc-orbit-reveal-2-x), var(--btc-orbit-reveal-2-y), 0) scale(0.98) rotate(6deg);
+  }
+  45% {
+    z-index: 3;
+    opacity: 0.94;
+    transform: translate(-50%, -50%) translate3d(var(--btc-orbit-reveal-3-x), var(--btc-orbit-reveal-3-y), 0) scale(1.04) rotate(8deg);
+  }
+  45.1% {
+    z-index: 9;
+    opacity: 0.96;
+    transform: translate(-50%, -50%) translate3d(var(--btc-orbit-reveal-3-x), var(--btc-orbit-reveal-3-y), 0) scale(1.04) rotate(8deg);
+  }
+  55.3% {
+    z-index: 9;
+    opacity: 1;
+    transform: translate(-50%, -50%) translate3d(var(--btc-orbit-3-x), var(--btc-orbit-3-y), 0) scale(1.08) rotate(8deg);
+  }
+  67.5% {
+    z-index: 8;
+    opacity: 0.96;
+    transform: translate(-50%, -50%) translate3d(var(--btc-orbit-4-x), var(--btc-orbit-4-y), 0) scale(1) rotate(-2deg);
+  }
+  83.2% {
+    z-index: 8;
+    opacity: 0.9;
+    transform: translate(-50%, -50%) translate3d(var(--btc-orbit-hide-1-x), var(--btc-orbit-hide-1-y), 0) scale(0.94) rotate(-6deg);
+  }
+  95.4% {
+    z-index: 8;
+    opacity: 0.78;
+    transform: translate(-50%, -50%) translate3d(var(--btc-orbit-hide-2-x), var(--btc-orbit-hide-2-y), 0) scale(0.86) rotate(-8deg);
+  }
+  95.5% {
+    z-index: 2;
+    opacity: 0.76;
+    transform: translate(-50%, -50%) translate3d(var(--btc-orbit-hide-2-x), var(--btc-orbit-hide-2-y), 0) scale(0.86) rotate(-8deg);
+  }
+}
+@keyframes lat-token-orbit-usdt {
+  0%, 100% {
+    z-index: 9;
+    opacity: 1;
+    transform: translate(-50%, -50%) translate3d(var(--usdt-orbit-1-x), var(--usdt-orbit-1-y), 0) scale(1.06) rotate(7deg);
+  }
+  10.9% {
+    z-index: 9;
+    opacity: 0.98;
+    transform: translate(-50%, -50%) translate3d(var(--usdt-orbit-front-1-x), var(--usdt-orbit-front-1-y), 0) scale(1.02) rotate(1deg);
+  }
+  25.2% {
+    z-index: 8;
+    opacity: 0.96;
+    transform: translate(-50%, -50%) translate3d(var(--usdt-orbit-2-x), var(--usdt-orbit-2-y), 0) scale(0.98) rotate(-4deg);
+  }
+  38.8% {
+    z-index: 8;
+    opacity: 0.9;
+    transform: translate(-50%, -50%) translate3d(var(--usdt-orbit-hide-1-x), var(--usdt-orbit-hide-1-y), 0) scale(0.94) rotate(-8deg);
+  }
+  51.6% {
+    z-index: 8;
+    opacity: 0.78;
+    transform: translate(-50%, -50%) translate3d(var(--usdt-orbit-hide-2-x), var(--usdt-orbit-hide-2-y), 0) scale(0.84) rotate(-10deg);
+  }
+  51.7% {
+    z-index: 2;
+    opacity: 0.76;
+    transform: translate(-50%, -50%) translate3d(var(--usdt-orbit-hide-2-x), var(--usdt-orbit-hide-2-y), 0) scale(0.84) rotate(-10deg);
+  }
+  54.1% {
+    z-index: 2;
+    opacity: 0.72;
+    transform: translate(-50%, -50%) translate3d(var(--usdt-orbit-3-x), var(--usdt-orbit-3-y), 0) scale(0.82) rotate(-10deg);
+  }
+  79.1% {
+    z-index: 3;
+    opacity: 0.86;
+    transform: translate(-50%, -50%) translate3d(var(--usdt-orbit-4-x), var(--usdt-orbit-4-y), 0) scale(0.9) rotate(3deg);
+  }
+  88.1% {
+    z-index: 3;
+    opacity: 0.84;
+    transform: translate(-50%, -50%) translate3d(var(--usdt-orbit-reveal-1-x), var(--usdt-orbit-reveal-1-y), 0) scale(0.88) rotate(6deg);
+  }
+  98.2% {
+    z-index: 3;
+    opacity: 0.92;
+    transform: translate(-50%, -50%) translate3d(var(--usdt-orbit-reveal-2-x), var(--usdt-orbit-reveal-2-y), 0) scale(0.96) rotate(7deg);
+  }
+  98.3% {
+    z-index: 9;
+    opacity: 0.94;
+    transform: translate(-50%, -50%) translate3d(var(--usdt-orbit-reveal-2-x), var(--usdt-orbit-reveal-2-y), 0) scale(0.96) rotate(7deg);
+  }
+}
+@keyframes lat-token-orbit-btc-mobile {
+  0%, 100% {
+    opacity: 0.66;
+    transform: translate(-50%, -50%) translate3d(var(--btc-orbit-1-x), var(--btc-orbit-1-y), 0) scale(0.78) rotate(-9deg);
+  }
+  12.3% {
+    opacity: 0.72;
+    transform: translate(-50%, -50%) translate3d(var(--btc-orbit-reveal-1-x), var(--btc-orbit-reveal-1-y), 0) scale(0.84) rotate(-2deg);
+  }
+  20.4% {
+    opacity: 0.78;
+    transform: translate(-50%, -50%) translate3d(var(--btc-orbit-2-x), var(--btc-orbit-2-y), 0) scale(0.88) rotate(2deg);
+  }
+  38.7% {
+    opacity: 0.86;
+    transform: translate(-50%, -50%) translate3d(var(--btc-orbit-reveal-2-x), var(--btc-orbit-reveal-2-y), 0) scale(0.98) rotate(6deg);
+  }
+  45%, 45.1% {
+    opacity: 0.94;
+    transform: translate(-50%, -50%) translate3d(var(--btc-orbit-reveal-3-x), var(--btc-orbit-reveal-3-y), 0) scale(1.04) rotate(8deg);
+  }
+  55.3% {
+    opacity: 1;
+    transform: translate(-50%, -50%) translate3d(var(--btc-orbit-3-x), var(--btc-orbit-3-y), 0) scale(1.08) rotate(8deg);
+  }
+  67.5% {
+    opacity: 0.96;
+    transform: translate(-50%, -50%) translate3d(var(--btc-orbit-4-x), var(--btc-orbit-4-y), 0) scale(1) rotate(-2deg);
+  }
+  83.2% {
+    opacity: 0.9;
+    transform: translate(-50%, -50%) translate3d(var(--btc-orbit-hide-1-x), var(--btc-orbit-hide-1-y), 0) scale(0.94) rotate(-6deg);
+  }
+  95.4%, 95.5% {
+    opacity: 0.76;
+    transform: translate(-50%, -50%) translate3d(var(--btc-orbit-hide-2-x), var(--btc-orbit-hide-2-y), 0) scale(0.86) rotate(-8deg);
+  }
+}
+@keyframes lat-token-orbit-usdt-mobile {
+  0%, 100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) translate3d(var(--usdt-orbit-1-x), var(--usdt-orbit-1-y), 0) scale(1.06) rotate(7deg);
+  }
+  10.9% {
+    opacity: 0.98;
+    transform: translate(-50%, -50%) translate3d(var(--usdt-orbit-front-1-x), var(--usdt-orbit-front-1-y), 0) scale(1.02) rotate(1deg);
+  }
+  25.2% {
+    opacity: 0.96;
+    transform: translate(-50%, -50%) translate3d(var(--usdt-orbit-2-x), var(--usdt-orbit-2-y), 0) scale(0.98) rotate(-4deg);
+  }
+  38.8% {
+    opacity: 0.9;
+    transform: translate(-50%, -50%) translate3d(var(--usdt-orbit-hide-1-x), var(--usdt-orbit-hide-1-y), 0) scale(0.94) rotate(-8deg);
+  }
+  51.6%, 51.7% {
+    opacity: 0.76;
+    transform: translate(-50%, -50%) translate3d(var(--usdt-orbit-hide-2-x), var(--usdt-orbit-hide-2-y), 0) scale(0.84) rotate(-10deg);
+  }
+  54.1% {
+    opacity: 0.72;
+    transform: translate(-50%, -50%) translate3d(var(--usdt-orbit-3-x), var(--usdt-orbit-3-y), 0) scale(0.82) rotate(-10deg);
+  }
+  79.1% {
+    opacity: 0.86;
+    transform: translate(-50%, -50%) translate3d(var(--usdt-orbit-4-x), var(--usdt-orbit-4-y), 0) scale(0.9) rotate(3deg);
+  }
+  88.1% {
+    opacity: 0.84;
+    transform: translate(-50%, -50%) translate3d(var(--usdt-orbit-reveal-1-x), var(--usdt-orbit-reveal-1-y), 0) scale(0.88) rotate(6deg);
+  }
+  98.2%, 98.3% {
+    opacity: 0.92;
+    transform: translate(-50%, -50%) translate3d(var(--usdt-orbit-reveal-2-x), var(--usdt-orbit-reveal-2-y), 0) scale(0.96) rotate(7deg);
+  }
+}
 @keyframes lat-drift-a {
   0%, 100% { transform: translateY(0) rotate(-8deg); }
   50%      { transform: translateY(-22px) rotate(8deg); }
@@ -1773,13 +2013,59 @@ a, button {
 }
 @media (max-width: 720px) {
   .lat-hero { padding-bottom: 56px; }
-  .lat-visual-wrap { min-height: 480px; max-width: 360px; margin: 0 auto; }
+  .lat-visual-wrap {
+    width: min(100%, 360px);
+    min-height: 480px;
+    max-width: 360px;
+    margin: 0 auto;
+    --btc-orbit-1-x: -144px;
+    --btc-orbit-1-y: -96px;
+    --btc-orbit-2-x: -18px;
+    --btc-orbit-2-y: -126px;
+    --btc-orbit-reveal-1-x: -68px;
+    --btc-orbit-reveal-1-y: -124px;
+    --btc-orbit-reveal-2-x: 93px;
+    --btc-orbit-reveal-2-y: -70px;
+    --btc-orbit-reveal-3-x: 126px;
+    --btc-orbit-reveal-3-y: -41px;
+    --btc-orbit-3-x: 89px;
+    --btc-orbit-3-y: 27px;
+    --btc-orbit-4-x: 18px;
+    --btc-orbit-4-y: 72px;
+    --btc-orbit-hide-1-x: -77px;
+    --btc-orbit-hide-1-y: 13px;
+    --btc-orbit-hide-2-x: -126px;
+    --btc-orbit-hide-2-y: -64px;
+    --usdt-orbit-1-x: 138px;
+    --usdt-orbit-1-y: -30px;
+    --usdt-orbit-front-1-x: 94px;
+    --usdt-orbit-front-1-y: 39px;
+    --usdt-orbit-2-x: 10px;
+    --usdt-orbit-2-y: 78px;
+    --usdt-orbit-hide-1-x: -73px;
+    --usdt-orbit-hide-1-y: 31px;
+    --usdt-orbit-hide-2-x: -126px;
+    --usdt-orbit-hide-2-y: -49px;
+    --usdt-orbit-3-x: -142px;
+    --usdt-orbit-3-y: -66px;
+    --usdt-orbit-4-x: 20px;
+    --usdt-orbit-4-y: -116px;
+    --usdt-orbit-reveal-1-x: 77px;
+    --usdt-orbit-reveal-1-y: -98px;
+    --usdt-orbit-reveal-2-x: 125px;
+    --usdt-orbit-reveal-2-y: -43px;
+  }
   .lat-phone { width: min(86vw, 280px); min-height: 460px; border-radius: 28px; padding: 22px 18px; }
   .lat-phone-bar { gap: 12px; }
   .lat-balance-label { margin-top: 44px; }
-  .lat-coin { width: 64px; height: 64px; font-size: 11px; }
-  .lat-coin-a { left: -2%; top: 14%; }
-  .lat-coin-b { right: -2%; top: 38%; }
+  .lat-coin {
+    width: 64px;
+    height: 64px;
+    font-size: 11px;
+    z-index: 2;
+  }
+  .lat-coin-a { animation-name: lat-token-orbit-btc-mobile; }
+  .lat-coin-b { animation-name: lat-token-orbit-usdt-mobile; }
   .lat-token-mark { width: 26px; height: 26px; }
   .lat-send-sheet { right: -8px; bottom: -28px; width: min(200px, 70vw); padding: 12px 14px; }
   .lat-send-sheet strong { font-size: 16px; }
@@ -1814,6 +2100,44 @@ a, button {
 @media (max-width: 380px) {
   .lat-nav { gap: 8px; }
   .lat-nav-cta { padding: 7px 10px; font-size: 10px; }
+  .lat-visual-wrap {
+    --btc-orbit-1-x: -122px;
+    --btc-orbit-1-y: -90px;
+    --btc-orbit-2-x: -14px;
+    --btc-orbit-2-y: -116px;
+    --btc-orbit-reveal-1-x: -58px;
+    --btc-orbit-reveal-1-y: -116px;
+    --btc-orbit-reveal-2-x: 78px;
+    --btc-orbit-reveal-2-y: -66px;
+    --btc-orbit-reveal-3-x: 108px;
+    --btc-orbit-reveal-3-y: -39px;
+    --btc-orbit-3-x: 77px;
+    --btc-orbit-3-y: 22px;
+    --btc-orbit-4-x: 16px;
+    --btc-orbit-4-y: 68px;
+    --btc-orbit-hide-1-x: -65px;
+    --btc-orbit-hide-1-y: 13px;
+    --btc-orbit-hide-2-x: -108px;
+    --btc-orbit-hide-2-y: -60px;
+    --usdt-orbit-1-x: 116px;
+    --usdt-orbit-1-y: -28px;
+    --usdt-orbit-front-1-x: 79px;
+    --usdt-orbit-front-1-y: 36px;
+    --usdt-orbit-2-x: 8px;
+    --usdt-orbit-2-y: 72px;
+    --usdt-orbit-hide-1-x: -62px;
+    --usdt-orbit-hide-1-y: 29px;
+    --usdt-orbit-hide-2-x: -108px;
+    --usdt-orbit-hide-2-y: -46px;
+    --usdt-orbit-3-x: -118px;
+    --usdt-orbit-3-y: -62px;
+    --usdt-orbit-4-x: 18px;
+    --usdt-orbit-4-y: -108px;
+    --usdt-orbit-reveal-1-x: 65px;
+    --usdt-orbit-reveal-1-y: -92px;
+    --usdt-orbit-reveal-2-x: 106px;
+    --usdt-orbit-reveal-2-y: -41px;
+  }
   .lat-phone { width: 88vw; padding: 18px 16px; }
   .lat-balance-card strong { font-size: 28px; }
   .lat-coin { width: 56px; height: 56px; font-size: 10px; }
