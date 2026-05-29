@@ -2544,7 +2544,9 @@ a, button {
 .dev-nav-ghost { display: inline-flex; align-items: center; gap: 7px; border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 8px; padding: 8px 13px; color: #fff; text-decoration: none; font-size: 13px; font-weight: 800; background: rgba(255, 255, 255, 0.04); transition: border-color 180ms ease, background 180ms ease, transform 180ms ease; }
 .dev-nav-ghost:hover { border-color: rgba(255, 255, 255, 0.34); background: rgba(255, 255, 255, 0.08); transform: translateY(-1px); }
 .dev-nav-ghost svg { width: 16px; height: 16px; fill: currentColor; }
-.dev-nav-cta { display: inline-flex; align-items: center; gap: 7px; border: 1px solid rgba(124, 255, 216, 0.5); border-radius: 8px; padding: 8px 14px; color: #021512; text-decoration: none; font-size: 13px; font-weight: 900; background: var(--lat-electric-cold); transition: box-shadow 220ms ease, transform 180ms ease; }
+.dev-nav-cta { display: inline-flex; align-items: center; gap: 7px; border: 1px solid rgba(124, 255, 216, 0.5); border-radius: 8px; padding: 8px 14px; color: #021512; text-decoration: none; font-size: 13px; font-weight: 900; background: var(--lat-electric-cold); white-space: nowrap; transition: box-shadow 220ms ease, transform 180ms ease; }
+.dev-nav-ghost { white-space: nowrap; }
+.dev-nav-links a { white-space: nowrap; }
 .dev-nav-links a.dev-nav-cta { color: #021512; }
 .dev-nav-links a.dev-nav-ghost { color: #fff; }
 .dev-brand-logo { height: 26px; width: auto; display: block; }
@@ -2669,25 +2671,80 @@ a, button {
 .dev-footer-links a { color: var(--lat-soft); text-decoration: none; font-weight: 700; transition: color 160ms ease; }
 .dev-footer-links a:hover { color: var(--lat-electric-cold); }
 
-/* Responsive */
+/* Responsive — /dev */
 @media (max-width: 1040px) {
-  .dev-hero-layout { grid-template-columns: 1fr; gap: 44px; }
+  .dev-hero-layout { grid-template-columns: minmax(0, 1fr); gap: 44px; }
   .dev-hero { padding-top: 40px; }
 }
 @media (max-width: 860px) {
-  .dev-nav-links a, .dev-nav-sep { display: none; }
+  /* Hide section text links + separator; keep ghost/cta buttons visible */
+  .dev-nav-links a:not(.dev-nav-ghost):not(.dev-nav-cta),
+  .dev-nav-sep { display: none; }
   .dev-flow { grid-template-columns: 1fr; gap: 14px; }
   .dev-flow-arrow { transform: rotate(90deg); padding: 4px 0; }
   .dev-cmd-grid, .dev-use-grid { grid-template-columns: 1fr; }
+  .dev-section { padding: 72px 0; }
+  .dev-section-head { margin-bottom: 36px; }
+  .dev-final { padding: 72px 0 88px; }
+}
+@media (max-width: 720px) {
+  .dev-section-head p { font-size: 17px; }
 }
 @media (max-width: 560px) {
   .dev-shell, .dev-nav { width: calc(100% - 32px); }
-  .dev-section { padding: 60px 0; }
+  .dev-section { padding: 56px 0; }
   .dev-brand-badge { display: none; }
-  .dev-term-tabs { display: none; }
-  .dev-actions { width: 100%; }
-  .dev-actions a { flex: 1; }
+  /* Hide decorative title to leave room for the deposit/withdraw tabs */
+  .dev-term-title { display: none; }
+  .dev-term-tabs { margin-left: auto; }
+  .dev-term-tab { padding: 5px 9px; font-size: 11.5px; }
+  .dev-actions { width: 100%; gap: 10px; margin-top: 24px; }
+  .dev-actions a { flex: 1 1 auto; min-width: 0; }
   .dev-cmd-head { flex-wrap: wrap; }
+  .dev-nav { gap: 10px; min-height: 60px; }
+  .dev-nav-links { gap: 6px; }
+  .dev-nav-ghost { padding: 7px 10px; font-size: 12px; gap: 6px; }
+  .dev-nav-cta { padding: 7px 11px; font-size: 12px; }
+  .dev-hero { padding: 28px 0 24px; }
+  .dev-hero-layout { gap: 32px; }
+  .dev-pill { margin-bottom: 18px; padding: 6px 12px 6px 8px; font-size: 10.5px; }
+  .dev-hero-lead { margin-top: 20px; font-size: 16.5px; }
+  .dev-chips { margin-top: 22px; gap: 8px; }
+  .dev-chip { font-size: 12px; padding: 6px 11px; }
+  .dev-section h2 { font-size: clamp(28px, 8vw, 40px); }
+  .dev-section-head p { font-size: 16px; }
+  .dev-section-head { margin-bottom: 28px; }
+  .dev-flow-step { padding: 22px 20px; }
+  .dev-flow-step h3 { font-size: 17px; }
+  .dev-use { padding: 22px 20px; }
+  .dev-use h3 { font-size: 18px; }
+  .dev-term-bar { padding: 10px 14px; gap: 10px; }
+  .dev-term-body { padding: 18px 16px 20px; font-size: 12.5px; min-height: 300px; }
+  .dev-final { padding: 56px 0 72px; }
+  .dev-final-grid { flex-direction: column; align-items: stretch; gap: 24px; }
+  .dev-final h2 { font-size: clamp(26px, 8vw, 38px); }
+  .dev-final p { font-size: 16px; }
+  .dev-final .lat-primary-btn { width: 100%; justify-content: center; }
+  .dev-footer { padding: 28px 0; }
+  .dev-footer-grid { flex-direction: column; align-items: flex-start; gap: 14px; }
+  .dev-footer-links { gap: 14px 18px; }
+}
+@media (max-width: 480px) {
+  /* Hide text-only ghost link (API Docs) to keep nav single-line */
+  .dev-nav-hide-sm { display: none !important; }
+}
+@media (max-width: 400px) {
+  .dev-shell, .dev-nav { width: calc(100% - 24px); }
+  .dev-hero h1 { font-size: clamp(34px, 11vw, 46px); letter-spacing: -0.03em; }
+  .dev-actions { flex-direction: column; }
+  .dev-actions a { width: 100%; }
+  .dev-nav-ghost { padding: 6px 9px; font-size: 11.5px; }
+  .dev-nav-ghost svg { width: 14px; height: 14px; }
+  .dev-nav-cta { padding: 6px 10px; font-size: 11.5px; }
+  .dev-term-body { padding: 16px 14px; font-size: 12px; min-height: 280px; line-height: 1.7; }
+  .dev-term-bar { padding: 9px 12px; gap: 8px; }
+  .dev-flow-step { padding: 20px 18px; }
+  .dev-use { padding: 20px 18px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .dev-reveal, .dev-stagger > * { opacity: 1 !important; transform: none !important; }
