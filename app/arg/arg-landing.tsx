@@ -57,7 +57,7 @@ const audience = [
   {
     title: "Bitcoiner con autocustodia",
     body: "Cuidás tu privacidad y no querés pasar por un exchange para cada movimiento.",
-    image: "/audience/bitcoiner-autocustodia-argentina.webp",
+    image: "/audience/bitcoiner-autocustodia-argentina-v2.webp",
     imageAlt: "Hardware wallet, mate y nodo personal en una cocina argentina de departamento.",
     tag: "Autocustodia",
     tagBg: "var(--lat-electric)",
@@ -655,7 +655,7 @@ export default function LatLanding() {
               <h2>No negociás con <span className="lat-scribble">desconocidos</span>.</h2>
             </div>
             <p>
-              Wapu trabaja con contrapartes de confianza por detras: depositar, elegir destino, esperar y recibir.
+              Wapu manda las transacciones a los operadores con más alto puntaje y confianza: Vos solo depositás, elegís destino y enviás.
             </p>
           </div>
           <div className="lat-escrow-band">
