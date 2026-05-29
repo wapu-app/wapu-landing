@@ -9,6 +9,10 @@ import { getTurnstileSiteKey } from "../w/turnstile-config";
 const SHOW_BUY_BTC_MODULE = false;
 const TURNSTILE_SITE_KEY = getTurnstileSiteKey();
 const WAPU_SIGNUP_URL = "https://my.wapu.app/newSignUp";
+const WAPU_SIGNUP_LINK_PROPS = {
+  rel: "noopener noreferrer",
+  target: "_blank",
+};
 
 type ContactKind = "instagram" | "discord" | "whatsapp" | "x" | "linkedin";
 
@@ -491,7 +495,7 @@ export default function LatLanding() {
             <a href="#ayuda">Ayuda</a>
             <a href="#contacto">Contacto</a>
             <Link aria-label="Ir a la landing de Wapu CLI y API" className="lat-nav-cta lat-nav-cli-api" href="/">CLI + API</Link>
-            <a className="lat-nav-cta" href={WAPU_SIGNUP_URL}>Entrar a Wapu</a>
+            <a className="lat-nav-cta" href={WAPU_SIGNUP_URL} {...WAPU_SIGNUP_LINK_PROPS}>Entrar a Wapu</a>
           </nav>
         </header>
       </div>
@@ -510,7 +514,7 @@ export default function LatLanding() {
                 liquidación a pesos cuando querés salir al mundo real.
               </p>
               <div className="lat-actions">
-                <a className="lat-primary-btn" href={WAPU_SIGNUP_URL}>Entrar a Wapu →</a>
+                <a className="lat-primary-btn" href={WAPU_SIGNUP_URL} {...WAPU_SIGNUP_LINK_PROPS}>Entrar a Wapu →</a>
                 <a className="lat-secondary-btn" href="#video">Ver flujo</a>
               </div>
               <div className="lat-proof-row" aria-label="Atributos del producto">
@@ -802,6 +806,7 @@ export default function LatLanding() {
           <a
             className="lat-primary-btn"
             href={WAPU_SIGNUP_URL}
+            {...WAPU_SIGNUP_LINK_PROPS}
             style={{ minHeight: 60, padding: "0 30px", fontSize: 16 }}
           >
             Entrar a Wapu →
