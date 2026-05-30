@@ -296,7 +296,7 @@ a, button {
 .lat-shell { width: min(1180px, calc(100% - 40px)); margin: 0 auto; position: relative; }
 .lat-section {
   padding: 96px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 0px solid rgba(255, 255, 255, 0.08);
   position: relative;
 }
 .lat-section h2 {
@@ -359,6 +359,7 @@ a, button {
   position: relative;
   display: inline-block;
   color: rgba(255,255,255,0.42);
+  letter-spacing: 0.015em;
 }
 .lat-strike::after {
   content: "";
