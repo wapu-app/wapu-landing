@@ -2311,9 +2311,30 @@ a, button {
   .lat-flow-connector { min-width: 0; min-height: 72px; margin: -2px 0; }
   .lat-flow-bolt-horizontal { display: none; }
   .lat-flow-bolt-vertical { display: block; width: 96px; height: 72px; }
-  .lat-escrow-band { grid-template-columns: 1fr; }
-  .lat-escrow-band i { width: 2px; height: 42px; justify-self: center; background: linear-gradient(180deg, transparent, var(--lat-pink), transparent); }
-  .lat-escrow-band i::after { animation: lat-pulse-y 2.4s linear infinite; }
+  .lat-escrow-band { grid-template-columns: 1fr; gap: 14px; }
+  .lat-escrow-band i {
+    position: relative;
+    width: 3px;
+    height: 72px;
+    justify-self: center;
+    background: linear-gradient(180deg, transparent 0%, rgba(231, 53, 124, 0.32) 16%, var(--lat-pink) 50%, rgba(231, 53, 124, 0.32) 84%, transparent 100%);
+    box-shadow: 0 0 14px rgba(231, 53, 124, 0.55);
+    border-radius: 2px;
+    overflow: visible;
+  }
+  .lat-escrow-band i::after {
+    top: 0;
+    left: 50%;
+    width: 10px;
+    height: 14px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #fff, var(--lat-pink-hot));
+    box-shadow: 0 0 18px var(--lat-pink-hot), 0 0 32px rgba(231, 53, 124, 0.6);
+    margin-left: -5px;
+    animation: lat-pulse-y 2.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  }
+  .lat-escrow-band i:nth-of-type(2)::after { animation-delay: 1.2s; }
+  .lat-escrow-band > span, .lat-escrow-band > strong { min-height: 84px; }
   .lat-final-grid { flex-direction: column; align-items: flex-start; }
   .lat-sticker-hero { right: -6px; top: -8px; width: 96px; height: 96px; font-size: 10px; }
   .lat-marquee span { font-size: clamp(24px, 5vw, 42px); gap: 24px; }
@@ -2499,11 +2520,12 @@ a, button {
 }
 
 @keyframes lat-pulse-y {
-  0%   { top: 0; opacity: 0; }
-  10%  { opacity: 1; }
-  90%  { opacity: 1; }
-  100% { top: calc(100% - 8px); opacity: 0; }
+  0%   { top: 0; opacity: 0; transform: scaleY(0.7); }
+  14%  { opacity: 1; transform: scaleY(1); }
+  86%  { opacity: 1; transform: scaleY(1); }
+  100% { top: calc(100% - 14px); opacity: 0; transform: scaleY(0.7); }
 }
+
 
 /* ---------- Mobile scroll-perf overrides ----------
    En mobile/touch el spotlight no tiene sentido (no hay cursor) y los overlays
