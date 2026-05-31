@@ -834,7 +834,7 @@ export default function LatLanding() {
               aria-label="Animacion del flujo de Wapu"
               className="lat-tutorial-player"
               loading="lazy"
-              sandbox="allow-scripts"
+              sandbox="allow-scripts allow-same-origin"
               src="/tutorial/index.html"
               title="Animacion del flujo de Wapu"
             />
