@@ -1746,6 +1746,8 @@ a, button {
 .wapu-turnstile {
   min-height: 65px;
   overflow: hidden;
+  display: flex;
+  justify-content: center;
 }
 .lat-contact-turnstile {
   margin-top: -4px;
@@ -2411,6 +2413,7 @@ a, button {
     font-size: clamp(28px, 8vw, 48px);
   }
   .lat-contact-fields { grid-template-columns: 1fr; }
+  .lat-contact-form { padding: 18px 14px; }
   .lat-marquee span { font-size: clamp(22px, 6vw, 36px); gap: 20px; }
   .lat-tape { width: 72px; height: 18px; }
   .lat-kicker-pill { font-size: 10px; padding: 6px 12px 6px 8px; }
