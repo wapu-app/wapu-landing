@@ -586,7 +586,7 @@ export default function LatLanding() {
       <div className="lat-nav-wrap">
         <header className="lat-nav">
           <Link className="lat-brand" href="/">
-            <span className="lat-brand-mark">wapu</span>
+            <span className="lat-brand-mark">wap<span className="lat-brand-u">u</span></span>
             <span className="lat-brand-badge">Argentina</span>
           </Link>
           <nav aria-label="Secciones" className="lat-nav-links">

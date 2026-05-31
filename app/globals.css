@@ -204,6 +204,9 @@ a, button {
   font-style: italic;
   line-height: 1;
 }
+.lat-brand-u {
+  color: var(--lat-pink-hot);
+}
 
 .lat-brand-badge {
   position: relative;
