@@ -2377,15 +2377,15 @@ a, button {
   .lat-phone-bar { gap: 12px; }
   .lat-balance-label { margin-top: 44px; }
   .lat-coin {
-    width: 64px;
-    height: 64px;
-    font-size: 11px;
+    width: 96px;
+    height: 96px;
+    font-size: 13px;
     z-index: 2;
   }
   .lat-coin-a { animation-name: lat-token-orbit-btc-mobile; }
   .lat-coin-b { animation-name: lat-token-orbit-usdt-mobile; }
   .lat-coin-c { animation-name: lat-token-orbit-btc-mobile; }
-  .lat-token-mark { width: 26px; height: 26px; }
+  .lat-token-mark { width: 39px; height: 39px; }
   .lat-send-sheet { right: -8px; bottom: -28px; width: min(200px, 70vw); padding: 12px 14px; }
   .lat-send-sheet strong { font-size: 16px; }
   .lat-audience-grid { grid-template-columns: 1fr; }
@@ -2430,60 +2430,69 @@ a, button {
   .lat-nav { gap: 8px; }
   .lat-nav-cta { padding: 7px 10px; font-size: 10px; }
   .lat-visual-wrap {
-    --btc-orbit-1-x: -122px;
-    --btc-orbit-1-y: -90px;
-    --btc-orbit-2-x: -14px;
-    --btc-orbit-2-y: -116px;
-    --btc-orbit-reveal-1-x: -58px;
-    --btc-orbit-reveal-1-y: -116px;
-    --btc-orbit-reveal-2-x: 78px;
-    --btc-orbit-reveal-2-y: -66px;
-    --btc-orbit-reveal-3-x: 108px;
-    --btc-orbit-reveal-3-y: -39px;
-    --btc-orbit-3-x: 77px;
-    --btc-orbit-3-y: 22px;
-    --btc-orbit-4-x: 16px;
-    --btc-orbit-4-y: 68px;
-    --btc-orbit-hide-1-x: -65px;
-    --btc-orbit-hide-1-y: 13px;
-    --btc-orbit-hide-2-x: -108px;
-    --btc-orbit-hide-2-y: -60px;
-    --usdt-orbit-1-x: 116px;
-    --usdt-orbit-1-y: -28px;
-    --usdt-orbit-front-1-x: 79px;
-    --usdt-orbit-front-1-y: 36px;
-    --usdt-orbit-2-x: 8px;
-    --usdt-orbit-2-y: 72px;
-    --usdt-orbit-hide-1-x: -62px;
-    --usdt-orbit-hide-1-y: 29px;
-    --usdt-orbit-hide-2-x: -108px;
-    --usdt-orbit-hide-2-y: -46px;
-    --usdt-orbit-3-x: -118px;
-    --usdt-orbit-3-y: -62px;
-    --usdt-orbit-4-x: 18px;
-    --usdt-orbit-4-y: -108px;
-    --usdt-orbit-reveal-1-x: 65px;
-    --usdt-orbit-reveal-1-y: -92px;
-    --usdt-orbit-reveal-2-x: 106px;
-    --usdt-orbit-reveal-2-y: -41px;
-    --orange-orbit-1-x: 126px;
-    --orange-orbit-1-y: -98px;
-    --orange-orbit-2-x: 46px;
-    --orange-orbit-2-y: -125px;
-    --orange-orbit-3-x: -104px;
-    --orange-orbit-3-y: -64px;
-    --orange-orbit-front-x: -82px;
-    --orange-orbit-front-y: 38px;
-    --orange-orbit-4-x: 27px;
-    --orange-orbit-4-y: 77px;
-    --orange-orbit-rear-x: 116px;
-    --orange-orbit-rear-y: -2px;
+    min-height: 540px;
+    --btc-orbit-1-x: -136px;
+    --btc-orbit-1-y: -118px;
+    --btc-orbit-2-x: -18px;
+    --btc-orbit-2-y: -150px;
+    --btc-orbit-reveal-1-x: -76px;
+    --btc-orbit-reveal-1-y: -148px;
+    --btc-orbit-reveal-2-x: 100px;
+    --btc-orbit-reveal-2-y: -86px;
+    --btc-orbit-reveal-3-x: 138px;
+    --btc-orbit-reveal-3-y: -50px;
+    --btc-orbit-3-x: 104px;
+    --btc-orbit-3-y: 30px;
+    --btc-orbit-4-x: 20px;
+    --btc-orbit-4-y: 92px;
+    --btc-orbit-hide-1-x: -86px;
+    --btc-orbit-hide-1-y: 18px;
+    --btc-orbit-hide-2-x: -138px;
+    --btc-orbit-hide-2-y: -78px;
+    --usdt-orbit-1-x: 138px;
+    --usdt-orbit-1-y: -36px;
+    --usdt-orbit-front-1-x: 96px;
+    --usdt-orbit-front-1-y: 46px;
+    --usdt-orbit-2-x: 12px;
+    --usdt-orbit-2-y: 96px;
+    --usdt-orbit-hide-1-x: -82px;
+    --usdt-orbit-hide-1-y: 38px;
+    --usdt-orbit-hide-2-x: -138px;
+    --usdt-orbit-hide-2-y: -58px;
+    --usdt-orbit-3-x: -136px;
+    --usdt-orbit-3-y: -82px;
+    --usdt-orbit-4-x: 22px;
+    --usdt-orbit-4-y: -136px;
+    --usdt-orbit-reveal-1-x: 80px;
+    --usdt-orbit-reveal-1-y: -120px;
+    --usdt-orbit-reveal-2-x: 138px;
+    --usdt-orbit-reveal-2-y: -54px;
+    --orange-orbit-1-x: 138px;
+    --orange-orbit-1-y: -124px;
+    --orange-orbit-2-x: 56px;
+    --orange-orbit-2-y: -158px;
+    --orange-orbit-3-x: -130px;
+    --orange-orbit-3-y: -82px;
+    --orange-orbit-front-x: -106px;
+    --orange-orbit-front-y: 50px;
+    --orange-orbit-4-x: 32px;
+    --orange-orbit-4-y: 100px;
+    --orange-orbit-rear-x: 134px;
+    --orange-orbit-rear-y: -4px;
   }
-  .lat-phone { width: 88vw; padding: 18px 16px; }
-  .lat-balance-card strong { font-size: 28px; }
-  .lat-coin { width: 56px; height: 56px; font-size: 10px; }
-  .lat-token-mark { width: 22px; height: 22px; }
-  .lat-send-sheet { width: 180px; }
+  .lat-phone { width: 70vw; min-height: 432px; padding: 16px 14px; border-radius: 26px; }
+  .lat-phone-bar { gap: 10px; }
+  .lat-phone-logo { font-size: 16px; }
+  .lat-phone-avatar { width: 36px; height: 36px; }
+  .lat-balance-label { margin-top: 32px; font-size: 11px; }
+  .lat-balance-card { padding: 14px 16px; }
+  .lat-balance-card strong { font-size: 26px; }
+  .lat-action-grid { margin-top: 20px; padding: 10px; gap: 8px; }
+  .lat-action-grid > div { border-radius: 10px; font-size: 11px; }
+  .lat-coin { width: 78px; height: 78px; font-size: 11px; }
+  .lat-token-mark { width: 30px; height: 30px; }
+  .lat-send-sheet { width: 168px; right: -6px; bottom: -24px; padding: 10px 12px; }
+  .lat-send-sheet strong { font-size: 15px; }
 }
 
 @keyframes lat-pulse-y {

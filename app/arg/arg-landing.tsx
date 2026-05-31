@@ -883,7 +883,7 @@ export default function LatLanding() {
               <p className="lat-section-kicker">Para quiénes</p>
               <h2>Privacidad sin <span className="lat-it">teatro corporativo</span>.</h2>
             </div>
-            <p>Wapu funciona igual para hardware-walleteros, freelancers cripto y builders moviéndose por Latam.</p>
+            <p>Wapu funciona igual para HODLers, freelancers bitcoiners y nómadas digital moviéndose por Latam.</p>
           </div>
           <div className="lat-audience-grid r-stagger">
             {audience.map((item) => (
