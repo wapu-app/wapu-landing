@@ -610,41 +610,6 @@ a, button {
   --orange-orbit-rear-x: 230px;
   --orange-orbit-rear-y: -8px;
 }
-.lat-orbit {
-  position: absolute;
-  border: 1px solid rgba(231, 53, 124, 0.32);
-  border-radius: 50%;
-  z-index: 1;
-  transform: rotateX(70deg) rotateZ(-20deg);
-  animation: lat-spin 22s linear infinite;
-  pointer-events: none;
-}
-.lat-orbit::after {
-  content: "";
-  position: absolute;
-  top: -4px;
-  left: 50%;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--lat-pink-hot);
-  box-shadow: 0 0 16px var(--lat-pink-hot), 0 0 32px rgba(231,53,124,0.4);
-}
-.lat-orbit-one { inset: 8% 2% 22% 2%; }
-.lat-orbit-two {
-  inset: 20% 14% 32% 14%;
-  border-color: rgba(80, 77, 231, 0.42);
-  animation-duration: 16s;
-  animation-direction: reverse;
-}
-.lat-orbit-two::after { background: var(--lat-blue); box-shadow: 0 0 16px var(--lat-blue), 0 0 32px rgba(80,77,231,0.5); }
-.lat-orbit-three {
-  inset: 30% 24% 38% 24%;
-  border-color: rgba(248, 244, 107, 0.32);
-  animation-duration: 12s;
-}
-.lat-orbit-three::after { background: var(--lat-electric); box-shadow: 0 0 16px var(--lat-electric); }
-
 .lat-phone-wrap {
   position: absolute;
   left: 50%;
@@ -842,7 +807,11 @@ a, button {
   gap: 6px;
   width: 86px;
   height: 86px;
-  border-radius: 50%;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
   color: #fff;
   font-size: 11px;
   line-height: 1;
@@ -864,15 +833,9 @@ a, button {
 .lat-coin-c {
   animation: lat-token-orbit-btc 18s linear infinite;
   animation-delay: -12s;
-  border-color: rgba(116, 172, 223, 0.42);
-  background: rgba(10, 28, 46, 0.78);
-  box-shadow: 0 0 34px rgba(116, 172, 223, 0.36), 0 0 54px rgba(246, 180, 14, 0.16);
 }
 .lat-coin-orange {
   visibility: hidden;
-  border-color: rgba(255, 147, 45, 0.5);
-  background: rgba(58, 31, 12, 0.78);
-  box-shadow: 0 0 36px rgba(255, 139, 34, 0.38), 0 0 70px rgba(248, 244, 107, 0.16);
   animation: lat-token-orbit-orange 21s linear infinite;
   animation-play-state: paused;
 }

@@ -625,10 +625,6 @@ export default function LatLanding() {
             </div>
 
             <div className="lat-visual-wrap" aria-hidden="true">
-              <div className="lat-orbit lat-orbit-one" />
-              <div className="lat-orbit lat-orbit-two" />
-              <div className="lat-orbit lat-orbit-three" />
-
               <div className="lat-phone-wrap">
                 <div className="lat-phone-glow" />
                 <div className="lat-phone">
