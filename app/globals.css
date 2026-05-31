@@ -472,6 +472,10 @@ a, button {
 }
 .lat-hero h1 .word { display: inline-block; }
 .lat-hero h1 .word > span { display: inline-block; }
+.lat-hero h1.lat-transfer-title {
+  font-size: clamp(42px, 5.6vw, 76px);
+  max-width: 900px;
+}
 .lat-lead {
   max-width: 580px;
   margin: 28px 0 0;

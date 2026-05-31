@@ -608,11 +608,9 @@ export default function LatLanding() {
             <div className="lat-hero-copy">
               <span className="lat-tape" style={{ top: "-26px", left: "-12px" }} aria-hidden="true" />
               <p className="lat-kicker-pill"><span className="dot" />P2P asistido · Argentina · Sin KYC</p>
-              <h1>Comprá, mové y usá <span className="lat-it">Bitcoin</span> sin <span className="lat-strike">KYC</span>.</h1>
-              <p className="lat-lead">
-                Depositá cripto, elegí destino y Wapu se encarga del resto: escrow, contrapartes confiables y
-                liquidación a pesos cuando querés salir al mundo real.
-              </p>
+              <h1 className="lat-transfer-title">
+                Transferí pesos usando tus <span className="lat-it">BTC</span> o <span className="lat-it">USDT</span>, sin <span className="lat-strike">KYC</span>.
+              </h1>
               <div className="lat-actions">
                 <a className="lat-primary-btn" href={WAPU_SIGNUP_URL} {...WAPU_SIGNUP_LINK_PROPS}>Entrar a Wapu →</a>
                 <a className="lat-secondary-btn" href="#video">Ver flujo</a>
