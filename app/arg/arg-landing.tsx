@@ -94,7 +94,7 @@ const audience = [
   {
     title: "Bitcoiner con autocustodia",
     body: "Cuidás tu privacidad y no querés pasar por un exchange para cada movimiento.",
-    image: "/audience/bitcoiner-autocustodia-argentina-v2.webp",
+    image: "/audience/bitcoiner-autocustodia-argentina-v3.webp",
     imageAlt: "Hardware wallet, mate y nodo personal en una cocina argentina de departamento.",
     tag: "Autocustodia",
     tagBg: "var(--lat-electric)",
@@ -619,7 +619,7 @@ export default function LatLanding() {
               </div>
               <div className="lat-proof-row" aria-label="Atributos del producto">
                 <span>Sin formularios de identidad</span>
-                <span>P2P cripto</span>
+                <span>P2P</span>
                 <span>Salida a ARS</span>
               </div>
             </div>
