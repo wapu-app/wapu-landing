@@ -74,7 +74,7 @@ function homeScreen(balance){
       <div class="rtoken"><span class="tdot">T</span> USDT</div>
     </div>
     <div class="rr">
-      <div class="price-row"><span class="pic"></span> $${TUTORIAL_FLOW.exchangeRateArs}</div>
+      <div class="price-row"><span class="arg-flag" role="img" aria-label="Argentina"></span> $${TUTORIAL_FLOW.exchangeRateArs}</div>
       <div class="buy">Buy Price</div>
     </div>
   </div>
