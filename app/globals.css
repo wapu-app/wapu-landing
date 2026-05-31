@@ -174,10 +174,17 @@ a, button {
   border-bottom: 1px solid transparent;
 }
 .lat-nav-wrap.is-stuck {
-  background: rgba(8, 6, 12, 0.78);
-  backdrop-filter: blur(12px) saturate(140%);
-  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  /* Fondo casi opaco como base (mobile/touch): el backdrop-filter solo se agrega
+     en punteros finos para no recomponer el fondo en cada frame de scroll en mobile. */
+  background: rgba(8, 6, 12, 0.92);
   border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+@media (hover: hover) and (pointer: fine) {
+  .lat-nav-wrap.is-stuck {
+    background: rgba(8, 6, 12, 0.78);
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+  }
 }
 .lat-nav {
   width: min(1180px, calc(100% - 40px));
@@ -788,11 +795,18 @@ a, button {
   border-radius: 18px;
   padding: 14px 16px;
   background: rgba(2, 2, 2, 0.90);
-  backdrop-filter: blur(10px);
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55), 0 0 40px rgba(124,255,216,0.22);
   transform: translateZ(72px) rotate(3deg);
   animation: lat-sheet-float 4.6s ease-in-out infinite;
   z-index: 3;
+}
+/* backdrop-filter solo en punteros finos: en mobile corre con lat-sheet-float y el
+   fondo ya es casi opaco, así que evitamos el repintado costoso del blur animado. */
+@media (hover: hover) and (pointer: fine) {
+  .lat-send-sheet {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
 }
 .lat-send-sheet span { color: var(--lat-electric-cold); font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; }
 .lat-send-sheet strong { font-size: 18px; font-weight: 950; }
@@ -2541,14 +2555,23 @@ a, button {
 
   .lat-grid-bg { mask-image: none; opacity: 0.18; }
 
+  /* nav y send-sheet ya no declaran backdrop-filter en mobile (se agrega solo en
+     punteros finos), así que aquí no hace falta sobreescribirlo. */
   .lat-nav-wrap { transition: background 200ms ease, border-color 200ms ease; }
-  .lat-nav-wrap.is-stuck {
-    background: rgba(8, 6, 12, 0.94);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
 
   .lat-phone-glow { filter: blur(16px); opacity: 0.45; }
+  .lat-balance-card::after { filter: blur(12px); }
+
+  /* Difiere render de lo que aún no se ve, sin afectar secciones con JS de scroll
+     (.lat-flow-section / .lat-video-section quedan fuera a propósito) */
+  .lat-manifest,
+  #personas,
+  #ayuda,
+  #contacto,
+  .lat-final-cta {
+    content-visibility: auto;
+    contain-intrinsic-size: 0 800px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

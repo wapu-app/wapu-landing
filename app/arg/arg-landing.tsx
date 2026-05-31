@@ -381,7 +381,11 @@ function useLatAnimations() {
     const phoneWrap = $<HTMLDivElement>(".lat-phone-wrap");
     const phoneGlow = $<HTMLDivElement>(".lat-phone-glow");
 
-    if (!prefersReduced && (spotlight || (visualWrap && phoneWrap))) {
+    /* En touch no hay cursor: el parallax/spotlight no produce movimiento y solo
+       gasta main-thread (listeners globales + rAF). Lo activamos solo con puntero fino. */
+    const finePointer = matchMedia("(hover: hover) and (pointer: fine)").matches;
+
+    if (!prefersReduced && finePointer && (spotlight || (visualWrap && phoneWrap))) {
       let stx = innerWidth / 2, sty = innerHeight / 3, scx = stx, scy = sty;
       let ptx = 0, pty = 0, pcx = 0, pcy = 0;
       let rect = visualWrap ? visualWrap.getBoundingClientRect() : null;
@@ -731,7 +735,7 @@ export default function LatLanding() {
                   fill
                   priority
                   sizes="(max-width: 640px) 96px, (max-width: 980px) 108px, 132px"
-                  src="/no-kyc-no-requerido.png"
+                  src="/no-kyc-no-requerido.webp"
                 />
               </div>
             </div>
