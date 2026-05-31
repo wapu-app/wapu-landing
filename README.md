@@ -28,6 +28,8 @@ TURNSTILE_SECRET_KEY=...
 
 `NEXT_PUBLIC_TURNSTILE_SITE_KEY` se usa para renderizar el widget en el navegador. `TURNSTILE_SECRET_KEY` se usa solo en el servidor para validar el token contra Cloudflare.
 
+Guia paso a paso para Vercel: [docs/turnstile-vercel.md](docs/turnstile-vercel.md)
+
 ## Build
 
 ```bash
