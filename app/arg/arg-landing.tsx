@@ -357,42 +357,174 @@ function useLatAnimations() {
     const prefersReduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
     const cleanups: Array<() => void> = [];
 
-    /* Cursor spotlight */
+    /* Hero in-view gate: pausa parallax + spotlight cuando el hero sale del viewport */
+    const heroSection = $<HTMLElement>(".lat-hero");
+    let heroVisible = true;
+    let onHeroVisibilityChange: ((visible: boolean) => void) | null = null;
+    if (heroSection && "IntersectionObserver" in window) {
+      const heroIo = new IntersectionObserver(
+        (entries) => {
+          const entry = entries[0];
+          if (!entry) return;
+          heroVisible = entry.isIntersecting;
+          onHeroVisibilityChange?.(heroVisible);
+        },
+        { rootMargin: "0px 0px 0px 0px", threshold: 0 },
+      );
+      heroIo.observe(heroSection);
+      cleanups.push(() => heroIo.disconnect());
+    }
+
+    /* Hero phone parallax + spotlight: un solo pointermove + rAF compartido */
     const spotlight = $<HTMLDivElement>(".lat-spotlight");
-    if (spotlight && !prefersReduced) {
-      let tx = innerWidth / 2, ty = innerHeight / 3, cx = tx, cy = ty, rafId = 0;
-      const update = () => {
-        cx += (tx - cx) * 0.18;
-        cy += (ty - cy) * 0.18;
-        spotlight.style.setProperty("--mx", cx + "px");
-        spotlight.style.setProperty("--my", cy + "px");
-        rafId = requestAnimationFrame(update);
+    const visualWrap = $<HTMLDivElement>(".lat-visual-wrap");
+    const phoneWrap = $<HTMLDivElement>(".lat-phone-wrap");
+    const phoneGlow = $<HTMLDivElement>(".lat-phone-glow");
+
+    if (!prefersReduced && (spotlight || (visualWrap && phoneWrap))) {
+      let stx = innerWidth / 2, sty = innerHeight / 3, scx = stx, scy = sty;
+      let ptx = 0, pty = 0, pcx = 0, pcy = 0;
+      let rect = visualWrap ? visualWrap.getBoundingClientRect() : null;
+      let raf = 0;
+      let active = true;
+      let needsScrollRect = false;
+
+      const updateRect = () => {
+        if (visualWrap) rect = visualWrap.getBoundingClientRect();
       };
-      const onMove = (e: PointerEvent) => { tx = e.clientX; ty = e.clientY; if (!rafId) rafId = requestAnimationFrame(update); };
+
+      const tick = () => {
+        raf = 0;
+        if (!active) return;
+        let busy = false;
+
+        if (spotlight) {
+          scx += (stx - scx) * 0.18;
+          scy += (sty - scy) * 0.18;
+          spotlight.style.setProperty("--mx", scx + "px");
+          spotlight.style.setProperty("--my", scy + "px");
+          if (Math.abs(stx - scx) > 0.5 || Math.abs(sty - scy) > 0.5) busy = true;
+        }
+
+        if (phoneWrap) {
+          pcx += (ptx - pcx) * 0.10;
+          pcy += (pty - pcy) * 0.10;
+          phoneWrap.style.transform = `translate(-50%, -50%) translate3d(${pcx * 18}px, ${pcy * 14}px, 0)`;
+          if (phoneGlow) {
+            phoneGlow.style.setProperty("--gx", 50 + pcx * 26 + "%");
+            phoneGlow.style.setProperty("--gy", 50 + pcy * 22 + "%");
+          }
+          if (Math.abs(ptx - pcx) > 0.001 || Math.abs(pty - pcy) > 0.001) busy = true;
+        }
+
+        if (busy) raf = requestAnimationFrame(tick);
+      };
+
+      const requestTick = () => {
+        if (!active) return;
+        if (!raf) raf = requestAnimationFrame(tick);
+      };
+
+      const onMove = (e: PointerEvent) => {
+        if (!active) return;
+        stx = e.clientX;
+        sty = e.clientY;
+        if (visualWrap && phoneWrap) {
+          if (needsScrollRect) { updateRect(); needsScrollRect = false; }
+          const r = rect;
+          if (r) {
+            const nx = (e.clientX - r.left) / r.width - 0.5;
+            const ny = (e.clientY - r.top) / r.height - 0.5;
+            ptx = Math.max(-1, Math.min(1, nx * 2));
+            pty = Math.max(-1, Math.min(1, ny * 2));
+          }
+        }
+        requestTick();
+      };
+
+      const onLeave = () => { ptx = 0; pty = 0; requestTick(); };
+      const onResize = () => { updateRect(); };
+      const onScroll = () => { needsScrollRect = true; };
+
       addEventListener("pointermove", onMove, { passive: true });
-      rafId = requestAnimationFrame(update);
-      cleanups.push(() => { removeEventListener("pointermove", onMove); cancelAnimationFrame(rafId); });
-    }
-
-    /* Sticky nav blur */
-    const navWrap = $<HTMLDivElement>(".lat-nav-wrap");
-    if (navWrap) {
-      const onScroll = () => { navWrap.classList.toggle("is-stuck", scrollY > 24); };
+      addEventListener("resize", onResize, { passive: true });
       addEventListener("scroll", onScroll, { passive: true });
-      onScroll();
-      cleanups.push(() => removeEventListener("scroll", onScroll));
+      if (visualWrap) visualWrap.addEventListener("pointerleave", onLeave, { passive: true });
+
+      onHeroVisibilityChange = (visible) => {
+        active = visible;
+        if (visible) requestTick();
+        else if (raf) { cancelAnimationFrame(raf); raf = 0; }
+      };
+
+      requestTick();
+
+      cleanups.push(() => {
+        removeEventListener("pointermove", onMove);
+        removeEventListener("resize", onResize);
+        removeEventListener("scroll", onScroll);
+        if (visualWrap) visualWrap.removeEventListener("pointerleave", onLeave);
+        if (raf) cancelAnimationFrame(raf);
+        onHeroVisibilityChange = null;
+      });
     }
 
-    /* Reveal: IO + scroll fallback */
-    const revealTargets = $$(".r-fade, .r-stagger");
-    const triggerInView = () => {
-      const trigger = innerHeight * 0.9;
-      revealTargets.forEach((el) => {
-        if (el.classList.contains("is-in")) return;
-        const r = el.getBoundingClientRect();
-        if (r.top < trigger && r.bottom > 0) el.classList.add("is-in");
+    /* Pausa de órbitas de monedas cuando el hero sale de viewport */
+    if (visualWrap) {
+      const prev = onHeroVisibilityChange;
+      onHeroVisibilityChange = (visible) => {
+        prev?.(visible);
+        visualWrap.classList.toggle("lat-hero-offscreen", !visible);
+      };
+    }
+
+    /* Scroll handler unificado vía rAF: nav-stuck + flow progress */
+    const navWrap = $<HTMLDivElement>(".lat-nav-wrap");
+    const flowTrack = $<HTMLDivElement>(".lat-flow-track");
+    const flowNodes = $$<HTMLElement>(".lat-flow-node");
+    const flowFill = $<HTMLDivElement>(".lat-flow-rail-fill");
+    if (navWrap || (flowTrack && flowNodes.length)) {
+      let scheduled = false;
+      let lastStuck: boolean | null = null;
+      let lastActive = -1;
+      const runScrollWork = () => {
+        scheduled = false;
+        if (navWrap) {
+          const stuck = scrollY > 24;
+          if (stuck !== lastStuck) {
+            navWrap.classList.toggle("is-stuck", stuck);
+            lastStuck = stuck;
+          }
+        }
+        if (flowTrack && flowNodes.length) {
+          const r = flowTrack.getBoundingClientRect();
+          const total = r.height + innerHeight * 0.6;
+          const traveled = innerHeight - r.top;
+          const progress = Math.max(0, Math.min(1, traveled / total));
+          const active = Math.min(flowNodes.length - 1, Math.floor(progress * flowNodes.length));
+          if (active !== lastActive) {
+            flowNodes.forEach((n, i) => { n.dataset.active = i <= active ? "true" : "false"; });
+            if (flowFill) flowFill.style.width = ((active + 1) / flowNodes.length) * 100 + "%";
+            lastActive = active;
+          }
+        }
+      };
+      const onScroll = () => {
+        if (scheduled) return;
+        scheduled = true;
+        requestAnimationFrame(runScrollWork);
+      };
+      addEventListener("scroll", onScroll, { passive: true });
+      addEventListener("resize", onScroll, { passive: true });
+      runScrollWork();
+      cleanups.push(() => {
+        removeEventListener("scroll", onScroll);
+        removeEventListener("resize", onScroll);
       });
-    };
+    }
+
+    /* Reveal: solo IntersectionObserver (sin fallback de scroll) */
+    const revealTargets = $$(".r-fade, .r-stagger");
     if ("IntersectionObserver" in window) {
       const io = new IntersectionObserver(
         (entries) => {
@@ -407,61 +539,8 @@ function useLatAnimations() {
       );
       revealTargets.forEach((el) => io.observe(el));
       cleanups.push(() => io.disconnect());
-    }
-    addEventListener("scroll", triggerInView, { passive: true });
-    addEventListener("resize", triggerInView, { passive: true });
-    triggerInView();
-    const t1 = setTimeout(triggerInView, 50);
-    const t2 = setTimeout(triggerInView, 250);
-    cleanups.push(() => {
-      removeEventListener("scroll", triggerInView);
-      removeEventListener("resize", triggerInView);
-      clearTimeout(t1); clearTimeout(t2);
-    });
-
-    /* Hero phone parallax + glow */
-    const visualWrap = $<HTMLDivElement>(".lat-visual-wrap");
-    const phoneWrap = $<HTMLDivElement>(".lat-phone-wrap");
-    const phoneGlow = $<HTMLDivElement>(".lat-phone-glow");
-    if (visualWrap && phoneWrap && !prefersReduced) {
-      let rect = visualWrap.getBoundingClientRect();
-      const updateRect = () => { rect = visualWrap.getBoundingClientRect(); };
-      addEventListener("resize", updateRect, { passive: true });
-      addEventListener("scroll", updateRect, { passive: true });
-
-      let tx = 0, ty = 0, cx = 0, cy = 0, raf = 0;
-      const tick = () => {
-        cx += (tx - cx) * 0.10;
-        cy += (ty - cy) * 0.10;
-        phoneWrap.style.transform = `translate(-50%, -50%) translate3d(${cx * 18}px, ${cy * 14}px, 0)`;
-        if (phoneGlow) {
-          phoneGlow.style.setProperty("--gx", 50 + cx * 26 + "%");
-          phoneGlow.style.setProperty("--gy", 50 + cy * 22 + "%");
-        }
-        if (Math.abs(tx - cx) > 0.001 || Math.abs(ty - cy) > 0.001) {
-          raf = requestAnimationFrame(tick);
-        } else {
-          raf = 0;
-        }
-      };
-      const onMove = (e: PointerEvent) => {
-        const r = rect;
-        const nx = (e.clientX - r.left) / r.width - 0.5;
-        const ny = (e.clientY - r.top) / r.height - 0.5;
-        tx = Math.max(-1, Math.min(1, nx * 2));
-        ty = Math.max(-1, Math.min(1, ny * 2));
-        if (!raf) raf = requestAnimationFrame(tick);
-      };
-      const onLeave = () => { tx = 0; ty = 0; if (!raf) raf = requestAnimationFrame(tick); };
-      document.addEventListener("pointermove", onMove, { passive: true });
-      visualWrap.addEventListener("pointerleave", onLeave, { passive: true });
-      cleanups.push(() => {
-        removeEventListener("resize", updateRect);
-        removeEventListener("scroll", updateRect);
-        document.removeEventListener("pointermove", onMove);
-        visualWrap.removeEventListener("pointerleave", onLeave);
-        if (raf) cancelAnimationFrame(raf);
-      });
+    } else {
+      revealTargets.forEach((el) => el.classList.add("is-in"));
     }
 
     /* Orange token easter egg: insist on the No KYC sticker */
@@ -489,26 +568,6 @@ function useLatAnimations() {
       cleanups.push(() => {
         orangeWrap.removeEventListener("pointerdown", onOrangePress);
       });
-    }
-
-    /* Flow: scroll-driven progress + active step */
-    const flowTrack = $<HTMLDivElement>(".lat-flow-track");
-    const flowNodes = $$<HTMLElement>(".lat-flow-node");
-    const flowFill = $<HTMLDivElement>(".lat-flow-rail-fill");
-    if (flowTrack && flowNodes.length) {
-      const onFlow = () => {
-        const r = flowTrack.getBoundingClientRect();
-        const total = r.height + innerHeight * 0.6;
-        const traveled = innerHeight - r.top;
-        const progress = Math.max(0, Math.min(1, traveled / total));
-        const active = Math.min(flowNodes.length - 1, Math.floor(progress * flowNodes.length));
-        flowNodes.forEach((n, i) => { n.dataset.active = i <= active ? "true" : "false"; });
-        if (flowFill) flowFill.style.width = ((active + 1) / flowNodes.length) * 100 + "%";
-      };
-      addEventListener("scroll", onFlow, { passive: true });
-      addEventListener("resize", onFlow, { passive: true });
-      onFlow();
-      cleanups.push(() => { removeEventListener("scroll", onFlow); removeEventListener("resize", onFlow); });
     }
 
     /* Contact links cursor glow */

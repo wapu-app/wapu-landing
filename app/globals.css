@@ -124,6 +124,8 @@ a, button {
       transparent 60%);
   mix-blend-mode: screen;
   transition: opacity 220ms ease;
+  will-change: background-position;
+  contain: strict;
 }
 
 /* Noise overlay */
@@ -132,9 +134,9 @@ a, button {
   inset: 0;
   pointer-events: none;
   z-index: 2;
-  opacity: 0.045;
+  opacity: 0.04;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.7'/></svg>");
-  mix-blend-mode: overlay;
+  contain: strict;
 }
 
 .lat-page {
@@ -172,9 +174,9 @@ a, button {
   border-bottom: 1px solid transparent;
 }
 .lat-nav-wrap.is-stuck {
-  background: rgba(8, 6, 12, 0.62);
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  background: rgba(8, 6, 12, 0.78);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
   border-bottom-color: rgba(255, 255, 255, 0.06);
 }
 .lat-nav {
@@ -622,6 +624,7 @@ a, button {
   transform: translate(-50%, -50%);
   transform-style: preserve-3d;
   transition: transform 240ms cubic-bezier(.2,.7,.2,1);
+  will-change: transform;
 }
 .lat-phone {
   width: min(82vw, 320px);
@@ -825,6 +828,7 @@ a, button {
   bottom: auto;
   transform-style: preserve-3d;
   will-change: transform, opacity;
+  contain: layout style;
 }
 .lat-coin span { transform: rotate(-4deg); letter-spacing: 0.04em; }
 .lat-token-mark { width: 32px; height: 32px; filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.18)); }
@@ -846,6 +850,12 @@ a, button {
 .lat-visual-wrap.lat-orange-easter-active .lat-coin-orange {
   visibility: visible;
   animation-play-state: running;
+}
+.lat-visual-wrap.lat-hero-offscreen .lat-coin,
+.lat-visual-wrap.lat-hero-offscreen .lat-phone,
+.lat-visual-wrap.lat-hero-offscreen .lat-send-sheet,
+.lat-visual-wrap.lat-hero-offscreen .lat-sticker {
+  animation-play-state: paused;
 }
 .lat-orange-mark {
   filter: drop-shadow(0 0 14px rgba(255, 139, 34, 0.4));
@@ -931,6 +941,7 @@ a, button {
   width: max-content;
   animation: lat-marquee 28s linear infinite;
   white-space: nowrap;
+  will-change: transform;
 }
 .lat-marquee span {
   display: inline-flex;
@@ -1000,7 +1011,7 @@ a, button {
     radial-gradient(circle at 22% 50%, rgba(248, 244, 107, 0.20), transparent 22%),
     radial-gradient(circle at 52% 50%, rgba(124, 255, 216, 0.16), transparent 25%),
     radial-gradient(circle at 80% 50%, rgba(231, 53, 124, 0.18), transparent 24%);
-  filter: blur(28px);
+  filter: blur(14px);
   pointer-events: none;
 }
 
@@ -1475,6 +1486,14 @@ a, button {
 .lat-escrow-band i:nth-of-type(2)::after { animation-delay: 0.6s; }
 
 /* ---------- Audience ---------- */
+.lat-section[id="personas"],
+.lat-section[id="ayuda"],
+.lat-section[id="contacto"],
+.lat-final-cta {
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 800px;
+}
+
 .lat-audience-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
