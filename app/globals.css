@@ -2493,6 +2493,30 @@ a, button {
   100% { top: calc(100% - 8px); opacity: 0; }
 }
 
+/* ---------- Mobile scroll-perf overrides ----------
+   En mobile/touch el spotlight no tiene sentido (no hay cursor) y los overlays
+   con position: fixed + mix-blend-mode + backdrop-filter + filter:blur animado
+   fuerzan repintados costosos en cada frame de scroll. Los apagamos para que
+   el scroll quede suave. */
+@media (max-width: 720px), (hover: none) and (pointer: coarse) {
+  .lat-spotlight,
+  .lat-noise { display: none !important; }
+
+  .lat-hero::before,
+  .lat-hero::after { display: none; }
+
+  .lat-grid-bg { mask-image: none; opacity: 0.18; }
+
+  .lat-nav-wrap { transition: background 200ms ease, border-color 200ms ease; }
+  .lat-nav-wrap.is-stuck {
+    background: rgba(8, 6, 12, 0.94);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .lat-phone-glow { filter: blur(16px); opacity: 0.45; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
