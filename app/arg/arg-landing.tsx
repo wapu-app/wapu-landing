@@ -835,7 +835,7 @@ export default function LatLanding() {
               className="lat-tutorial-player"
               loading="lazy"
               sandbox="allow-scripts"
-              src="/arg/tutorial/index.html"
+              src="/tutorial/index.html"
               title="Animacion del flujo de Wapu"
             />
           </div>
