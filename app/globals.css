@@ -875,31 +875,22 @@ a, button {
 /* Sticker on hero */
 .lat-sticker {
   position: absolute;
-  display: grid;
-  place-items: center;
-  width: 116px;
-  height: 116px;
-  border-radius: 50%;
-  background: var(--lat-electric);
-  color: #181619;
-  font-size: 11px;
-  font-weight: 950;
-  text-align: center;
-  line-height: 1.15;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  box-shadow: 0 8px 28px rgba(248, 244, 107, 0.42), inset 0 0 0 2px #181619;
+  width: 132px;
+  height: 132px;
+  border-radius: 22px;
+  filter: drop-shadow(0 10px 30px rgba(248, 244, 107, 0.34));
+  overflow: hidden;
   transform: rotate(-12deg);
   animation: lat-sticker-spin 8s ease-in-out infinite;
 }
 .lat-sticker-hero {
-  right: -28px;
+  right: 24px;
   top: 6%;
   z-index: 6;
 }
-.lat-sticker-text {
-  display: inline-block;
-  transform: rotate(2deg);
+.lat-sticker-image {
+  object-fit: contain;
+  transform: rotate(2deg) scale(1.02);
 }
 
 /* Tape on hero copy */

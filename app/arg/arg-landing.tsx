@@ -668,7 +668,14 @@ export default function LatLanding() {
               </div>
 
               <div className="lat-sticker lat-sticker-hero" aria-hidden="true">
-                <span className="lat-sticker-text">No<br />KYC<br />Required</span>
+                <Image
+                  alt=""
+                  className="lat-sticker-image"
+                  fill
+                  priority
+                  sizes="(max-width: 640px) 96px, (max-width: 980px) 108px, 132px"
+                  src="/no-kyc-no-requerido.png"
+                />
               </div>
             </div>
           </div>
