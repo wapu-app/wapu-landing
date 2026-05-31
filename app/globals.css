@@ -857,13 +857,8 @@ a, button {
   animation-delay: -12s;
 }
 .lat-coin-orange {
-  visibility: hidden;
   animation: lat-token-orbit-orange 21s linear infinite;
-  animation-play-state: paused;
-}
-.lat-visual-wrap.lat-orange-easter-active .lat-coin-orange {
-  visibility: visible;
-  animation-play-state: running;
+  animation-delay: calc(var(--orange-index, 0) * -3.5s);
 }
 .lat-visual-wrap.lat-hero-offscreen .lat-coin,
 .lat-visual-wrap.lat-hero-offscreen .lat-phone,

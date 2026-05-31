@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import Script from "next/script";
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState, type CSSProperties } from "react";
 import { getTurnstileSiteKey } from "../w/turnstile-config";
 
 const SHOW_BUY_BTC_MODULE = false;
@@ -350,7 +350,7 @@ function ContactForm() {
 
 /* --------------------------- ANIMATIONS HOOK --------------------------- */
 
-function useLatAnimations() {
+function useLatAnimations(onOrangeUnlock: () => void) {
   useEffect(() => {
     const $ = <T extends Element = Element>(s: string, r: ParentNode = document) => r.querySelector(s) as T | null;
     const $$ = <T extends Element = Element>(s: string, r: ParentNode = document) => Array.from(r.querySelectorAll(s)) as T[];
@@ -553,11 +553,8 @@ function useLatAnimations() {
     if (orangeWrap) {
       const ORANGE_UNLOCK_CLICKS = 20;
       let orangeClickCount = 0;
-      const unlockOrange = () => {
-        orangeWrap.classList.add("lat-orange-easter-active");
-      };
       const onOrangePress = (event: PointerEvent) => {
-        if (!orangeSticker || orangeWrap.classList.contains("lat-orange-easter-active")) return;
+        if (!orangeSticker) return;
         const rect = orangeSticker.getBoundingClientRect();
         const isInsideSticker =
           event.clientX >= rect.left &&
@@ -566,7 +563,10 @@ function useLatAnimations() {
           event.clientY <= rect.bottom;
         if (!isInsideSticker) return;
         orangeClickCount += 1;
-        if (orangeClickCount >= ORANGE_UNLOCK_CLICKS) unlockOrange();
+        if (orangeClickCount >= ORANGE_UNLOCK_CLICKS) {
+          orangeClickCount = 0;
+          onOrangeUnlock();
+        }
       };
       orangeWrap.addEventListener("pointerdown", onOrangePress);
       cleanups.push(() => {
@@ -610,7 +610,7 @@ function useLatAnimations() {
     cleanups.push(() => document.removeEventListener("click", onClick));
 
     return () => { cleanups.forEach((fn) => fn()); };
-  }, []);
+  }, [onOrangeUnlock]);
 }
 
 function useTutorialTimelineStep() {
@@ -636,7 +636,11 @@ function useTutorialTimelineStep() {
 /* ----------------------------- PAGE ----------------------------- */
 
 export default function LatLanding() {
-  useLatAnimations();
+  const [orangeCount, setOrangeCount] = useState(0);
+  const unlockOrange = useCallback(() => {
+    setOrangeCount((count) => count + 1);
+  }, []);
+  useLatAnimations(unlockOrange);
   const activeTutorialStep = useTutorialTimelineStep();
 
   return (
@@ -723,10 +727,16 @@ export default function LatLanding() {
                 <ArsMark />
                 <span>ARS</span>
               </div>
-              <div className="lat-coin lat-coin-orange">
-                <OrangeMark />
-                <span>NARANJA</span>
-              </div>
+              {Array.from({ length: orangeCount }, (_, index) => (
+                <div
+                  className="lat-coin lat-coin-orange"
+                  key={`orange-${index}`}
+                  style={{ "--orange-index": index } as CSSProperties}
+                >
+                  <OrangeMark />
+                  <span>NARANJA</span>
+                </div>
+              ))}
 
               <div className="lat-sticker lat-sticker-hero" aria-hidden="true">
                 <Image
