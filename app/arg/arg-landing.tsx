@@ -744,8 +744,8 @@ export default function LatLanding() {
             <p className="lat-section-kicker">El flujo, en vivo</p>
             <h2>¿Cómo  <span className="lat-it">funciona?</span></h2>
             <div className="lat-video-status">
-              <span>Demo guiada</span>
-              <strong>8 escenas</strong>
+              <span>3 años</span>
+              <strong>en producción</strong>
             </div>
             <p>
               La animación recorre una operación completa: depositar Bitcoin por Lightning y usar ese saldo para enviar
