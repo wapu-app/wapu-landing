@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>wapu — Tutorial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@600,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="stage">
+    <div id="device">
+      <div class="statusbar"><span>9:41</span><span class="sb-icons"></span></div>
+      <div id="screens"></div>
+      <div id="pointer"><span class="ripple"></span><span class="dot"></span></div>
+    </div>
+    <div id="caption"></div>
+    <div id="dots"></div>
+  </div>
+
+  <script src="screens.js"></script>
+  <script src="engine.js"></script>
+  <script>
+    // fill statusbar icons (kept out of screens.js scope timing)
+    document.querySelector('.statusbar .sb-icons').innerHTML = I.signal + I.wifi + I.battery;
+  </script>
+</body>
+</html>
