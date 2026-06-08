@@ -308,7 +308,7 @@ function ContactForm() {
         <p className="lat-section-kicker">Mensaje directo</p>
         <h3>Contanos qué querés resolver.</h3>
         <p id="lat-contact-form-note">
-          Armamos el mensaje para que puedas enviarlo por el canal oficial sin perder contexto.
+          Si te queres sumar como arbitrador P2P en nuestra plataforma escribinos. Solo incluimos en la plataforma arbitradores con experiencia demostrable y validamos su identidad.
         </p>
       </div>
 
