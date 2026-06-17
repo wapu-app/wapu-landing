@@ -28,6 +28,20 @@ const useCases = [
   { tag: "// comercios", title: "Para emprendedores bitcoiners", body: "Onboardeás comercios pidiendo solo un alias o CBU para los retiros. Hiperbitcoinizar sin vueltas." },
 ];
 
+const hostedPartners = [
+  { title: "Cursats", href: "https://cursats.bitbybit.com.ar/en", logo: "/partners/cursats.png", alt: "Logo de Cursats", body: "Cursos y comunidad Bitcoin usando Wapu para cobrar y mover sats sin vueltas." },
+  { title: "Tiendita Wapu", href: "https://tienditawapu.vercel.app/", logo: "/partners/tiendita.png", alt: "Logo de Tiendita Wapu", body: "Tienda de ecommerce que permite hacer cobros en BTC y retiros en ARS via Wapu." },
+  { title: "Wapify", href: "https://wapify-seven.vercel.app/", logo: "/partners/wapufy.png", alt: "Logo de Wapify", body: "Checkout e integración de pagos para cobros con Wapu en productos web." },
+  { title: "QR Wapu", href: "https://qr-wapu.vercel.app/", logo: "/partners/qr-wapu.png", alt: "Logo de QR Wapu", body: "Cobrá con QR Lightning en tu tienda y recibi pesos usando Wapu. Ideal para salir a Bitcoinizar." },
+  { title: "ZapLoop", href: "https://zaploop.vercel.app/", logo: "/partners/zaploop.png", alt: "Logo de ZapLoop", body: "Loop de automatización Lightning usando Wapu para disparar cobros y pagos." },
+];
+
+const githubPartners = [
+  { title: "WapuBot", href: "https://github.com/landaverdend/WapuBot", body: "bot que integra pagos Wapu." },
+  { title: "Agendapu", href: "https://github.com/Lalo1821/agendapu", body: "agenda/turnos conectada a Wapu." },
+  { title: "BTCPay Wapu Bridge", href: "https://github.com/julian2000-code/btcpay-wapu-bridge", body: "puente entre BTCPay Server y Wapu." },
+];
+
 /* --------------------- helpers de UI --------------------- */
 
 function useReveal() {
@@ -220,6 +234,44 @@ export default function DevPage() {
                 <p>{u.body}</p>
               </article>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* PARTNERS */}
+      <section className="dev-section" id="partners">
+        <div className="dev-shell">
+          <div className="dev-section-head dev-reveal">
+            <p className="dev-kicker">Ecosistema</p>
+            <h2>Partners</h2>
+            <p>Proyectos reales que ya están usando Wapu para cobrar, automatizar o probar integraciones bitcoiners.</p>
+          </div>
+
+          <div className="dev-partner-grid dev-stagger">
+            {hostedPartners.map((partner) => (
+              <a className="dev-partner-card" href={partner.href} target="_blank" rel="noreferrer" key={partner.title}>
+                <span className="dev-partner-logo-box">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img className="dev-partner-logo" src={partner.logo} alt={partner.alt} />
+                </span>
+                <span className="dev-partner-copy">
+                  <strong>{partner.title}</strong>
+                  <span>{partner.body}</span>
+                </span>
+              </a>
+            ))}
+          </div>
+
+          <div className="dev-github-only dev-reveal">
+            <p className="dev-github-only-label">Integraciones en GitHub</p>
+            <div className="dev-github-list">
+              {githubPartners.map((partner) => (
+                <a className="dev-github-item" href={partner.href} target="_blank" rel="noreferrer" key={partner.title}>
+                  <strong>{partner.title}</strong>
+                  <span>{partner.body}</span>
+                </a>
+              ))}
+            </div>
           </div>
         </div>
       </section>
