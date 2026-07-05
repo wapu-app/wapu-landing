@@ -1072,8 +1072,8 @@ Initiate a SAT deposit via the Lightning Network. Returns a Lightning invoice. `
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `amount` | number | yes | Amount in SAT. Minimum: 5 |
-| `currency` | string | no | Optional/deprecated. Accepted values: `"SAT"` or `"USD"`; processed as SAT |
+|`amount` | number | yes | Amount in SAT or USD |
+| `currency` | string | no | `"SAT"` or `"USD"` SAT by default |
 
 **Response `201`:** Transaction object with `type: "deposit"`, `network: "LIGHTNING"`, and:
 ```json
