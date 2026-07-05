@@ -992,7 +992,7 @@ Get the status of a direct-fiat tentative.
 
 **Path param:** `tentative_id` — Tentative UUID.
 
-**Response `200`:** Direct-fiat tentative status object.
+**Response `200`:** Direct-fiat tentative status object. 
 
 ---
 

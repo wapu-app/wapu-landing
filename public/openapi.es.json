@@ -274,6 +274,11 @@
                 "nullable": true,
                 "description": "UUID de la transferencia fiat (`fiat_transfer` o `fast_fiat_transfer`) creada cuando el sistema detecta el depósito correcto, o null si todavía no se ejecutó. Su estado se consulta en `GET /transactions/{id}`."
               },
+              "refund_transaction_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "UUID de la transacción de refund. Este campo devuelve `null` a menos que exista un refund para la operación direct-fiat. Su estado se consulta en `GET /transactions/{id}`."
+              },
               "address_destination": {
                 "type": "string",
                 "description": "Dirección de depósito USDT."
@@ -378,6 +383,11 @@
                 "format": "uuid",
                 "nullable": true,
                 "description": "UUID de la transferencia fiat (`fiat_transfer` o `fast_fiat_transfer`) creada cuando el sistema detecta el depósito correcto, o null si todavía no se ejecutó. Su estado se consulta en `GET /transactions/{id}`."
+              },
+              "refund_transaction_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "UUID de la transacción de refund. Este campo devuelve `null` a menos que exista un refund para la operación direct-fiat. Su estado se consulta en `GET /transactions/{id}`."
               }
             },
             "example": {
@@ -3234,7 +3244,7 @@
     },
     {
       "name": "Transacciones · Direct-Fiat Tentatives",
-      "description": "Direct-fiat combina en una sola operación un `Deposit` + un `fiat_transfer`/`fast_fiat_transfer`. Sirve para que el cliente no tenga que orquestar el depósito de BTC/USDT y luego el pago fiat por separado, ni recalcular quotes: la tentativa mantiene el quote congelado por unos 15 minutos.\n\nIDs para seguimiento:\n- `tentative_id`: identifica la operación direct-fiat orquestadora y su quote congelado. Consultar su estado en `GET /transactions/direct-fiat/tentatives/{tentative_id}`.\n- `funding_transaction_id`: UUID de la transacción de depósito de assets generada al llamar `POST /transactions/direct-fiat/tentatives/{tentative_id}/funding` para depositar normalmente BTC o USDT. Consultar su estado en `GET /transactions/{id}`.\n- `executed_transaction_id`: UUID de la transferencia fiat (`fiat_transfer` o `fast_fiat_transfer`) creada cuando el sistema detecta que el depósito se realizó correctamente. Mientras no exista, viene como `null`. Consultar su estado en `GET /transactions/{id}`."
+      "description": "Direct-fiat combina en una sola operación un `Deposit` + un `fiat_transfer`/`fast_fiat_transfer`. Sirve para que el cliente no tenga que orquestar el depósito de BTC/USDT y luego el pago fiat por separado, ni recalcular quotes: la tentativa mantiene el quote congelado por unos 15 minutos.\n\nIDs para seguimiento:\n- `tentative_id`: identifica la operación direct-fiat orquestadora y su quote congelado. Consultar su estado en `GET /transactions/direct-fiat/tentatives/{tentative_id}`.\n- `funding_transaction_id`: UUID de la transacción de depósito de assets generada al llamar `POST /transactions/direct-fiat/tentatives/{tentative_id}/funding` para depositar normalmente BTC o USDT. Consultar su estado en `GET /transactions/{id}`.\n- `executed_transaction_id`: UUID de la transferencia fiat (`fiat_transfer` o `fast_fiat_transfer`) creada cuando el sistema detecta que el depósito se realizó correctamente. Mientras no exista, viene como `null`. Consultar su estado en `GET /transactions/{id}`.\n- `refund_transaction_id`: UUID de la transacción de refund. Consultar su estado en `GET /transactions/{id}`."
     },
     {
       "name": "Billetera",
