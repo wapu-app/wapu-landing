@@ -2,7 +2,7 @@
   "openapi": "3.0.1",
   "info": {
     "title": "WapuPay API",
-    "version": "0.21.0",
+    "version": "v36.0",
     "description": "WapuPay is a platform that allows users to pay in local currency (ARS) using cryptocurrency (USDT) as the underlying asset.\n\n## Authentication\n\nTwo schemes are supported:\n- **Bearer JWT** — obtained via `POST /users/login`. Short-lived; refresh with `GET /users/refresh`.\n- **API Key** — header `X-API-Key`. Requires `api_enabled = true` on the user account.\n\n> Never send both schemes at once — the server returns `400`.\n\n## How to get an API Key\n\nYou can generate the API Key from this same Scalar web UI:\n1. Log in with `POST /users/login` using your username and password for the selected environment.\n2. Copy the `access_token` returned by login and use it as the Bearer token in the **Authorize** button.\n3. Run `POST /users/api-token` authenticated with that Bearer token.\n4. That endpoint returns the API token. Use it for server-to-server requests with the `X-API-Key` header.\n\nThis works for both **staging** and **production**. The only requirement is to have a user created in the environment you want to use. If you want access to both environments, you must create the account twice: once in staging and once in production.\n\n## Rate Limiting\n\nAPI Key requests: **60 requests / 60 seconds** (sliding window). Exceeding returns `429`.\n\n## Error Format\n\nAll errors return `{ \"error\": \"message\" }`.\n\n---\n\n🇦🇷 [Versión en español](/api-docs)"
   },
   "servers": [
@@ -430,7 +430,7 @@
         }
       }
     },
-    "/exchange_rates": {
+    "/exchange-rates": {
       "get": {
         "tags": [
           "Utils"
@@ -594,6 +594,42 @@
         }
       }
     },
+    "/lnurlp/{username}": {
+      "get": {
+        "tags": [
+          "LNURL"
+        ],
+        "summary": "Get LNURLp metadata",
+        "description": "Returns public Lightning Address metadata for a user.",
+        "operationId": "getLnurlpMetadata",
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Lightning Address username"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/users/login": {
       "post": {
         "tags": [
@@ -663,6 +699,69 @@
           },
           "401": {
             "description": "Invalid credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/create": {
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Create user",
+        "description": "Creates a new account.",
+        "operationId": "createUser",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "username",
+                  "email",
+                  "password"
+                ],
+                "properties": {
+                  "username": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password"
+                  },
+                  "phone": {
+                    "type": "string"
+                  },
+                  "referral_code": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "username": "johndoe",
+                "email": "john@example.com",
+                "password": "strong-password"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Resource created"
+          },
+          "400": {
+            "description": "Validation error",
             "content": {
               "application/json": {
                 "schema": {
@@ -1064,11 +1163,14 @@
           "API Token"
         ],
         "summary": "Get API token status",
-        "description": "Check the current API token status without exposing the token value.",
+        "description": "Checks the current API token status without exposing its value. Authenticate with Bearer JWT or X-API-Key, not both.",
         "operationId": "getApiTokenStatus",
         "security": [
           {
             "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
           }
         ],
         "responses": {
@@ -1102,13 +1204,183 @@
         }
       }
     },
+    "/users/b2b": {
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Create B2B sub-user",
+        "description": "Creates a B2B sub-user linked to the authenticated account.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
+        "operationId": "createB2BUser",
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "email": "subuser@example.com"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Resource created"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not authorized for this operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/b2b/{user_uuid}/api-token": {
+      "post": {
+        "tags": [
+          "API Token"
+        ],
+        "summary": "Create API token for B2B sub-user",
+        "description": "Manages the API token for a B2B sub-user.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
+        "operationId": "createB2BApiToken",
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Sub-user UUID"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Resource created"
+          },
+          "403": {
+            "description": "Not authorized for this operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "API Token"
+        ],
+        "summary": "Revoke API token for B2B sub-user",
+        "description": "Manages the API token for a B2B sub-user.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
+        "operationId": "deleteB2BApiToken",
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Sub-user UUID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "403": {
+            "description": "Not authorized for this operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/users/home": {
       "get": {
         "tags": [
           "Users"
         ],
         "summary": "Get home screen data",
-        "description": "Returns all home screen data: balance, rates, settings, and account status.",
+        "description": "Returns all home screen data: balance, rates, settings, and account status.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
         "operationId": "getHome",
         "security": [
           {
@@ -1259,13 +1531,13 @@
         }
       }
     },
-    "/users/spending_limit": {
+    "/users/spending-limit": {
       "get": {
         "tags": [
           "Users"
         ],
         "summary": "Get spending limits",
-        "description": "Returns the user's monthly spending limits based on KYC tier. All amounts in USDT.",
+        "description": "Returns the user's monthly spending limits based on KYC tier. All amounts in USDT.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
         "operationId": "getSpendingLimit",
         "security": [
           {
@@ -1380,17 +1652,20 @@
         }
       }
     },
-    "/users/user_settings": {
+    "/users/user-settings": {
       "get": {
         "tags": [
           "Users"
         ],
         "summary": "Get user preferences",
-        "description": "Returns language, beta, and currency preferences.",
+        "description": "Returns language, beta and favourite currency preferences.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
         "operationId": "getUserSettings",
         "security": [
           {
             "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
           }
         ],
         "responses": {
@@ -1413,11 +1688,14 @@
           "Users"
         ],
         "summary": "Update user preferences",
-        "description": "Update language, beta mode, or favorite currency. All fields optional.",
+        "description": "Updates language, beta mode or favourite currency. All fields are optional.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
         "operationId": "updateUserSettings",
         "security": [
           {
             "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
           }
         ],
         "requestBody": {
@@ -1428,23 +1706,13 @@
                 "type": "object",
                 "properties": {
                   "language": {
-                    "type": "string",
-                    "enum": [
-                      "EN",
-                      "ES",
-                      "PT"
-                    ]
+                    "type": "string"
                   },
                   "beta_version": {
                     "type": "boolean"
                   },
                   "favourite_currency": {
-                    "type": "string",
-                    "enum": [
-                      "USD",
-                      "ARS",
-                      "BRL"
-                    ]
+                    "type": "string"
                   }
                 }
               },
@@ -1527,7 +1795,7 @@
           "Transactions"
         ],
         "summary": "Get transaction by ID",
-        "description": "Get a single transaction by UUID or numeric ID. For Lightning deposits with PENDING status, the invoice is checked in real-time and may return COMPLETED.",
+        "description": "Get a single transaction by UUID or numeric ID. For Lightning deposits with PENDING status, the invoice is checked in real-time and may return COMPLETED.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
         "operationId": "getTransaction",
         "security": [
           {
@@ -1597,13 +1865,15 @@
             }
           }
         }
-      },
+      }
+    },
+    "/transactions/{transaction_id}": {
       "patch": {
         "tags": [
           "Transactions"
         ],
         "summary": "Update transaction status",
-        "description": "Update a transaction's status. Currently only `CANCELED` is user-actionable.",
+        "description": "Updates the status of a transaction by UUID.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
         "operationId": "updateTransaction",
         "security": [
           {
@@ -1615,13 +1885,13 @@
         ],
         "parameters": [
           {
-            "name": "id",
+            "name": "transaction_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string"
             },
-            "description": "Transaction UUID"
+            "description": "UUID of the transaction"
           }
         ],
         "requestBody": {
@@ -1636,9 +1906,7 @@
                 "properties": {
                   "status": {
                     "type": "string",
-                    "enum": [
-                      "CANCELED"
-                    ]
+                    "description": "New transaction status"
                   }
                 }
               }
@@ -1647,7 +1915,7 @@
         },
         "responses": {
           "200": {
-            "description": "Updated transaction",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -1655,17 +1923,27 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/transactions/my_transactions": {
+    "/transactions/my-transactions": {
       "get": {
         "tags": [
           "Transactions"
         ],
         "summary": "List my transactions",
-        "description": "Get all transactions for the authenticated user, ordered by date descending.",
+        "description": "Get all transactions for the authenticated user, ordered by date descending.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
         "operationId": "listMyTransactions",
         "security": [
           {
@@ -1744,6 +2022,36 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not authorized for this operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -1754,7 +2062,7 @@
           "Transactions"
         ],
         "summary": "Create payment transaction",
-        "description": "Create a new outgoing payment transaction. Supports `fiat_transfer` and `fast_fiat_transfer` types.",
+        "description": "Create a new outgoing payment transaction. Supports `fiat_transfer` and `fast_fiat_transfer` types.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
         "operationId": "createTransaction",
         "security": [
           {
@@ -1847,7 +2155,7 @@
           "Transactions"
         ],
         "summary": "Calculate tentative amount",
-        "description": "Preview the USDT cost, fee, and exchange rate for a hypothetical transaction — without creating it.",
+        "description": "Preview the USDT cost, fee, and exchange rate for a hypothetical transaction — without creating it.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
         "operationId": "tentativeAmount",
         "security": [
           {
@@ -1891,6 +2199,10 @@
                   "type": {
                     "type": "string",
                     "description": "Transaction type"
+                  },
+                  "alias": {
+                    "type": "string",
+                    "description": "Optional alias/CBU used for fiat transfer validation"
                   }
                 }
               },
@@ -1936,7 +2248,7 @@
           "Transactions · Direct-Fiat Tentatives"
         ],
         "summary": "Create direct fiat payment tentative",
-        "description": "Create the direct-fiat tentative and freeze the quote. This does not generate the deposit transaction yet.",
+        "description": "Create the direct-fiat tentative and freeze the quote. This does not generate the deposit transaction yet.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
         "operationId": "createDirectFiatTentative",
         "security": [
           {
@@ -1954,10 +2266,7 @@
                 "type": "object",
                 "required": [
                   "amount_ars",
-                  "type",
-                  "alias",
-                  "funding_method",
-                  "network"
+                  "type"
                 ],
                 "properties": {
                   "amount_ars": {
@@ -2005,6 +2314,10 @@
                   "refund_address": {
                     "type": "string",
                     "description": "Optional refund address if funding cannot be executed."
+                  },
+                  "external_reference": {
+                    "type": "string",
+                    "description": "External reference/idempotency identifier"
                   }
                 }
               },
@@ -2056,26 +2369,6 @@
                 }
               }
             }
-          },
-          "404": {
-            "description": "Tentative not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Tentative cannot be reused",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
           }
         }
       }
@@ -2086,7 +2379,7 @@
           "Transactions · Direct-Fiat Tentatives"
         ],
         "summary": "Get direct fiat payment tentative",
-        "description": "Return the direct-fiat operation status by `tentative_id`, including funding/execution IDs when available.",
+        "description": "Return the direct-fiat operation status by `tentative_id`, including funding/execution IDs when available.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
         "operationId": "getDirectFiatTentative",
         "security": [
           {
@@ -2165,7 +2458,7 @@
           "Transactions · Direct-Fiat Tentatives"
         ],
         "summary": "Issue funding instructions",
-        "description": "To use this endpoint, you must first create the direct-fiat tentative in `POST /transactions/direct-fiat/tentatives` with the payment data. The quote must not be expired. This endpoint issues funding instructions and generates the `funding_transaction_id`: it returns a Lightning invoice or an EVM/Liquid address to make the deposit, depending on what was selected in the tentative.",
+        "description": "To use this endpoint, you must first create the direct-fiat tentative in `POST /transactions/direct-fiat/tentatives` with the payment data. The quote must not be expired. This endpoint issues funding instructions and generates the `funding_transaction_id`: it returns a Lightning invoice or an EVM/Liquid address to make the deposit, depending on what was selected in the tentative.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
         "operationId": "issueDirectFiatFunding",
         "security": [
           {
@@ -2231,13 +2524,13 @@
         }
       }
     },
-    "/transactions/inner_transfer": {
+    "/transactions/inner-transfer": {
       "post": {
         "tags": [
           "Transactions"
         ],
         "summary": "Internal transfer to another user",
-        "description": "Transfer USDT directly to another WapuPay user by username.",
+        "description": "Transfer USDT directly to another WapuPay user by username.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
         "operationId": "innerTransfer",
         "security": [
           {
@@ -2312,7 +2605,7 @@
           "Wallet"
         ],
         "summary": "Initiate crypto deposit",
-        "description": "Initiate a cryptocurrency (USDT/USDC) deposit via on-chain networks. Returns a pending transaction with the destination address.",
+        "description": "Initiate a cryptocurrency (USDT/USDC) deposit via on-chain networks. Returns a pending transaction with the destination address.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
         "operationId": "depositCrypto",
         "security": [
           {
@@ -2336,7 +2629,8 @@
                 "properties": {
                   "amount": {
                     "type": "number",
-                    "minimum": 1
+                    "minimum": 1,
+                    "description": "Amount to deposit. Minimum: USD 1 or equivalent."
                   },
                   "currency": {
                     "type": "string",
@@ -2356,7 +2650,8 @@
                       "AVAX",
                       "TRON",
                       "SOLANA",
-                      "BINANCE_ID"
+                      "BINANCE_ID",
+                      "LIQUID"
                     ]
                   }
                 }
@@ -2409,13 +2704,13 @@
         }
       }
     },
-    "/wallet/deposit_lightning": {
+    "/wallet/deposit-lightning": {
       "post": {
         "tags": [
           "Wallet"
         ],
         "summary": "Initiate Lightning deposit",
-        "description": "Generate a Lightning Network invoice to deposit SAT. The deposit is auto-confirmed when the invoice is paid.",
+        "description": "Generates a Lightning Network invoice to deposit SAT. `currency` is accepted for compatibility, but the deposit is processed as SAT.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
         "operationId": "depositLightning",
         "security": [
           {
@@ -2437,12 +2732,22 @@
                 "properties": {
                   "amount": {
                     "type": "number",
-                    "description": "Amount in SAT"
+                    "description": "Amount to deposit in SAT. Minimum: 5.",
+                    "minimum": 5
+                  },
+                  "currency": {
+                    "type": "string",
+                    "enum": [
+                      "USD",
+                      "SAT"
+                    ],
+                    "description": "Optional/deprecated. Accepted for compatibility; the deposit is processed as SAT."
                   }
                 }
               },
               "example": {
-                "amount": 1000
+                "amount": 1000,
+                "currency": "SAT"
               }
             }
           }
@@ -2493,7 +2798,7 @@
           "Wallet"
         ],
         "summary": "Withdraw crypto to external address",
-        "description": "Initiate a cryptocurrency withdrawal to an external blockchain address.",
+        "description": "Initiate a cryptocurrency withdrawal to an external blockchain address.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
         "operationId": "withdrawCrypto",
         "security": [
           {
@@ -2531,7 +2836,8 @@
                       "AVAX",
                       "TRON",
                       "SOLANA",
-                      "BINANCE_ID"
+                      "BINANCE_ID",
+                      "LIQUID"
                     ]
                   },
                   "currency": {
@@ -2589,7 +2895,7 @@
           "Contacts"
         ],
         "summary": "List contacts",
-        "description": "Get the current user's contacts. Optionally filter by type.",
+        "description": "Get the current user's contacts. Optionally filter by type.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
         "operationId": "listContacts",
         "security": [
           {
@@ -2653,13 +2959,13 @@
         }
       }
     },
-    "/contacts/is_favourite": {
+    "/contacts/is-favourite": {
       "post": {
         "tags": [
           "Contacts"
         ],
         "summary": "Toggle contact favourite",
-        "description": "Mark or unmark a contact as favourite.",
+        "description": "Mark or unmark a contact as favourite.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
         "operationId": "setContactFavourite",
         "security": [
           {
@@ -2739,7 +3045,7 @@
           "Contacts"
         ],
         "summary": "Delete contact",
-        "description": "Permanently delete a contact.",
+        "description": "Permanently delete a contact.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
         "operationId": "deleteContact",
         "security": [
           {

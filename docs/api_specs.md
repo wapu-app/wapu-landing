@@ -17,8 +17,6 @@ WapuPay is a platform that allows users to pay in local currency (ARS, BRL) usin
    - [Auth & Session](#auth--session)
    - [API Token Management](#api-token-management)
    - [Users](#users)
-   - [KYC — Person](#kyc--person)
-   - [KYC — Residence](#kyc--residence)
    - [Transactions](#transactions)
    - [Wallet](#wallet)
    - [Contacts](#contacts)
@@ -114,7 +112,7 @@ Health check. No authentication required.
 
 ---
 
-#### `GET /exchange_rates`
+#### `GET /exchange-rates`
 
 Get current exchange rates. No authentication required.
 
@@ -157,20 +155,6 @@ Application-wide settings. No authentication required.
   "blockchains": ["TRON", "ETHEREUM", "BSC", "POLYGON"],
   "pix_key": "pix@wapu.app",
   "pix_deposit_fee": 0.02
-}
-```
-
----
-
-#### `GET /version`
-
-Backend version info. No authentication required.
-
-**Response `200`:**
-```json
-{
-  "version": "0.21.0",
-  "commit": "abc1234"
 }
 ```
 
@@ -454,7 +438,7 @@ Revoke the user's current API token. Takes effect immediately.
 
 Check current API token status without exposing the token.
 
-**Auth:** `[JWT]`
+**Auth:** `[JWT | API Key]`
 
 **Response `200`:**
 ```json
@@ -478,6 +462,51 @@ If no token has ever been created:
 
 ---
 
+#### `POST /users/b2b`
+
+Create a B2B sub-user for the authenticated account.
+
+**Auth:** `[JWT | API Key]`
+
+**Request body (JSON):**
+```json
+{
+  "email": "subuser@example.com"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `email` | string | yes | Sub-user email |
+
+**Response `201`:** Created sub-user.
+
+---
+
+#### `POST /users/b2b/<user_uuid>/api-token`
+
+Create an API token for a B2B sub-user.
+
+**Auth:** `[JWT | API Key]`
+
+**Path param:** `user_uuid` — Sub-user UUID.
+
+**Response `201`:** API token response.
+
+---
+
+#### `DELETE /users/b2b/<user_uuid>/api-token`
+
+Revoke the API token for a B2B sub-user.
+
+**Auth:** `[JWT | API Key]`
+
+**Path param:** `user_uuid` — Sub-user UUID.
+
+**Response `200`:** Token revoked.
+
+---
+
 ### Users
 
 #### `GET /users/home`
@@ -495,7 +524,6 @@ Get all home screen data: balance, rates, settings, KYC status.
   "kyc_status": "ACCEPTED",
   "combined_balance": 124550.00,
   "combined_balance_currency": "ARS",
-  "qr_pending": false,
   "wallets_balance": [
     {
       "balance": 100.00,
@@ -503,7 +531,6 @@ Get all home screen data: balance, rates, settings, KYC status.
     }
   ],
   "settings": {
-    "qr_payment_available": true,
     "pix_key": "pix@wapu.app",
     "min_pix_deposit_brl": 10.0,
     "pix_deposit_fee": 0.02,
@@ -511,7 +538,6 @@ Get all home screen data: balance, rates, settings, KYC status.
     "min_deposit_usdt": 5.0,
     "min_payment_amount_ars": 100.0,
     "blockchains": ["TRON", "ETHEREUM", "BSC"],
-    "qr_payment_fee": 0.01,
     "fiat_transfer_fee": 0.015,
     "fast_fiat_transfer_fee": 0.02,
     "webapp_design": "default",
@@ -523,7 +549,6 @@ Get all home screen data: balance, rates, settings, KYC status.
     "features": {
       "alternative_deposit": true,
       "pix_deposit": true,
-      "qr_payment": true,
       "fast_fiat_transfer": true,
       "fiat_transfer": true,
       "deposit": true,
@@ -546,7 +571,7 @@ Get all home screen data: balance, rates, settings, KYC status.
 
 ---
 
-#### `GET /users/spending_limit`
+#### `GET /users/spending-limit`
 
 Get the user's monthly spending limits based on their KYC tier.
 
@@ -613,11 +638,11 @@ Update the user's profile.
 
 ---
 
-#### `GET /users/user_settings`
+#### `GET /users/user-settings`
 
 Get user preferences.
 
-**Auth:** `[JWT]`
+**Auth:** `[JWT | API Key]`
 
 **Response `200`:**
 ```json
@@ -628,16 +653,14 @@ Get user preferences.
 }
 ```
 
-**`language` values:** `"EN"`, `"ES"`, `"PT"`
-**`favorite_currency` values:** `"USD"`, `"ARS"`, `"BRL"`
 
 ---
 
-#### `PATCH /users/user_settings`
+#### `PATCH /users/user-settings`
 
 Update user preferences.
 
-**Auth:** `[JWT]`
+**Auth:** `[JWT | API Key]`
 
 **Request body (JSON):** All fields optional.
 ```json
@@ -678,157 +701,6 @@ Get or create a referral link for the current user.
   "referral_code": "ABC123"
 }
 ```
-
----
-
-### KYC — Person
-
-KYC (Know Your Customer) lets users unlock higher spending limits.
-
-**`PersonStatus` values:** `PENDING`, `INCOMPLETE`, `ACCEPTED`, `REJECTED`
-**`CredentialType` values:** `PASSPORT`, `DNI`, `CEDULA`, `CURP`, `RUT`, `CPF`, `CI`
-
-#### `POST /users/person`
-
-Submit KYC personal information.
-
-**Auth:** `[JWT]`
-
-**Request body (JSON):**
-```json
-{
-  "name": "John",
-  "surname": "Doe",
-  "date_of_birth": "1990-05-15",
-  "credential_type": "PASSPORT",
-  "credential_number": "AB123456",
-  "credential_expiration": "2030-01-01",
-  "nationality_country_id": 1,
-  "phone": "+5491155556666"
-}
-```
-
-**Response `201`:**
-```json
-{
-  "id": 10,
-  "name": "John",
-  "surname": "Doe",
-  "date_of_birth": "1990-05-15",
-  "credential_type": "PASSPORT",
-  "credential_number": "AB123456",
-  "credential_expiration": "2030-01-01",
-  "nationality": "Argentina",
-  "phone": "+5491155556666",
-  "status": "PENDING",
-  "created_at": "2026-03-28T10:00:00Z"
-}
-```
-
----
-
-#### `GET /users/person`
-
-Get the user's current KYC record.
-
-**Auth:** `[JWT]`
-
-**Response `200`:** Same schema as POST response above.
-
-If no KYC submitted yet → `404`.
-
----
-
-#### `PATCH /users/person`
-
-Update an existing KYC record. Only allowed if status is not `ACCEPTED`.
-
-**Auth:** `[JWT]`
-
-**Request body (JSON):** Same fields as POST, all optional.
-
-**Response `200`:** Updated person object.
-
----
-
-#### `POST /users/image`
-
-Upload a KYC image to S3.
-
-**Auth:** `[JWT]`
-
-**Content-Type:** `multipart/form-data`
-
-**Form fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `image` | file | yes | Image file (JPG, PNG) |
-| `purpose` | string | yes | `"credential_front"`, `"credential_back"`, or `"face_photo"` |
-
-**Response `200`:**
-```json
-{
-  "url": "https://s3.amazonaws.com/wapu-bucket/42_credential_front_2026-03-28.jpg"
-}
-```
-
----
-
-### KYC — Residence
-
-#### `POST /users/residence`
-
-Create or set the user's residential address.
-
-**Auth:** `[JWT]`
-
-**Request body (JSON):**
-```json
-{
-  "address_street": "Av. Corrientes 1234",
-  "address_details": "Piso 3, Depto B",
-  "postal_code": "C1043",
-  "city": "Buenos Aires",
-  "province_state": "CABA",
-  "country_id": 1
-}
-```
-
-**Response `201`:**
-```json
-{
-  "id": 5,
-  "address_street": "Av. Corrientes 1234",
-  "address_details": "Piso 3, Depto B",
-  "postal_code": "C1043",
-  "city": "Buenos Aires",
-  "province_state": "CABA",
-  "country": "Argentina"
-}
-```
-
----
-
-#### `GET /users/residence`
-
-Get the user's current residence record.
-
-**Auth:** `[JWT]`
-
-**Response `200`:** Same schema as POST response above.
-
----
-
-#### `PATCH /users/residence`
-
-Update the user's residence record.
-
-**Auth:** `[JWT]`
-
-**Request body (JSON):** Same fields as POST, all optional.
-
-**Response `200`:** Updated residence object.
 
 ---
 
@@ -890,7 +762,7 @@ Get a single transaction by UUID or numeric ID.
 
 ---
 
-#### `GET /transactions/my_transactions`
+#### `GET /transactions/my-transactions`
 
 Get all transactions for the authenticated user, ordered by date descending.
 
@@ -935,12 +807,11 @@ Create a new outgoing payment transaction.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `type` | string | yes | `"fiat_transfer"`, `"fast_fiat_transfer"`, or `"qr_payment"` |
+| `type` | string | yes | `"fiat_transfer"` or `"fast_fiat_transfer"` |
 | `payment_amount` | number | yes | Amount in ARS |
 | `currency_taken` | string | yes | Always `"USDT"` in current version |
 | `alias` | string | conditional | Bank alias/CBU — required for `fiat_transfer` and `fast_fiat_transfer` |
 | `receiver_name` | string | no | Recipient name |
-| `qr_image_url` | string | conditional | QR image URL — required for `qr_payment` |
 
 **Example — fiat_transfer:**
 ```
@@ -954,16 +825,6 @@ alias=alias.bancario.cbu
 receiver_name=Jane Doe
 ```
 
-**Example — qr_payment:**
-```
-POST /transactions/create
-Content-Type: multipart/form-data
-
-type=qr_payment
-payment_amount=5000
-currency_taken=USDT
-qr_image_url=https://s3.amazonaws.com/wapu-bucket/qr_image.jpg
-```
 
 **Response `201`:** Transaction object (see above).
 
@@ -976,8 +837,6 @@ qr_image_url=https://s3.amazonaws.com/wapu-bucket/qr_image.jpg
 | `400` | `"Insufficient funds"` |
 | `400` | `"Minimum amount is $<N> ARS"` |
 | `400` | `"Maximum amount limit per month is <N> ARS, or <N> USD for KYC level <N>. ..."` |
-| `400` | `"QR payments are not available at the moment. Try in a few hours."` |
-| `400` | `"You already have a QR payment in process."` |
 
 ---
 
@@ -1021,7 +880,8 @@ Calculate the USDT cost, fee, and total for a hypothetical transaction — witho
   "amount": 10000,
   "currency_payment": "ARS",
   "currency_taken": "USDT",
-  "type": "fiat_transfer"
+  "type": "fiat_transfer",
+  "alias": "alias.bancario.cbu"
 }
 ```
 
@@ -1031,6 +891,7 @@ Calculate the USDT cost, fee, and total for a hypothetical transaction — witho
 | `currency_payment` | string | yes | `"ARS"`, `"BRL"`, `"USD"` |
 | `currency_taken` | string | yes | `"USDT"`, `"SAT"` |
 | `type` | string | yes | Transaction type (see enum) |
+| `alias` | string | no | Optional alias/CBU used for fiat transfer validation |
 
 **Response `200`:**
 ```json
@@ -1051,7 +912,7 @@ Calculate the USDT cost, fee, and total for a hypothetical transaction — witho
 
 ---
 
-#### `POST /transactions/inner_transfer`
+#### `POST /transactions/inner-transfer`
 
 Transfer USDT directly to another WapuPay user by username.
 
@@ -1069,7 +930,7 @@ Transfer USDT directly to another WapuPay user by username.
 
 **Example:**
 ```
-POST /transactions/inner_transfer
+POST /transactions/inner-transfer
 Content-Type: multipart/form-data
 
 amount=10
@@ -1088,28 +949,62 @@ receiver_username=janedoe
 
 ---
 
-#### `POST /transactions/qr`
+#### `POST /transactions/direct-fiat/tentatives`
 
-Upload a QR image for a QR payment transaction. Returns the S3 URL to use in `POST /transactions/create`.
+Create a direct-fiat tentative and freeze the quote. This does not generate the funding transaction yet.
 
-**Auth:** `[JWT]` (must be active user)
+**Auth:** `[JWT | API Key]`
 
-**Content-Type:** `multipart/form-data`
-
-**Form fields:**
-
-| Field | Type | Required |
-|-------|------|----------|
-| `image` | file | yes |
-
-**Response `200`:**
+**Request body (JSON):**
 ```json
 {
-  "response": {
-    "link": "https://s3.amazonaws.com/wapu-bucket/42_2026-03-28T10:00:00.jpg"
-  }
+  "amount_ars": 10000,
+  "type": "fiat_transfer",
+  "alias": "alias.bancario.cbu",
+  "receiver_name": "Jane Doe",
+  "funding_method": "USDT",
+  "network": "POLYGON",
+  "refund_address": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+  "external_reference": "order-123"
 }
 ```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `amount_ars` | number | yes | Amount to pay in ARS |
+| `type` | string | yes | `"fiat_transfer"` or `"fast_fiat_transfer"` |
+| `alias` | string | no | Recipient alias/CBU/CVU |
+| `receiver_name` | string | no | Recipient name |
+| `funding_method` | string | no | Funding asset or rail |
+| `network` | string | no | Funding network |
+| `refund_address` | string | no | Optional refund address |
+| `external_reference` | string | no | External reference/idempotency identifier |
+
+**Response `201`:** Direct-fiat tentative object.
+
+---
+
+#### `GET /transactions/direct-fiat/tentatives/<tentative_id>`
+
+Get the status of a direct-fiat tentative.
+
+**Auth:** `[JWT | API Key]`
+
+**Path param:** `tentative_id` — Tentative UUID.
+
+**Response `200`:** Direct-fiat tentative status object.
+
+---
+
+#### `POST /transactions/direct-fiat/tentatives/<tentative_id>/funding`
+
+Generate funding instructions for a direct-fiat tentative.
+
+**Auth:** `[JWT | API Key]`
+
+**Path param:** `tentative_id` — Tentative UUID.
+
+**Response `201`:** Funding instructions.
 
 ---
 
@@ -1132,9 +1027,9 @@ Initiate a cryptocurrency deposit to the user's wallet.
 
 | Field | Type | Required | Values |
 |-------|------|----------|--------|
-| `amount` | number | yes | Minimum: 5 |
+| `amount` | number | yes | Minimum: 1 USD or equivalent |
 | `currency` | string | yes | `"USDT"`, `"USDC"` |
-| `network` | string | yes | `"ETHEREUM"`, `"BSC"`, `"POLYGON"`, `"ARBITRUM"`, `"OPTIMISM"`, `"AVAX"`, `"TRON"`, `"SOLANA"`, `"BINANCE_ID"` |
+| `network` | string | yes | `"ETHEREUM"`, `"BSC"`, `"POLYGON"`, `"ARBITRUM"`, `"OPTIMISM"`, `"AVAX"`, `"TRON"`, `"SOLANA"`, `"BINANCE_ID"`, `"LIQUID"` |
 
 **Response `201`:** Transaction object with `type: "deposit"` and `status: "PENDING"`.
 
@@ -1161,9 +1056,9 @@ Initiate a cryptocurrency deposit to the user's wallet.
 
 ---
 
-#### `POST /wallet/deposit_lightning`
+#### `POST /wallet/deposit-lightning`
 
-Initiate a SAT deposit via the Lightning Network. Returns a Lightning invoice.
+Initiate a SAT deposit via the Lightning Network. Returns a Lightning invoice. `currency` is accepted for compatibility, but the deposit is processed as SAT.
 
 **Auth:** `[JWT | API Key]`
 
@@ -1177,8 +1072,8 @@ Initiate a SAT deposit via the Lightning Network. Returns a Lightning invoice.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `amount` | number | yes | Amount in SAT or USD |
-| `currency` | string | yes | `"SAT"` or `"USD"` |
+| `amount` | number | yes | Amount in SAT. Minimum: 5 |
+| `currency` | string | no | Optional/deprecated. Accepted values: `"SAT"` or `"USD"`; processed as SAT |
 
 **Response `201`:** Transaction object with `type: "deposit"`, `network: "LIGHTNING"`, and:
 ```json
@@ -1197,44 +1092,6 @@ Initiate a SAT deposit via the Lightning Network. Returns a Lightning invoice.
 ```
 
 > Pay the `lnurl_pr_invoice` in a Lightning wallet. The deposit is auto-confirmed when paid.
-
----
-
-#### `POST /wallet/pix_deposit`
-
-Initiate a PIX deposit (Brazil only). Upload the PIX receipt image.
-
-**Auth:** `[JWT]` (must be active user)
-
-**Content-Type:** `multipart/form-data`
-
-**Form fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `amount` | number | yes | Amount in BRL. Minimum: configured min. |
-| `currency` | string | yes | `"BRL"` |
-| `image` | file | yes | PIX receipt/comprovante image |
-
-**Example:**
-```
-POST /wallet/pix_deposit
-Content-Type: multipart/form-data
-
-amount=100.00
-currency=BRL
-image=<file>
-```
-
-**Response `201`:** Transaction object with `type: "pix_deposit"`.
-
-**Errors:**
-
-| Status | Message |
-|--------|---------|
-| `400` | `"Minimum deposit amount is <N> R$"` |
-| `400` | `"Currency not supported"` |
-| `400` | `"You have to upload the pix ticket"` |
 
 ---
 
@@ -1333,7 +1190,7 @@ Get the current user's contacts.
 
 ---
 
-#### `POST /contacts/is_favourite`
+#### `POST /contacts/is-favourite`
 
 Mark or unmark a contact as favourite.
 
@@ -1421,6 +1278,16 @@ LNURL-pay metadata. Used by Lightning wallets to discover payment parameters.
 
 ---
 
+#### `GET /lnurlp/<username>`
+
+LNURL-pay metadata by username. No authentication required.
+
+**Path param:** `username` — WapuPay username.
+
+**Response `200`:** LNURL metadata object.
+
+---
+
 #### `GET /lnurlp/<username>/callback`
 
 Generate a Lightning invoice for the given user. Called by the payer's wallet after fetching metadata.
@@ -1465,7 +1332,6 @@ Generate a Lightning invoice for the given user. Called by the payer's wallet af
 |-------|--------------|-------------|
 | `fiat_transfer` | `false` | Standard bank transfer in local currency |
 | `fast_fiat_transfer` | `false` | Faster bank transfer (higher fee) |
-| `qr_payment` | `false` | QR code payment via local payment system |
 | `deposit` | `true` | Cryptocurrency deposit to wallet |
 | `withdrawal` | `false` | Cryptocurrency withdrawal to external address |
 | `send_inner_transf` | `false` | Internal transfer sent to another user |
@@ -1478,15 +1344,7 @@ Generate a Lightning invoice for the given user. Called by the payer's wallet af
 
 ### Network (`NetworkEnum`)
 
-`ETHEREUM`, `BSC`, `POLYGON`, `ARBITRUM`, `OPTIMISM`, `AVAX`, `TRON`, `SOLANA`, `LIGHTNING`, `BINANCE_ID`
-
-### KYC Person Status (`PersonStatusEnum`)
-
-`PENDING`, `INCOMPLETE`, `ACCEPTED`, `REJECTED`
-
-### KYC Credential Type (`CredentialTypeEnum`)
-
-`PASSPORT`, `DNI`, `CEDULA`, `CURP`, `RUT`, `CPF`, `CI`
+`ETHEREUM`, `BSC`, `POLYGON`, `ARBITRUM`, `OPTIMISM`, `AVAX`, `TRON`, `SOLANA`, `LIGHTNING`, `BINANCE_ID`, `LIQUID`
 
 ### User Status (`UserStatusEnum`)
 
@@ -1536,7 +1394,6 @@ Generate a Lightning invoice for the given user. Called by the payer's wallet af
   "lnurl_pr_invoice": null,
   "lnurl_verify_invoice": null,
   "note": null,
-  "qr_image_url": null,
   "receipt_image_url": null,
   "username": "johndoe",
   "sender_username": null,
@@ -1574,4 +1431,4 @@ Generate a Lightning invoice for the given user. Called by the payer's wallet af
 
 ---
 
-*API Version 0.21.0 — Generated from source: `app_backend/app/api/` + Flasgger docstrings*
+*API Version v36.0 — Generated from source: `app_backend/app/api/` + Flasgger docstrings*
