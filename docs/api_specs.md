@@ -992,7 +992,7 @@ Get the status of a direct-fiat tentative.
 
 **Path param:** `tentative_id` — Tentative UUID.
 
-**Response `200`:** Direct-fiat tentative status object.
+**Response `200`:** Direct-fiat tentative status object. Includes `refund_transaction_id` only when a refund was created for the direct-fiat operation.
 
 ---
 
@@ -1004,7 +1004,7 @@ Generate funding instructions for a direct-fiat tentative.
 
 **Path param:** `tentative_id` — Tentative UUID.
 
-**Response `201`:** Funding instructions.
+**Response `201`:** Funding instructions. Includes `refund_transaction_id` only when a refund was created for the direct-fiat operation.
 
 ---
 
