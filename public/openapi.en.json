@@ -1711,16 +1711,6 @@
                       "EN",
                       "ES",
                       "PT"
-                  },
-                  "beta_version": {
-                    "type": "boolean"
-                  },
-                  "favourite_currency": {
-                    "type": "string"
-"enum": [
-                      "EN",
-                      "ES",
-                      "PT"
                     ]
                   },
                   "beta_version": {
@@ -1733,7 +1723,7 @@
                       "ARS",
                       "BRL"
                     ]
-                    }
+                  }
                 }
               },
               "example": {
