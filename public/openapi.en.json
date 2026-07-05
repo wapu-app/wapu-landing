@@ -1706,7 +1706,11 @@
                 "type": "object",
                 "properties": {
                   "language": {
-                    "type": "string"
+                    "type": "string",
+                    "enum": [
+                      "EN",
+                      "ES",
+                      "PT"
                   },
                   "beta_version": {
                     "type": "boolean"
