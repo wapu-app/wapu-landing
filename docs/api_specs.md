@@ -118,11 +118,14 @@ Get current exchange rates. No authentication required.
 
 **Response `200`:**
 ```json
-[
-  { "pair": "USDT/ARS", "buy": 1245.50, "sell": 1230.00 },
-  { "pair": "USDT/BRL", "buy": 6.20, "sell": 6.05 },
-  { "pair": "BTC/USD", "buy": 68500.00, "sell": 68000.00 }
-]
+{
+  "rates": [
+    { "pair": "USDT/ARS", "buy": 1569.99, "sell": 1585.25 },
+    { "pair": "USDT/BRL", "buy": 5.21, "sell": 5.33 },
+    { "pair": "BTC/USD", "buy": 68100.00, "sell": 70200.00 },
+    { "pair": "BTC/ARS", "buy": 106925000.00, "sell": 110220000.00 }
+  ]
+}
 ```
 
 ---
@@ -153,7 +156,7 @@ Application-wide settings. No authentication required.
   "minimum_withdrawal_amount_usdt": 5,
   "min_deposit_usdt": 5,
   "blockchains": ["TRON", "ETHEREUM", "BSC", "POLYGON"],
-  "pix_key": "pix@wapu.app",
+  "pix_key": "pix@example.com",
   "pix_deposit_fee": 0.02
 }
 ```
@@ -179,8 +182,8 @@ Create a new user account. Returns JWT access token + sets `refresh_cookie` (Htt
 **Request body (JSON):**
 ```json
 {
-  "username": "johndoe",
-  "email": "john@example.com",
+  "username": "demo_user",
+  "email": "customer_demo@example.com",
   "password": "SecurePass123!",
   "phone": 5491155556666,
   "referral_code": "REF123"
@@ -213,7 +216,7 @@ Authenticate user. Returns JWT access token + sets `refresh_cookie`.
 **Request body (JSON):**
 ```json
 {
-  "email": "john@example.com",
+  "email": "customer_demo@example.com",
   "password": "SecurePass123!"
 }
 ```
@@ -287,7 +290,7 @@ Send an email verification link. No authentication required.
 **Request body (JSON):**
 ```json
 {
-  "email": "john@example.com"
+  "email": "customer_demo@example.com"
 }
 ```
 
@@ -323,7 +326,7 @@ Send a password recovery email. No authentication required.
 **Request body (JSON):**
 ```json
 {
-  "email": "john@example.com"
+  "email": "customer_demo@example.com"
 }
 ```
 
@@ -360,7 +363,7 @@ Send a magic-link login email (passwordless). No authentication required. Email 
 **Request body (JSON):**
 ```json
 {
-  "email": "john@example.com"
+  "email": "customer_demo@example.com"
 }
 ```
 
@@ -375,7 +378,7 @@ Check if a username is valid and available. No authentication required.
 **Request body (JSON):**
 ```json
 {
-  "username": "johndoe"
+  "username": "demo_user"
 }
 ```
 
@@ -519,8 +522,8 @@ Get all home screen data: balance, rates, settings, KYC status.
 ```json
 {
   "id": 42,
-  "username": "johndoe",
-  "email": "john@example.com",
+  "username": "demo_user",
+  "email": "customer_demo@example.com",
   "kyc_status": "ACCEPTED",
   "combined_balance": 124550.00,
   "combined_balance_currency": "ARS",
@@ -531,7 +534,7 @@ Get all home screen data: balance, rates, settings, KYC status.
     }
   ],
   "settings": {
-    "pix_key": "pix@wapu.app",
+    "pix_key": "pix@example.com",
     "min_pix_deposit_brl": 10.0,
     "pix_deposit_fee": 0.02,
     "minimum_withdrawal_amount_usdt": 5.0,
@@ -560,9 +563,10 @@ Get all home screen data: balance, rates, settings, KYC status.
     }
   },
   "rates": [
-    { "pair": "USDT/ARS", "buy": 1245.50, "sell": 1230.00 },
-    { "pair": "USDT/BRL", "buy": 6.20, "sell": 6.05 },
-    { "pair": "BTC/USD", "buy": 68500.00, "sell": 68000.00 }
+    { "pair": "USDT/ARS", "buy": 1569.99, "sell": 1585.25 },
+    { "pair": "USDT/BRL", "buy": 5.21, "sell": 5.33 },
+    { "pair": "BTC/USD", "buy": 68100.00, "sell": 70200.00 },
+    { "pair": "BTC/ARS", "buy": 106925000.00, "sell": 110220000.00 }
   ]
 }
 ```
@@ -600,10 +604,10 @@ Get the user's profile data.
 **Response `200`:**
 ```json
 {
-  "username": "johndoe",
+  "username": "demo_user",
   "phone": "5491155556666",
-  "telegram": "johndoe_tg",
-  "email": "john@example.com",
+  "telegram": "demo_user_tg",
+  "email": "customer_demo@example.com",
   "beta_version": 0
 }
 ```
@@ -632,7 +636,7 @@ Update the user's profile.
   "username": "newusername",
   "phone": "5491155556666",
   "telegram": "my_telegram_handle",
-  "email": "john@example.com"
+  "email": "customer_demo@example.com"
 }
 ```
 
@@ -697,7 +701,7 @@ Get or create a referral link for the current user.
 **Response `200`:**
 ```json
 {
-  "referral_link": "https://wapu.app/signup?ref=ABC123",
+  "referral_link": "https://example.com/signup?ref=DEMO123",
   "referral_code": "ABC123"
 }
 ```
@@ -723,15 +727,15 @@ All transaction endpoints return objects of this shape:
   "total_amount_taken": 0.0803,
   "fee_taken": 0.0012,
   "current_rate": 1245.50,
-  "alias": "alias.cbu.bancario",
-  "receiver_name": "Jane Doe",
+  "alias": "alias.demo.cvu",
+  "receiver_name": "Receiver Example",
   "network": null,
   "address_destination": null,
   "blockchain_trx_id": null,
   "lnurl_pr_invoice": null,
   "lnurl_verify_invoice": null,
   "note": null,
-  "username": "johndoe",
+  "username": "demo_user",
   "sender_username": null,
   "created_at": "2026-03-28T10:00:00Z",
   "updated_at": "2026-03-28T10:01:00Z"
@@ -750,7 +754,24 @@ Get a single transaction by UUID or numeric ID.
 
 **Path param:** `id` — UUID (e.g. `123e4567-e89b-12d3-a456-426614174000`) or numeric ID.
 
-**Response `200`:** Transaction object (see above).
+**Response `200`:** Transaction object (see above). Liquid deposits include an `asset_id` for the funded asset:
+
+```json
+{
+  "transaction_id": "5c2f5ac1-85b5-4d9f-8b8f-b2b9a53e804d",
+  "status": "COMPLETED",
+  "type": "deposit",
+  "is_positive": true,
+  "payment_amount": 999455,
+  "payment_currency": "SAT",
+  "currency_taken": "LBTC",
+  "network": "LIQUID",
+  "asset_id": "6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d",
+  "address_destination": "lq1qqp5z8vdw0s3jn54khce6mua7lqpzry9x8gf2tvdw0s3jn54khce6mua7lqp",
+  "created_at": "2026-07-25T18:38:53Z",
+  "updated_at": "2026-07-25T18:40:10Z"
+}
+```
 
 **Errors:**
 
@@ -784,8 +805,8 @@ Get all transactions for the authenticated user, ordered by date descending.
       "total_amount_taken": 8.03,
       "fee_taken": 0.12,
       "current_rate": 1245.50,
-      "alias": "alias.bancario",
-      "receiver_name": "Jane Doe",
+      "alias": "alias.demo.cvu",
+      "receiver_name": "Receiver Example",
       "created_at": "2026-03-20T09:00:00Z",
       "updated_at": "2026-03-20T09:30:00Z"
     }
@@ -821,8 +842,8 @@ Content-Type: multipart/form-data
 type=fiat_transfer
 payment_amount=10000
 currency_taken=USDT
-alias=alias.bancario.cbu
-receiver_name=Jane Doe
+alias=alias.demo.cvu
+receiver_name=Receiver Example
 ```
 
 
@@ -881,7 +902,7 @@ Calculate the USDT cost, fee, and total for a hypothetical transaction — witho
   "currency_payment": "ARS",
   "currency_taken": "USDT",
   "type": "fiat_transfer",
-  "alias": "alias.bancario.cbu"
+  "alias": "alias.demo.cvu"
 }
 ```
 
@@ -935,7 +956,7 @@ Content-Type: multipart/form-data
 
 amount=10
 currency=USDT
-receiver_username=janedoe
+receiver_username=customer_demo
 ```
 
 **Response `201`:** Transaction object for the sender's debit transaction.
@@ -958,16 +979,16 @@ Create a direct-fiat tentative and freeze the quote. This does not generate the 
 **Request body (JSON):**
 ```json
 {
-  "amount_ars": 10000,
+  "amount_ars": 15000,
   "type": "fiat_transfer",
-  "alias": "alias.bancario.cbu",
-  "receiver_name": "Jane Doe",
-  "funding_method": "USDT",
-  "network": "POLYGON",
-  "refund_address": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
-  "external_reference": "order-123"
+  "alias": "alias.demo.cvu",
+  "receiver_name": "Receiver Example",
+  "funding_currency": "SAT",
+  "network": "LIGHTNING"
 }
 ```
+
+For Liquid funding, send `"funding_currency": "LBTC"` or `"USDT"` with `"network": "LIQUID"`. Existing EVM funding networks remain supported where available. `funding_network` is accepted as an alias for `network`, but `network` takes precedence when both are sent.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
@@ -975,12 +996,28 @@ Create a direct-fiat tentative and freeze the quote. This does not generate the 
 | `type` | string | yes | `"fiat_transfer"` or `"fast_fiat_transfer"` |
 | `alias` | string | no | Recipient alias/CBU/CVU |
 | `receiver_name` | string | no | Recipient name |
-| `funding_method` | string | no | Funding asset or rail |
-| `network` | string | no | Funding network |
+| `funding_currency` | string | yes | `"SAT"`, `"LBTC"`, or `"USDT"` |
+| `network` | string | yes | Canonical funding network: `"LIGHTNING"`, `"LIQUID"`, or a supported EVM network |
+| `funding_network` | string | no | Accepted alias for `network`; `network` wins when both are sent |
 | `refund_address` | string | no | Optional refund address |
 | `external_reference` | string | no | External reference/idempotency identifier |
 
-**Response `201`:** Direct-fiat tentative object.
+**Response `201`:**
+```json
+{
+  "amount_ars": 15000.0,
+  "exchange_rate": 1569.99,
+  "expires_at": "2026-07-25 21:17:18",
+  "fee_amount_usdt": 0.29,
+  "funding_amount_usdt": 9.55,
+  "funding_currency": "SAT",
+  "funding_network": "LIGHTNING",
+  "status": "CREATED",
+  "tentative_id": "3f6b8e2a-8f4c-4d3b-9f62-7d4f21c8a901",
+  "total_amount_sats": 15090,
+  "total_amount_usdt": 9.84
+}
+```
 
 ---
 
@@ -992,7 +1029,42 @@ Get the status of a direct-fiat tentative.
 
 **Path param:** `tentative_id` — Tentative UUID.
 
-**Response `200`:** Direct-fiat tentative status object. 
+**Response `200`:** Direct-fiat tentative status object. A Lightning tentative returns SAT totals:
+
+```json
+{
+  "amount_ars": 15000.0,
+  "exchange_rate": 1569.99,
+  "expires_at": "2026-07-25 21:17:18",
+  "fee_amount_usdt": 0.29,
+  "funding_amount_usdt": 9.55,
+  "funding_currency": "SAT",
+  "funding_network": "LIGHTNING",
+  "funding_transaction_id": null,
+  "executed_transaction_id": null,
+  "status": "CREATED",
+  "tentative_id": "3f6b8e2a-8f4c-4d3b-9f62-7d4f21c8a901",
+  "total_amount_sats": 15090,
+  "total_amount_usdt": 9.84
+}
+```
+
+A Liquid tentative also returns the funded asset identifier:
+
+```json
+{
+  "address_destination": "lq1qqp5z8vdw0s3jn54khce6mua7lqpzry9x8gf2tvdw0s3jn54khce6mua7lqp",
+  "amount_ars": 991752.44,
+  "asset_id": "6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d",
+  "exchange_rate": 1569.1,
+  "funding_currency": "LBTC",
+  "funding_network": "LIQUID",
+  "status": "CREATED",
+  "tentative_id": "9c8b99f7-3b09-4a6e-bf7b-75e4cb8dfdb4",
+  "total_amount_sats": 999455,
+  "total_amount_usdt": 651.01
+}
+```
 
 ---
 
@@ -1004,7 +1076,80 @@ Generate funding instructions for a direct-fiat tentative.
 
 **Path param:** `tentative_id` — Tentative UUID.
 
-**Response `201`:** Funding instructions.
+**Response `201`:** Funding instructions. A Lightning response contains a synthetic BOLT11-shaped invoice and a non-live verification URL:
+
+```json
+{
+  "amount_ars": 15000.0,
+  "funding_currency": "SAT",
+  "funding_network": "LIGHTNING",
+  "funding_transaction_id": "4bbfbc7f-bb5f-41ed-8657-ef2d4e60c019",
+  "lightning_pr": "lnbc150900n1p4x25qvpp5qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq",
+  "lightning_verify_url": "https://example.com/lnurl/verify/demo-token",
+  "status": "FUNDING_ISSUED",
+  "tentative_id": "3f6b8e2a-8f4c-4d3b-9f62-7d4f21c8a901",
+  "total_amount_sats": 15090,
+  "total_amount_usdt": 9.84
+}
+```
+
+Liquid funding returns `asset_id` and a synthetic Liquid address:
+
+```json
+{
+  "address_destination": "lq1qqp5z8vdw0s3jn54khce6mua7lqpzry9x8gf2tvdw0s3jn54khce6mua7lqp",
+  "amount_ars": 991752.44,
+  "asset_id": "6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d",
+  "funding_currency": "LBTC",
+  "funding_network": "LIQUID",
+  "funding_transaction_id": "db0a74a8-8df6-453b-a97e-b2e8426b3cd1",
+  "status": "FUNDING_ISSUED",
+  "tentative_id": "9c8b99f7-3b09-4a6e-bf7b-75e4cb8dfdb4",
+  "total_amount_sats": 999455,
+  "total_amount_usdt": 651.01
+}
+```
+
+---
+
+#### `GET /transactions/direct-fiat/quote`
+
+Return a current direct-fiat quote without creating a tentative.
+
+**Auth:** `[JWT | API Key]`
+
+**Query parameters:** `amount_ars`, `funding_currency` (`SAT`, `LBTC`, or `USDT`), `type`, and `funding_network`.
+
+**Response `200` — SAT over Lightning:**
+```json
+{
+  "amount_ars": 25000.0,
+  "fee_amount_usdt": 0.8,
+  "fee_rate": 0.05,
+  "funding_amount_usdt": 15.92,
+  "funding_currency": "SAT",
+  "funding_network": "LIGHTNING",
+  "total_amount_sats": 25641,
+  "total_amount_usdt": 16.72,
+  "type": "fast_fiat_transfer",
+  "usdt_ars_rate": 1569.99
+}
+```
+
+**Response `200` — USDT over Liquid:**
+```json
+{
+  "amount_ars": 25000.0,
+  "fee_amount_usdt": 0.8,
+  "fee_rate": 0.05,
+  "funding_amount_usdt": 15.92,
+  "funding_currency": "USDT",
+  "funding_network": "LIQUID",
+  "total_amount_usdt": 16.72,
+  "type": "fast_fiat_transfer",
+  "usdt_ars_rate": 1569.99
+}
+```
 
 ---
 
@@ -1083,7 +1228,7 @@ Initiate a SAT deposit via the Lightning Network. Returns a Lightning invoice. `
   "type": "deposit",
   "network": "LIGHTNING",
   "lnurl_pr_invoice": "lnbc100u1p3...",
-  "lnurl_verify_invoice": "https://api.lightning.com/invoice/verify/...",
+  "lnurl_verify_invoice": "https://example.com/lnurl/verify/demo-token",
   "payment_amount": 0.00,
   "total_amount_taken": 100000,
   "currency_taken": "SAT",
@@ -1108,7 +1253,7 @@ Initiate a cryptocurrency withdrawal to an external address.
   "network": "TRON",
   "currency": "USDT",
   "amount": 20.0,
-  "receiver_name": "Jane Doe"
+  "receiver_name": "Receiver Example"
 }
 ```
 
@@ -1133,7 +1278,7 @@ Initiate a cryptocurrency withdrawal to an external address.
   "currency_taken": "USDT",
   "network": "TRON",
   "address_destination": "TXyz1234567890abcdef",
-  "receiver_name": "Jane Doe",
+  "receiver_name": "Receiver Example",
   "created_at": "2026-03-28T10:00:00Z"
 }
 ```
@@ -1180,7 +1325,7 @@ Get the current user's contacts.
       "name_label_id": null,
       "network": null,
       "wallet_address": null,
-      "bank_alias": "alias.bancario.001",
+      "bank_alias": "alias.demo.cvu",
       "is_favourite": false,
       "created_at": "2026-02-20T12:00:00Z"
     }
@@ -1267,10 +1412,10 @@ LNURL-pay metadata. Used by Lightning wallets to discover payment parameters.
 ```json
 {
   "tag": "payRequest",
-  "callback": "https://api.wapu.app/lnurlp/johndoe/callback",
+  "callback": "https://example.com/lnurl/demo_user/callback",
   "minSendable": 1000,
   "maxSendable": 10000000000,
-  "metadata": "[[\"text/plain\",\"Pay johndoe via WapuPay\"]]",
+  "metadata": "[[\"text/plain\",\"Pay demo_user via WapuPay\"]]",
   "allowsNostr": true,
   "nostrPubkey": "..."
 }
@@ -1307,7 +1452,7 @@ Generate a Lightning invoice for the given user. Called by the payer's wallet af
 {
   "pr": "lnbc100u1p3...",
   "routes": [],
-  "verify": "https://api.wapu.app/invoice/verify/..."
+  "verify": "https://example.com/lnurl/verify/demo-token"
 }
 ```
 
@@ -1359,12 +1504,12 @@ Generate a Lightning invoice for the given user. Called by the payer's wallet af
 ```json
 {
   "id": 42,
-  "username": "johndoe",
-  "email": "john@example.com",
+  "username": "demo_user",
+  "email": "customer_demo@example.com",
   "kyc_tier": 1,
   "is_active": true,
   "email_verified": true,
-  "telegram_username": "johndoe_tg",
+  "telegram_username": "demo_user_tg",
   "state": "ACTIVE",
   "api_enabled": true
 }
@@ -1385,8 +1530,8 @@ Generate a Lightning invoice for the given user. Called by the payer's wallet af
   "total_amount_taken": 8.03,
   "fee_taken": 0.12,
   "current_rate": 1245.50,
-  "alias": "alias.bancario.cbu",
-  "receiver_name": "Jane Doe",
+  "alias": "alias.demo.cvu",
+  "receiver_name": "Receiver Example",
   "network": null,
   "address_destination": null,
   "source_address": null,
@@ -1395,7 +1540,7 @@ Generate a Lightning invoice for the given user. Called by the payer's wallet af
   "lnurl_verify_invoice": null,
   "note": null,
   "receipt_image_url": null,
-  "username": "johndoe",
+  "username": "demo_user",
   "sender_username": null,
   "created_at": "2026-03-28T10:00:00Z",
   "updated_at": "2026-03-28T10:30:00Z"
