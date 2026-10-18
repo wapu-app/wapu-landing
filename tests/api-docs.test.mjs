@@ -8,6 +8,24 @@ const specs = ['es', 'en'].map((locale) => [locale, JSON.parse(
 const base = '/transactions/direct-fiat';
 const ref = (name) => `#/components/schemas/${name}`;
 const jsonBody = (operation, status) => operation.responses[status].content['application/json'];
+// Response values verified against survivors develop 495cb7ed serializers (not mocked API fixtures).
+const transactionStatuses = ['Pending', 'Completed', 'Canceled', 'Paid', 'Processing', 'User Pending Action'];
+const swapStatuses = ['WAITING_DEPOSIT', 'CONFIRMING', 'SENDING', 'COMPLETED', 'EXPIRED', 'REFUNDING', 'REFUNDED', 'FAILED'];
+const reference = readFileSync(new URL('../docs/api_specs.md', import.meta.url), 'utf8');
+
+function checkExampleStatuses(value) {
+  if (Array.isArray(value)) {
+    value.forEach(checkExampleStatuses);
+  } else if (value && typeof value === 'object') {
+    if (typeof value.transaction_id === 'string' && typeof value.status === 'string') {
+      assert.ok(transactionStatuses.includes(value.status), `invalid Transaction.status: ${value.status}`);
+    }
+    if (value.kind === 'swap' && typeof value.status === 'string') {
+      assert.ok(swapStatuses.includes(value.status), `invalid Swap.status: ${value.status}`);
+    }
+    Object.values(value).forEach(checkExampleStatuses);
+  }
+}
 
 for (const [locale, spec] of specs) {
   const schemas = spec.components.schemas;
@@ -199,7 +217,63 @@ for (const [locale, spec] of specs) {
       assert.ok(examples.sat_lightning, 'existing crypto-to-ARS example must remain');
     }
   });
+
+  test(`${locale}: transaction and swap response statuses use different contracts`, () => {
+    assert.deepEqual(schemas.Transaction.properties.status.enum, transactionStatuses);
+    assert.deepEqual(schemas.HistorySwap.properties.status.enum, swapStatuses);
+    checkExampleStatuses(spec);
+    // Do not globally rewrite the purchase lifecycle or its separate lowercase payout status.
+    assert.ok(schemas.CryptoPurchaseTentative.properties.status.enum.includes('COMPLETED'));
+    assert.ok(schemas.CryptoPurchaseTentative.properties.payout_status.enum.includes('completed'));
+  });
+
+  test(`${locale}: Lightning transaction detail describes display statuses`, () => {
+    const description = paths['/transactions/{id}'].get.description;
+    assert.doesNotMatch(description, /\b(?:PENDING|COMPLETED)\b/);
+    assert.match(description, /Completed/);
+  });
+
+  test(`${locale}: ARS input descriptions do not instruct callers to use future funding`, () => {
+    const purchase = schemas.CryptoPurchaseRequest;
+    const inputDescriptions = [purchase.properties.amount_ars_cents.description,
+      ...purchase.oneOf.filter((branch) => branch.properties.amount_ars_cents)
+        .map((branch) => branch.properties.amount_ars_cents.description)];
+    const query = paths[`${base}/quote`].get.parameters.find((p) => p.name === 'amount_ars_cents');
+    inputDescriptions.push(query.description, query.schema.description);
+    for (const description of inputDescriptions) {
+      assert.doesNotMatch(description, /\/funding/);
+      assert.match(description, locale === 'es' ? /centavos de ARS a gastar/i : /ARS cents to spend/i);
+    }
+    for (const name of ['CryptoPurchaseQuote', 'CryptoPurchaseTentative']) {
+      assert.match(schemas[name].properties.amount_ars_cents.description, /\/funding/);
+    }
+  });
+
+  test(`${locale}: history and quote validation errors are specific to their inputs`, () => {
+    const historyError = paths['/transactions/my-transactions'].get.responses['400'].description;
+    assert.match(historyError, /page/);
+    assert.match(historyError, /per_page/);
+    assert.doesNotMatch(historyError, /amount|monto|tentativ|expir|vencid/i);
+    const quoteError = paths[`${base}/quote`].get.responses['400'].description;
+    assert.match(quoteError, /amount_ars_cents/);
+    assert.match(quoteError, /amount_out/);
+    assert.doesNotMatch(quoteError, /expir|vencid/i);
+    const createError = paths[`${base}/tentatives`].post.responses['400'].description;
+    assert.doesNotMatch(createError, /expir|vencid/i);
+    // Expiry is meaningful when issuing funding for an existing tentative.
+    assert.match(paths[`${base}/tentatives/{tentative_id}/funding`].post.responses['400'].description,
+      /expir|vencid/i);
+  });
 }
+
+test('Markdown response examples distinguish transaction, swap and tentative status values', () => {
+  const blocks = [...reference.matchAll(/```json\s*\n([\s\S]*?)\n```/g)];
+  assert.ok(blocks.length > 0);
+  for (const [, body] of blocks) checkExampleStatuses(JSON.parse(body));
+  assert.doesNotMatch(reference, /Lightning deposit with `PENDING`|may return `COMPLETED`/);
+  assert.doesNotMatch(reference, /Transaction object with[^\n]*status: "PENDING"/);
+  assert.match(reference, /status=CANCELED/); // The existing PATCH request uses an enum name.
+});
 
 test('Spanish and English expose the same operations and structural schemas', () => {
   const structure = (value) => {

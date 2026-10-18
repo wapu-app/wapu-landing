@@ -482,7 +482,7 @@
             "type": "integer",
             "format": "int64",
             "minimum": 1,
-            "description": "Send exactly one of amount_ars_cents or amount_out. Positive integer, no decimals or booleans. ARS cents to transfer. Use the final amount returned by /funding."
+            "description": "Send exactly one of amount_ars_cents or amount_out. Positive integer, no decimals or booleans. ARS cents to spend."
           },
           "amount_out": {
             "type": "integer",
@@ -506,7 +506,7 @@
                 "type": "integer",
                 "format": "int64",
                 "minimum": 1,
-                "description": "Send exactly one of amount_ars_cents or amount_out. Positive integer, no decimals or booleans. ARS cents to transfer. Use the final amount returned by /funding."
+                "description": "Send exactly one of amount_ars_cents or amount_out. Positive integer, no decimals or booleans. ARS cents to spend."
               }
             }
           },
@@ -1295,7 +1295,18 @@
             "format": "uuid"
           },
           "status": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "WAITING_DEPOSIT",
+              "CONFIRMING",
+              "SENDING",
+              "COMPLETED",
+              "EXPIRED",
+              "REFUNDING",
+              "REFUNDED",
+              "FAILED"
+            ],
+            "description": "Uppercase swap state, independent of Transaction.status and payout_status."
           },
           "from": {
             "type": "string"
@@ -2777,7 +2788,7 @@
           "Transactions"
         ],
         "summary": "Get transaction by ID",
-        "description": "Get a single transaction by UUID or numeric ID. For Lightning deposits with PENDING status, the invoice is checked in real-time and may return COMPLETED.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.\n\nTransactions linked to direct-fiat include tentative_id. For a Lightning purchase, the order's executed_transaction_id points to the withdrawal: payment_amount and fee_taken are in sats, while total_amount_taken is in decimal USDT. Do not confuse these display units with the tentative's integer cents. Liquid adds asset_id and, when a txid exists, blockchain_scan_url.",
+        "description": "Get a single transaction by UUID or numeric ID. For Lightning deposits with Pending status, the invoice is checked in real-time and may return Completed.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.\n\nTransactions linked to direct-fiat include tentative_id. For a Lightning purchase, the order's executed_transaction_id points to the withdrawal: payment_amount and fee_taken are in sats, while total_amount_taken is in decimal USDT. Do not confuse these display units with the tentative's integer cents. Liquid adds asset_id and, when a txid exists, blockchain_scan_url.",
         "operationId": "getTransaction",
         "security": [
           {
@@ -3094,7 +3105,7 @@
                         {
                           "kind": "swap",
                           "swap_id": "00000000-0000-4000-8000-000000000200",
-                          "status": "completed",
+                          "status": "COMPLETED",
                           "from": "LBTC",
                           "to": "USDT_LIQUID",
                           "amount_in_expected": 10000,
@@ -3161,7 +3172,7 @@
             }
           },
           "400": {
-            "description": "Invalid parameters, amount not a positive integer or expired tentative.",
+            "description": "Invalid page or per_page: page must be an integer >= 1 and per_page an integer between 1 and 50.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3548,7 +3559,7 @@
             }
           },
           "400": {
-            "description": "Invalid parameters, amount not a positive integer or expired tentative.",
+            "description": "Invalid request body, payment type, funding/payout pair, amount or payout destination.",
             "content": {
               "application/json": {
                 "schema": {
@@ -4970,9 +4981,9 @@
               "type": "integer",
               "format": "int64",
               "minimum": 1,
-              "description": "Send exactly one of amount_ars_cents or amount_out. Positive integer, no decimals or booleans. ARS cents to transfer. Use the final amount returned by /funding."
+              "description": "Send exactly one of amount_ars_cents or amount_out. Positive integer, no decimals or booleans. ARS cents to spend."
             },
-            "description": "For type=crypto_purchase only. Send exactly one of amount_ars_cents or amount_out. Positive integer, no decimals or booleans. ARS cents to transfer. Use the final amount returned by /funding."
+            "description": "For type=crypto_purchase only. Send exactly one of amount_ars_cents or amount_out. Positive integer, no decimals or booleans. ARS cents to spend."
           },
           {
             "name": "amount_out",
@@ -5059,7 +5070,7 @@
             }
           },
           "400": {
-            "description": "Invalid parameters, amount not a positive integer or expired tentative.",
+            "description": "Invalid type, funding/payout pair or amount. For crypto_purchase, send exactly one positive integer amount_ars_cents or amount_out.",
             "content": {
               "application/json": {
                 "schema": {

@@ -482,7 +482,7 @@
             "type": "integer",
             "format": "int64",
             "minimum": 1,
-            "description": "Enviá exactamente uno de amount_ars_cents o amount_out. Entero positivo, sin decimales ni booleanos. Centavos de ARS a transferir. Usá el monto definitivo devuelto por /funding."
+            "description": "Enviá exactamente uno de amount_ars_cents o amount_out. Entero positivo, sin decimales ni booleanos. Centavos de ARS a gastar."
           },
           "amount_out": {
             "type": "integer",
@@ -506,7 +506,7 @@
                 "type": "integer",
                 "format": "int64",
                 "minimum": 1,
-                "description": "Enviá exactamente uno de amount_ars_cents o amount_out. Entero positivo, sin decimales ni booleanos. Centavos de ARS a transferir. Usá el monto definitivo devuelto por /funding."
+                "description": "Enviá exactamente uno de amount_ars_cents o amount_out. Entero positivo, sin decimales ni booleanos. Centavos de ARS a gastar."
               }
             }
           },
@@ -1295,7 +1295,18 @@
             "format": "uuid"
           },
           "status": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "WAITING_DEPOSIT",
+              "CONFIRMING",
+              "SENDING",
+              "COMPLETED",
+              "EXPIRED",
+              "REFUNDING",
+              "REFUNDED",
+              "FAILED"
+            ],
+            "description": "Estado del swap en mayúsculas, independiente de Transaction.status y de payout_status."
           },
           "from": {
             "type": "string"
@@ -2777,7 +2788,7 @@
           "Transacciones"
         ],
         "summary": "Obtener transacción por ID",
-        "description": "Obtiene una transacción por UUID o ID numérico. Para depósitos Lightning con estado PENDING, la factura se verifica en tiempo real y puede retornar COMPLETED.\n\nUsá `Authorization: Bearer <jwt>` o `X-API-Key: <api_token>`. No envíes ambos headers en la misma request.\n\nLas transacciones vinculadas a direct-fiat incluyen tentative_id. Para una compra Lightning, executed_transaction_id de la orden apunta al retiro: payment_amount y fee_taken están en sats, mientras total_amount_taken está en USDT decimales. No confundas estas unidades de visualización con los centavos enteros de la tentativa. Liquid agrega asset_id y, cuando hay txid, blockchain_scan_url.",
+        "description": "Obtiene una transacción por UUID o ID numérico. Para depósitos Lightning con estado Pending, la factura se verifica en tiempo real y puede retornar Completed.\n\nUsá `Authorization: Bearer <jwt>` o `X-API-Key: <api_token>`. No envíes ambos headers en la misma request.\n\nLas transacciones vinculadas a direct-fiat incluyen tentative_id. Para una compra Lightning, executed_transaction_id de la orden apunta al retiro: payment_amount y fee_taken están en sats, mientras total_amount_taken está en USDT decimales. No confundas estas unidades de visualización con los centavos enteros de la tentativa. Liquid agrega asset_id y, cuando hay txid, blockchain_scan_url.",
         "operationId": "getTransaction",
         "security": [
           {
@@ -3094,7 +3105,7 @@
                         {
                           "kind": "swap",
                           "swap_id": "00000000-0000-4000-8000-000000000200",
-                          "status": "completed",
+                          "status": "COMPLETED",
                           "from": "LBTC",
                           "to": "USDT_LIQUID",
                           "amount_in_expected": 10000,
@@ -3161,7 +3172,7 @@
             }
           },
           "400": {
-            "description": "Parámetros inválidos, monto no entero positivo o tentativa vencida.",
+            "description": "page o per_page inválidos: page debe ser un entero ≥ 1 y per_page un entero entre 1 y 50.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3549,7 +3560,7 @@
             }
           },
           "400": {
-            "description": "Parámetros inválidos, monto no entero positivo o tentativa vencida.",
+            "description": "Body, tipo de pago, par de fondeo/salida, monto o destino inválidos.",
             "content": {
               "application/json": {
                 "schema": {
@@ -4973,9 +4984,9 @@
               "type": "integer",
               "format": "int64",
               "minimum": 1,
-              "description": "Enviá exactamente uno de amount_ars_cents o amount_out. Entero positivo, sin decimales ni booleanos. Centavos de ARS a transferir. Usá el monto definitivo devuelto por /funding."
+              "description": "Enviá exactamente uno de amount_ars_cents o amount_out. Entero positivo, sin decimales ni booleanos. Centavos de ARS a gastar."
             },
-            "description": "Sólo para type=crypto_purchase. Enviá exactamente uno de amount_ars_cents o amount_out. Entero positivo, sin decimales ni booleanos. Centavos de ARS a transferir. Usá el monto definitivo devuelto por /funding."
+            "description": "Sólo para type=crypto_purchase. Enviá exactamente uno de amount_ars_cents o amount_out. Entero positivo, sin decimales ni booleanos. Centavos de ARS a gastar."
           },
           {
             "name": "amount_out",
@@ -5062,7 +5073,7 @@
             }
           },
           "400": {
-            "description": "Parámetros inválidos, monto no entero positivo o tentativa vencida.",
+            "description": "Tipo, par de fondeo/salida o monto inválidos. Para crypto_purchase, enviá exactamente uno de amount_ars_cents o amount_out como entero positivo.",
             "content": {
               "application/json": {
                 "schema": {

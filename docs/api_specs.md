@@ -717,7 +717,7 @@ All transaction endpoints return objects of this shape:
 ```json
 {
   "transaction_id": "123e4567-e89b-12d3-a456-426614174000",
-  "status": "PENDING",
+  "status": "Pending",
   "type": "fiat_transfer",
   "type_name": "Fiat Transfer",
   "is_positive": false,
@@ -777,7 +777,7 @@ Liquid deposit example:
 ```json
 {
   "transaction_id": "5c2f5ac1-85b5-4d9f-8b8f-b2b9a53e804d",
-  "status": "COMPLETED",
+  "status": "Completed",
   "type": "deposit",
   "is_positive": true,
   "payment_amount": 999455,
@@ -797,7 +797,7 @@ Liquid deposit example:
 |--------|---------|
 | `404` | `"Transaction not found"` |
 
-> If the transaction is a Lightning deposit with `PENDING` status, the invoice is checked in real-time and may return `COMPLETED`.
+> If the transaction is a Lightning deposit with `Pending` status, the invoice is checked in real-time and may return `Completed`.
 
 ---
 
@@ -822,7 +822,7 @@ The response keeps the `transactions` array and adds `pagination` with `page`, `
 {
   "transactions": [
     { "kind": "transaction", "transaction_id": "00000000-0000-4000-8000-000000000102", "status": "Completed", "type": "withdraw" },
-    { "kind": "swap", "swap_id": "00000000-0000-4000-8000-000000000200", "status": "completed", "from": "LBTC", "to": "USDT_LIQUID" }
+    { "kind": "swap", "swap_id": "00000000-0000-4000-8000-000000000200", "status": "COMPLETED", "from": "LBTC", "to": "USDT_LIQUID" }
   ],
   "pagination": { "page": 1, "per_page": 7, "total": 2, "total_pages": 1, "has_next": false, "has_prev": false }
 }
@@ -836,7 +836,7 @@ The response keeps the `transactions` array and adds `pagination` with `page`, `
   "transactions": [
     {
       "transaction_id": "123e4567-e89b-12d3-a456-426614174000",
-      "status": "COMPLETED",
+      "status": "Completed",
       "type": "fiat_transfer",
       "type_name": "Fiat Transfer",
       "is_positive": false,
@@ -1370,12 +1370,12 @@ Initiate a cryptocurrency deposit to the user's wallet.
 | `currency` | string | yes | `"USDT"`, `"USDC"` |
 | `network` | string | yes | `"ETHEREUM"`, `"BSC"`, `"POLYGON"`, `"ARBITRUM"`, `"OPTIMISM"`, `"AVAX"`, `"TRON"`, `"SOLANA"`, `"BINANCE_ID"`, `"LIQUID"` |
 
-**Response `201`:** Transaction object with `type: "deposit"` and `status: "PENDING"`.
+**Response `201`:** Transaction object with `type: "deposit"` and `status: "Pending"`.
 
 ```json
 {
   "transaction_id": "abc12345-...",
-  "status": "PENDING",
+  "status": "Pending",
   "type": "deposit",
   "type_name": "Deposit",
   "is_positive": true,
@@ -1418,7 +1418,7 @@ Initiate a SAT deposit via the Lightning Network. Returns a Lightning invoice. `
 ```json
 {
   "transaction_id": "def45678-...",
-  "status": "PENDING",
+  "status": "Pending",
   "type": "deposit",
   "network": "LIGHTNING",
   "lnurl_pr_invoice": "lnbc100u1p3...",
@@ -1459,12 +1459,12 @@ Initiate a cryptocurrency withdrawal to an external address.
 | `amount` | number | yes | Amount to withdraw |
 | `receiver_name` | string | no | Recipient name for record-keeping |
 
-**Response `201`:** Transaction object with `type: "withdrawal"` and `status: "PENDING"`.
+**Response `201`:** Transaction object with `type: "withdrawal"` and `status: "Pending"`.
 
 ```json
 {
   "transaction_id": "ghi89012-...",
-  "status": "PENDING",
+  "status": "Pending",
   "type": "withdrawal",
   "type_name": "Withdrawal",
   "is_positive": false,
@@ -1667,6 +1667,10 @@ Generate a Lightning invoice for the given user. Called by the payer's wallet af
 
 Transaction objects serialize these display values. Direct-fiat tentative `status` is a separate contract with uppercase values such as `CREATED` and `COMPLETED`.
 
+History items with `kind=swap` use **SwapStatusEnum**, not Transaction status: `WAITING_DEPOSIT`, `CONFIRMING`, `SENDING`, `COMPLETED`, `EXPIRED`, `REFUNDING`, `REFUNDED`, `FAILED`. Purchase `payout_status` is another contract and keeps lowercase values such as `completed`. Status comparisons are case-sensitive; do not normalize these fields globally.
+
+Request versus response also matters: the existing `PATCH /transactions/<transaction_id>` request can send the enum name `CANCELED`, while the returned transaction serializes `Canceled`.
+
 ### Transaction Type (`TransactionTypeEnum`)
 
 | Value | `is_positive` | Description |
@@ -1716,7 +1720,7 @@ Transaction objects serialize these display values. Direct-fiat tentative `statu
 ```json
 {
   "transaction_id": "123e4567-e89b-12d3-a456-426614174000",
-  "status": "COMPLETED",
+  "status": "Completed",
   "type": "fiat_transfer",
   "type_name": "Fiat Transfer",
   "is_positive": false,
