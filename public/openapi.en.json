@@ -3,7 +3,7 @@
   "info": {
     "title": "WapuPay API",
     "version": "v36.0",
-    "description": "WapuPay is a platform that allows users to pay in local currency (ARS) using cryptocurrency (USDT) as the underlying asset.\n\n## Authentication\n\nTwo schemes are supported:\n- **Bearer JWT** — obtained via `POST /users/login`. Short-lived; refresh with `GET /users/refresh`.\n- **API Key** — header `X-API-Key`. Requires `api_enabled = true` on the user account.\n\n> Never send both schemes at once — the server returns `400`.\n\n## How to get an API Key\n\nYou can generate the API Key from this same Scalar web UI:\n1. Log in with `POST /users/login` using your username and password for the selected environment.\n2. Copy the `access_token` returned by login and use it as the Bearer token in the **Authorize** button.\n3. Run `POST /users/api-token` authenticated with that Bearer token.\n4. That endpoint returns the API token. Use it for server-to-server requests with the `X-API-Key` header.\n\nThis works for both **staging** and **production**. The only requirement is to have a user created in the environment you want to use. If you want access to both environments, you must create the account twice: once in staging and once in production.\n\n## Rate Limiting\n\nAPI Key requests: **60 requests / 60 seconds** (sliding window). Exceeding returns `429`.\n\n## Error Format\n\nAll errors return `{ \"error\": \"message\" }`.\n\n---\n\n🇦🇷 [Versión en español](/api-docs)"
+    "description": "WapuPay is a platform that allows users to pay in local currency (ARS) using cryptocurrency (USDT) as the underlying asset.\n\n## Authentication\n\nTwo schemes are supported:\n- **Bearer JWT** — obtained via `POST /users/login`. Short-lived; refresh with `GET /users/refresh`.\n- **API Key** — header `X-API-Key`. Requires `api_enabled = true` on the user account.\n\n> Never send both schemes at once — the server returns `400`.\n\n## How to get an API Key\n\nYou can generate the API Key from this same Scalar web UI:\n1. Log in with `POST /users/login` using your username and password for the selected environment.\n2. Copy the `access_token` returned by login and use it as the Bearer token in the **Authorize** button.\n3. Run `POST /users/api-token` authenticated with that Bearer token.\n4. That endpoint returns the API token. Use it for server-to-server requests with the `X-API-Key` header.\n\nThis works for both **staging** and **production**. The only requirement is to have a user created in the environment you want to use. If you want access to both environments, you must create the account twice: once in staging and once in production.\n\n## Rate Limiting\n\nAPI Key requests: **60 requests / 60 seconds** (sliding window). Exceeding returns `429`.\n\n## Error Format\n\nAll errors return `{ \"error\": \"message\" }`.\n\n---\n\n🇦🇷 [Versión en español](/api-docs)\n\n## ARS → Lightning\n\n1. Quote with `GET /transactions/direct-fiat/quote`, `type=crypto_purchase`, `payout_currency=SAT`, `payout_network=LIGHTNING` and exactly one of `amount_ars_cents` or `amount_out`.\n2. Create with `POST /transactions/direct-fiat/tentatives` and a Lightning Address in `payout_address` (not BOLT11).\n3. Call `POST /transactions/direct-fiat/tentatives/{tentative_id}/funding` and transfer the exact returned amount to the indicated alias/CVU.\n4. Poll `GET /transactions/direct-fiat/tentatives/{tentative_id}` while `watch_pending=true`. Only `payout_status=completed` means external delivery.\n\nPurchase amounts use base units: ARS cents, sats and USDT cents. Do not mix them with decimal amounts from crypto → ARS payments. Examples are fictional and are not current quotes.\n"
   },
   "servers": [
     {
@@ -69,10 +69,10 @@
             "enum": [
               "Pending",
               "Completed",
-              "Taken",
               "Canceled",
-              "UserPending",
-              "Rejected"
+              "Paid",
+              "Processing",
+              "User Pending Action"
             ]
           },
           "type": {
@@ -190,7 +190,9 @@
               "EXECUTED",
               "EXPIRED",
               "SETTLED_TO_BALANCE",
-              "FAILED"
+              "FAILED",
+              "PROCESSING_REFUND",
+              "REFUNDED"
             ]
           },
           "expires_at": {
@@ -250,6 +252,10 @@
             "type": "string",
             "nullable": true,
             "description": "Optional refund address if funding cannot be executed."
+          },
+          "address_destination": {
+            "type": "string",
+            "description": "Deposit address, when available."
           }
         },
         "example": {
@@ -412,6 +418,11 @@
                 "format": "uuid",
                 "nullable": true,
                 "description": "UUID of the refund transaction; null unless a refund exists."
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "List responses only."
               }
             },
             "example": {
@@ -432,6 +443,932 @@
             }
           }
         ]
+      },
+      "CryptoPurchaseRequest": {
+        "type": "object",
+        "description": "Purchase with ARS and external crypto delivery. Does not use amount_ars, funding_currency or alias from the reverse flow. Each POST creates a new order; external_reference does not deduplicate this flow.",
+        "required": [
+          "type",
+          "payout_currency",
+          "payout_network",
+          "payout_address"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "crypto_purchase"
+            ]
+          },
+          "payout_currency": {
+            "type": "string",
+            "enum": [
+              "SAT",
+              "LBTC",
+              "USDT"
+            ]
+          },
+          "payout_network": {
+            "type": "string",
+            "enum": [
+              "BITCOIN",
+              "LIGHTNING",
+              "LIQUID",
+              "POLYGON",
+              "ETHEREUM"
+            ]
+          },
+          "amount_ars_cents": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "description": "Send exactly one of amount_ars_cents or amount_out. Positive integer, no decimals or booleans. ARS cents to spend."
+          },
+          "amount_out": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "description": "Send exactly one of amount_ars_cents or amount_out. Positive integer, no decimals or booleans. Net external output, in sats for SAT/LBTC or USDT cents for USDT."
+          },
+          "payout_address": {
+            "type": "string",
+            "minLength": 1,
+            "description": "For LIGHTNING, a Lightning Address user@domain (not a BOLT11 invoice or encoded LNURL). For other networks, an address on the selected network."
+          }
+        },
+        "oneOf": [
+          {
+            "required": [
+              "amount_ars_cents"
+            ],
+            "properties": {
+              "amount_ars_cents": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1,
+                "description": "Send exactly one of amount_ars_cents or amount_out. Positive integer, no decimals or booleans. ARS cents to spend."
+              }
+            }
+          },
+          {
+            "required": [
+              "amount_out"
+            ],
+            "properties": {
+              "amount_out": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1,
+                "description": "Send exactly one of amount_ars_cents or amount_out. Positive integer, no decimals or booleans. Net external output, in sats for SAT/LBTC or USDT cents for USDT."
+              }
+            }
+          }
+        ],
+        "allOf": [
+          {
+            "oneOf": [
+              {
+                "properties": {
+                  "payout_currency": {
+                    "enum": [
+                      "SAT"
+                    ]
+                  },
+                  "payout_network": {
+                    "enum": [
+                      "BITCOIN"
+                    ]
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "payout_currency": {
+                    "enum": [
+                      "SAT"
+                    ]
+                  },
+                  "payout_network": {
+                    "enum": [
+                      "LIGHTNING"
+                    ]
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "payout_currency": {
+                    "enum": [
+                      "LBTC"
+                    ]
+                  },
+                  "payout_network": {
+                    "enum": [
+                      "LIQUID"
+                    ]
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "payout_currency": {
+                    "enum": [
+                      "USDT"
+                    ]
+                  },
+                  "payout_network": {
+                    "enum": [
+                      "LIQUID"
+                    ]
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "payout_currency": {
+                    "enum": [
+                      "USDT"
+                    ]
+                  },
+                  "payout_network": {
+                    "enum": [
+                      "POLYGON"
+                    ]
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "payout_currency": {
+                    "enum": [
+                      "USDT"
+                    ]
+                  },
+                  "payout_network": {
+                    "enum": [
+                      "ETHEREUM"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "example": {
+          "type": "crypto_purchase",
+          "payout_currency": "SAT",
+          "payout_network": "LIGHTNING",
+          "amount_out": 10000,
+          "payout_address": "buyer@example.com"
+        }
+      },
+      "CryptoPurchaseQuote": {
+        "type": "object",
+        "required": [
+          "type",
+          "direction",
+          "payout_currency",
+          "payout_network",
+          "amount_ars_cents",
+          "amount_out",
+          "amount_out_unit",
+          "network_fee_out",
+          "total_amount_usdt",
+          "fee_amount_usdt",
+          "funding_amount_usdt",
+          "min_amount_ars_cents",
+          "expiration_minutes",
+          "liquidity_ok"
+        ],
+        "description": "Informational quote; does not reserve liquidity or freeze an order. USDT fields use cents, unlike the crypto → ARS flow.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "crypto_purchase"
+            ]
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "ramp_on"
+            ]
+          },
+          "payout_currency": {
+            "type": "string",
+            "enum": [
+              "SAT",
+              "LBTC",
+              "USDT"
+            ]
+          },
+          "payout_network": {
+            "type": "string",
+            "enum": [
+              "BITCOIN",
+              "LIGHTNING",
+              "LIQUID",
+              "POLYGON",
+              "ETHEREUM"
+            ]
+          },
+          "amount_ars_cents": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "description": "ARS cents to transfer. Use the final amount returned by /funding."
+          },
+          "amount_out": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "description": "Net external output, in sats for SAT/LBTC or USDT cents for USDT."
+          },
+          "amount_out_unit": {
+            "type": "string",
+            "enum": [
+              "sats",
+              "usdt_cents"
+            ]
+          },
+          "network_fee_out": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "Network fee in amount_out_unit, separate from the received amount."
+          },
+          "total_amount_usdt": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "Gross value in USDT cents, not decimal USDT."
+          },
+          "fee_amount_usdt": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "Service fee in USDT cents."
+          },
+          "funding_amount_usdt": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "Acquired value in USDT cents, including the network fee budget."
+          },
+          "min_amount_ars_cents": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "description": "Configured minimum purchase in ARS cents."
+          },
+          "expiration_minutes": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Payment window starting when bank instructions are issued; not the CREATED order lifetime."
+          },
+          "liquidity_ok": {
+            "type": "boolean",
+            "description": "Availability at quote time, not a reservation. /funding may return 409 even when true."
+          }
+        },
+        "example": {
+          "type": "crypto_purchase",
+          "direction": "ramp_on",
+          "payout_currency": "SAT",
+          "payout_network": "LIGHTNING",
+          "amount_ars_cents": 780000,
+          "amount_out": 10000,
+          "amount_out_unit": "sats",
+          "network_fee_out": 200,
+          "total_amount_usdt": 520,
+          "fee_amount_usdt": 10,
+          "funding_amount_usdt": 510,
+          "min_amount_ars_cents": 100000,
+          "expiration_minutes": 15,
+          "liquidity_ok": true
+        }
+      },
+      "CryptoPurchaseTentative": {
+        "type": "object",
+        "required": [
+          "tentative_id",
+          "type",
+          "direction",
+          "payout_currency",
+          "payout_network",
+          "amount_ars_cents",
+          "amount_out",
+          "amount_out_unit",
+          "network_fee_out",
+          "total_amount_usdt",
+          "fee_amount_usdt",
+          "funding_amount_usdt",
+          "min_amount_ars_cents",
+          "status",
+          "payout_status",
+          "payout_address",
+          "expires_at",
+          "late_watch_until",
+          "watch_pending",
+          "txid",
+          "payment_hash",
+          "error_code",
+          "funding_transaction_id",
+          "executed_transaction_id"
+        ],
+        "description": "ARS purchase. Monetary fields are integers in base units. expiration_minutes and liquidity_ok belong only to quotes. Invoices and internal provider data are not returned.",
+        "properties": {
+          "tentative_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "crypto_purchase"
+            ]
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "ramp_on"
+            ]
+          },
+          "payout_currency": {
+            "type": "string",
+            "enum": [
+              "SAT",
+              "LBTC",
+              "USDT"
+            ]
+          },
+          "payout_network": {
+            "type": "string",
+            "enum": [
+              "BITCOIN",
+              "LIGHTNING",
+              "LIQUID",
+              "POLYGON",
+              "ETHEREUM"
+            ]
+          },
+          "amount_ars_cents": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "description": "ARS cents to transfer. Use the final amount returned by /funding."
+          },
+          "amount_out": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "description": "Net external output, in sats for SAT/LBTC or USDT cents for USDT."
+          },
+          "amount_out_unit": {
+            "type": "string",
+            "enum": [
+              "sats",
+              "usdt_cents"
+            ]
+          },
+          "network_fee_out": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "Network fee in amount_out_unit, separate from the received amount."
+          },
+          "total_amount_usdt": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "Gross value in USDT cents, not decimal USDT."
+          },
+          "fee_amount_usdt": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "Service fee in USDT cents."
+          },
+          "funding_amount_usdt": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "Acquired value in USDT cents, including the network fee budget."
+          },
+          "min_amount_ars_cents": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "description": "Configured minimum purchase in ARS cents."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "CREATED",
+              "FUNDING_ISSUED",
+              "EXECUTED",
+              "COMPLETED",
+              "EXPIRED",
+              "SETTLED_TO_BALANCE",
+              "FAILED"
+            ]
+          },
+          "payout_status": {
+            "type": "string",
+            "enum": [
+              "waiting_ars",
+              "sending",
+              "review",
+              "completed",
+              "settled_to_balance",
+              "expired"
+            ],
+            "description": "completed confirms external delivery; review needs resolution. settled_to_balance credits the Wapu USDT balance, NOT Lightning delivery. expired means unpaid with the reservation released."
+          },
+          "payout_address": {
+            "type": "string",
+            "minLength": 1,
+            "description": "For LIGHTNING, a Lightning Address user@domain (not a BOLT11 invoice or encoded LNURL). For other networks, an address on the selected network."
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Persisted UTC deadline. /funding resets it when the payment window opens. Do not derive it from the quote."
+          },
+          "late_watch_until": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "watch_pending": {
+            "type": "boolean",
+            "description": "Keep polling while true, even with status=EXPIRED: reconciliation or payout may remain pending."
+          },
+          "alias": {
+            "type": "string",
+            "description": "Bank instruction: only after /funding, until payment is matched, the order is final or the reservation is released."
+          },
+          "cvu": {
+            "type": "string",
+            "nullable": true,
+            "description": "Bank instruction CVU; omitted under the same conditions as alias."
+          },
+          "txid": {
+            "type": "string",
+            "nullable": true
+          },
+          "payment_hash": {
+            "type": "string",
+            "nullable": true,
+            "description": "Lightning payment hash when available; not an invoice."
+          },
+          "error_code": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "payout_review",
+              "payout_not_sent",
+              null
+            ]
+          },
+          "funding_transaction_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Public UUID of the credit transaction; created when instructions are issued."
+          },
+          "executed_transaction_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Public UUID of the crypto withdrawal; appears when the ARS payment is matched."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "List responses only."
+          }
+        },
+        "example": {
+          "tentative_id": "00000000-0000-4000-8000-000000000100",
+          "type": "crypto_purchase",
+          "direction": "ramp_on",
+          "status": "CREATED",
+          "payout_status": "waiting_ars",
+          "payout_currency": "SAT",
+          "payout_network": "LIGHTNING",
+          "amount_ars_cents": 780000,
+          "amount_out": 10000,
+          "amount_out_unit": "sats",
+          "network_fee_out": 200,
+          "total_amount_usdt": 520,
+          "fee_amount_usdt": 10,
+          "funding_amount_usdt": 510,
+          "payout_address": "buyer@example.com",
+          "min_amount_ars_cents": 100000,
+          "expires_at": "2026-10-18T15:10:00Z",
+          "late_watch_until": null,
+          "watch_pending": false,
+          "txid": null,
+          "payment_hash": null,
+          "error_code": null,
+          "funding_transaction_id": null,
+          "executed_transaction_id": null
+        }
+      },
+      "DirectFiatPaymentRequest": {
+        "type": "object",
+        "required": [
+          "amount_ars",
+          "type",
+          "alias",
+          "funding_currency"
+        ],
+        "properties": {
+          "amount_ars": {
+            "type": "number",
+            "description": "Amount to pay in ARS.",
+            "example": 15000
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "fiat_transfer",
+              "fast_fiat_transfer"
+            ],
+            "description": "Fiat transfer type."
+          },
+          "alias": {
+            "type": "string",
+            "description": "Recipient bank alias/CBU/CVU.",
+            "example": "alias.demo.cvu"
+          },
+          "receiver_name": {
+            "type": "string",
+            "description": "Recipient name.",
+            "example": "Receiver Example"
+          },
+          "funding_currency": {
+            "type": "string",
+            "enum": [
+              "SAT",
+              "LBTC",
+              "USDT"
+            ],
+            "description": "Asset used to fund the tentative."
+          },
+          "network": {
+            "type": "string",
+            "enum": [
+              "LIGHTNING",
+              "LIQUID",
+              "ETHEREUM",
+              "POLYGON",
+              "ARBITRUM"
+            ],
+            "description": "Optional for SAT/LBTC (must match LIGHTNING/LIQUID); required for USDT. Takes precedence over funding_network."
+          },
+          "funding_network": {
+            "type": "string",
+            "enum": [
+              "LIGHTNING",
+              "LIQUID",
+              "ETHEREUM",
+              "POLYGON",
+              "ARBITRUM"
+            ],
+            "description": "Accepted alias for network. If both fields are sent, network takes precedence."
+          },
+          "refund_address": {
+            "type": "string",
+            "description": "Optional refund address if funding cannot be executed."
+          },
+          "external_reference": {
+            "type": "string",
+            "description": "External reference/idempotency identifier."
+          }
+        },
+        "anyOf": [
+          {
+            "properties": {
+              "funding_currency": {
+                "enum": [
+                  "SAT",
+                  "LBTC"
+                ]
+              }
+            }
+          },
+          {
+            "required": [
+              "network"
+            ],
+            "properties": {
+              "network": {
+                "type": "string",
+                "enum": [
+                  "LIGHTNING",
+                  "LIQUID",
+                  "ETHEREUM",
+                  "POLYGON",
+                  "ARBITRUM"
+                ],
+                "description": "Optional for SAT/LBTC (must match LIGHTNING/LIQUID); required for USDT. Takes precedence over funding_network."
+              }
+            }
+          },
+          {
+            "required": [
+              "funding_network"
+            ],
+            "properties": {
+              "funding_network": {
+                "type": "string",
+                "enum": [
+                  "LIGHTNING",
+                  "LIQUID",
+                  "ETHEREUM",
+                  "POLYGON",
+                  "ARBITRUM"
+                ],
+                "description": "Accepted alias for network. If both fields are sent, network takes precedence."
+              }
+            }
+          }
+        ]
+      },
+      "DirectFiatQuote": {
+        "type": "object",
+        "required": [
+          "amount_ars",
+          "fee_amount_usdt",
+          "fee_rate",
+          "funding_amount_usdt",
+          "funding_currency",
+          "funding_network",
+          "total_amount_usdt",
+          "type",
+          "usdt_ars_rate"
+        ],
+        "properties": {
+          "amount_ars": {
+            "type": "number",
+            "description": "Amount to pay in ARS."
+          },
+          "fee_amount_usdt": {
+            "type": "number"
+          },
+          "fee_rate": {
+            "type": "number"
+          },
+          "funding_amount_usdt": {
+            "type": "number"
+          },
+          "funding_currency": {
+            "type": "string",
+            "enum": [
+              "SAT",
+              "LBTC",
+              "USDT"
+            ],
+            "description": "Asset used to fund the tentative."
+          },
+          "funding_network": {
+            "type": "string",
+            "enum": [
+              "LIGHTNING",
+              "LIQUID",
+              "ETHEREUM",
+              "POLYGON",
+              "ARBITRUM"
+            ],
+            "description": "Funding network."
+          },
+          "total_amount_sats": {
+            "type": "integer",
+            "nullable": true
+          },
+          "total_amount_usdt": {
+            "type": "number"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "fiat_transfer",
+              "fast_fiat_transfer"
+            ],
+            "description": "Fiat transfer type."
+          },
+          "usdt_ars_rate": {
+            "type": "number"
+          }
+        }
+      },
+      "TransactionDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Transaction"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "tentative_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Present when the transaction is linked to a direct-fiat tentative."
+              },
+              "asset_id": {
+                "type": "string",
+                "pattern": "^[0-9a-fA-F]{64}$",
+                "description": "Liquid transactions only: LBTC or USDT asset."
+              },
+              "blockchain_scan_url": {
+                "type": "string",
+                "format": "uri",
+                "description": "Liquid only, when a txid exists: link to the first txid if there are several."
+              }
+            }
+          }
+        ]
+      },
+      "Pagination": {
+        "type": "object",
+        "required": [
+          "page",
+          "per_page",
+          "total",
+          "total_pages",
+          "has_next",
+          "has_prev"
+        ],
+        "properties": {
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "per_page": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "total_pages": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "has_next": {
+            "type": "boolean"
+          },
+          "has_prev": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TransactionList": {
+        "type": "object",
+        "required": [
+          "transactions"
+        ],
+        "not": {
+          "required": [
+            "pagination"
+          ],
+          "properties": {
+            "pagination": {
+              "type": "object"
+            }
+          }
+        },
+        "properties": {
+          "transactions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Transaction"
+            }
+          }
+        }
+      },
+      "HistoryTransaction": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Transaction"
+          },
+          {
+            "type": "object",
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "transaction"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "HistorySwap": {
+        "type": "object",
+        "required": [
+          "kind",
+          "swap_id",
+          "status",
+          "from",
+          "to",
+          "created_at"
+        ],
+        "description": "Swap item in the merged history, not a direct-fiat purchase. Includes public swap fields in addition to these identifiers.",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "swap"
+            ]
+          },
+          "swap_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "WAITING_DEPOSIT",
+              "CONFIRMING",
+              "SENDING",
+              "COMPLETED",
+              "EXPIRED",
+              "REFUNDING",
+              "REFUNDED",
+              "FAILED"
+            ],
+            "description": "Uppercase swap state, independent of Transaction.status and payout_status."
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "amount_in_expected": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "Amount in input-asset base units."
+          },
+          "amount_out_quoted": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "Amount in output-asset base units."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "PaginatedHistory": {
+        "type": "object",
+        "required": [
+          "transactions",
+          "pagination"
+        ],
+        "properties": {
+          "transactions": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/HistoryTransaction"
+                },
+                {
+                  "$ref": "#/components/schemas/HistorySwap"
+                }
+              ]
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      }
+    },
+    "parameters": {
+      "OnBehalfOf": {
+        "name": "X-Wapu-User-Id",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "description": "Optional for B2B integrators: UUID of an owned sub-user. All operations and reads apply to that user. Ignored for non-business callers."
       }
     }
   },
@@ -1851,7 +2788,7 @@
           "Transactions"
         ],
         "summary": "Get transaction by ID",
-        "description": "Get a single transaction by UUID or numeric ID. For Lightning deposits with PENDING status, the invoice is checked in real-time and may return COMPLETED.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
+        "description": "Get a single transaction by UUID or numeric ID. For Lightning deposits with Pending status, the invoice is checked in real-time and may return Completed.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.\n\nTransactions linked to direct-fiat include tentative_id. For a Lightning purchase, the order's executed_transaction_id points to the withdrawal: payment_amount and fee_taken are in sats, while total_amount_taken is in decimal USDT. Do not confuse these display units with the tentative's integer cents. Liquid adds asset_id and, when a txid exists, blockchain_scan_url.",
         "operationId": "getTransaction",
         "security": [
           {
@@ -1871,6 +2808,9 @@
             },
             "description": "Transaction UUID or numeric ID",
             "example": "00000000-0000-4000-8000-000000000001"
+          },
+          {
+            "$ref": "#/components/parameters/OnBehalfOf"
           }
         ],
         "responses": {
@@ -1901,7 +2841,7 @@
                       "receiver_name": "Receiver Example",
                       "sender_username": null,
                       "source_address": null,
-                      "status": "COMPLETED",
+                      "status": "Completed",
                       "total_amount_taken": 9.84,
                       "transaction_id": "5c2f5ac1-85b5-4d9f-8b8f-b2b9a53e804d",
                       "transaction_related_id": null,
@@ -1927,16 +2867,38 @@
                       "payment_currency": "SAT",
                       "receipt_image_url": null,
                       "receiver_name": null,
-                      "status": "COMPLETED",
+                      "status": "Completed",
                       "total_amount_taken": 999455,
                       "transaction_id": "5c2f5ac1-85b5-4d9f-8b8f-b2b9a53e804d",
                       "transaction_related_id": null,
                       "type": "deposit",
                       "type_name": "Deposit",
                       "updated_at": "2026-07-25 18:40:10",
-                      "username": "demo_user"
+                      "username": "demo_user",
+                      "blockchain_scan_url": "https://blockstream.info/liquid/tx/0000000000000000000000000000000000000000000000000000000000000000"
+                    }
+                  },
+                  "ars_lightning": {
+                    "summary": "Lightning withdrawal linked to the purchase",
+                    "value": {
+                      "transaction_id": "00000000-0000-4000-8000-000000000102",
+                      "tentative_id": "00000000-0000-4000-8000-000000000100",
+                      "status": "Completed",
+                      "type": "withdraw",
+                      "is_positive": false,
+                      "payment_amount": 10000,
+                      "payment_currency": "SAT",
+                      "currency_taken": "SAT",
+                      "total_amount_taken": 5.1,
+                      "fee_taken": 200,
+                      "network": "LIGHTNING",
+                      "address_destination": "buyer@example.com",
+                      "created_at": "2026-10-18 12:03:00"
                     }
                   }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionDetail"
                 }
               }
             }
@@ -2030,7 +2992,7 @@
           "Transactions"
         ],
         "summary": "List my transactions",
-        "description": "Get all transactions for the authenticated user, ordered by date descending.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
+        "description": "Without page or per_page: full legacy transaction list, without swaps, kind or pagination. Send either parameter to get paginated history merging transactions and swaps, newest first; each item has kind=transaction or kind=swap. Defaults: page=1, per_page=7; maximum 50. Deposits linked to historical swaps are excluded in paginated mode to avoid duplicates. Track direct-fiat purchases through /transactions/direct-fiat/tentatives, not as swaps. This list serializes base transactions; tentative_id and Liquid links from the detail endpoint are not added here.\n\nAuthenticate with JWT or API Key (never both). Reads only return the effective user's operations. B2B: send `X-Wapu-User-Id` with an owned sub-user UUID.",
         "operationId": "listMyTransactions",
         "security": [
           {
@@ -2045,67 +3007,136 @@
             "description": "Transaction list",
             "content": {
               "application/json": {
-                "example": {
-                  "transactions": [
+                "schema": {
+                  "oneOf": [
                     {
-                      "address_destination": null,
-                      "alias": "",
-                      "blockchain_trx_id": null,
-                      "created_at": "2026-03-28 23:45:39",
-                      "currency_taken": "ARS",
-                      "current_rate": null,
-                      "fee_taken": 0,
-                      "is_positive": true,
-                      "lnurl_pr_invoice": null,
-                      "lnurl_verify_invoice": null,
-                      "local_payer_user_id": null,
-                      "network": null,
-                      "note": null,
-                      "payment_amount": 6.99,
-                      "payment_currency": "USDT",
-                      "receipt_image_url": null,
-                      "receiver_name": "",
-                      "sender_username": null,
-                      "source_address": null,
-                      "status": "Completed",
-                      "total_amount_taken": 0,
-                      "transaction_id": "00000000-0000-4000-8000-000000000001",
-                      "transaction_related_id": 924,
-                      "type": "payer_reward",
-                      "type_name": "Payer Reward",
-                      "updated_at": "2026-03-28 23:45:39",
-                      "username": "demo_user"
+                      "$ref": "#/components/schemas/TransactionList"
                     },
                     {
-                      "address_destination": null,
-                      "alias": "alias.demo.cvu",
-                      "blockchain_trx_id": null,
-                      "created_at": "2026-03-28 23:43:06",
-                      "currency_taken": "USDT",
-                      "current_rate": 1432.5,
-                      "fee_taken": 0,
-                      "is_positive": false,
-                      "lnurl_pr_invoice": null,
-                      "lnurl_verify_invoice": null,
-                      "local_payer_user_id": 3,
-                      "network": null,
-                      "note": null,
-                      "payment_amount": 10000,
-                      "payment_currency": "ARS",
-                      "receipt_image_url": "https://example.com/receipts/demo.jpg",
-                      "receiver_name": "Receiver Example",
-                      "sender_username": null,
-                      "source_address": null,
-                      "status": "Completed",
-                      "total_amount_taken": 6.99,
-                      "transaction_id": "00000000-0000-4000-8000-000000000001",
-                      "transaction_related_id": null,
-                      "type": "fast_fiat_transfer",
-                      "type_name": "Fast money sent",
-                      "updated_at": "2026-03-28 23:45:39",
-                      "username": "demo_user"
+                      "$ref": "#/components/schemas/PaginatedHistory"
                     }
                   ]
+                },
+                "examples": {
+                  "legacy": {
+                    "summary": "No parameters: compatible response",
+                    "value": {
+                      "transactions": [
+                        {
+                          "address_destination": null,
+                          "alias": "",
+                          "blockchain_trx_id": null,
+                          "created_at": "2026-03-28 23:45:39",
+                          "currency_taken": "ARS",
+                          "current_rate": null,
+                          "fee_taken": 0,
+                          "is_positive": true,
+                          "lnurl_pr_invoice": null,
+                          "lnurl_verify_invoice": null,
+                          "local_payer_user_id": null,
+                          "network": null,
+                          "note": null,
+                          "payment_amount": 6.99,
+                          "payment_currency": "USDT",
+                          "receipt_image_url": null,
+                          "receiver_name": "",
+                          "sender_username": null,
+                          "source_address": null,
+                          "status": "Completed",
+                          "total_amount_taken": 0,
+                          "transaction_id": "00000000-0000-4000-8000-000000000001",
+                          "transaction_related_id": 924,
+                          "type": "payer_reward",
+                          "type_name": "Payer Reward",
+                          "updated_at": "2026-03-28 23:45:39",
+                          "username": "demo_user"
+                        },
+                        {
+                          "address_destination": null,
+                          "alias": "alias.demo.cvu",
+                          "blockchain_trx_id": null,
+                          "created_at": "2026-03-28 23:43:06",
+                          "currency_taken": "USDT",
+                          "current_rate": 1432.5,
+                          "fee_taken": 0,
+                          "is_positive": false,
+                          "lnurl_pr_invoice": null,
+                          "lnurl_verify_invoice": null,
+                          "local_payer_user_id": 3,
+                          "network": null,
+                          "note": null,
+                          "payment_amount": 10000,
+                          "payment_currency": "ARS",
+                          "receipt_image_url": "https://example.com/receipts/demo.jpg",
+                          "receiver_name": "Receiver Example",
+                          "sender_username": null,
+                          "source_address": null,
+                          "status": "Completed",
+                          "total_amount_taken": 6.99,
+                          "transaction_id": "00000000-0000-4000-8000-000000000001",
+                          "transaction_related_id": null,
+                          "type": "fast_fiat_transfer",
+                          "type_name": "Fast money sent",
+                          "updated_at": "2026-03-28 23:45:39",
+                          "username": "demo_user"
+                        }
+                      ]
+                    }
+                  },
+                  "paginated": {
+                    "summary": "page=1&per_page=7: merged history",
+                    "value": {
+                      "transactions": [
+                        {
+                          "transaction_id": "00000000-0000-4000-8000-000000000102",
+                          "status": "Completed",
+                          "type": "withdraw",
+                          "is_positive": false,
+                          "payment_amount": 10000,
+                          "payment_currency": "SAT",
+                          "currency_taken": "SAT",
+                          "total_amount_taken": 5.1,
+                          "fee_taken": 200,
+                          "network": "LIGHTNING",
+                          "address_destination": "buyer@example.com",
+                          "created_at": "2026-10-18 12:03:00",
+                          "kind": "transaction"
+                        },
+                        {
+                          "kind": "swap",
+                          "swap_id": "00000000-0000-4000-8000-000000000200",
+                          "status": "COMPLETED",
+                          "from": "LBTC",
+                          "to": "USDT_LIQUID",
+                          "amount_in_expected": 10000,
+                          "amount_out_quoted": 490000000,
+                          "created_at": "2026-10-18T15:00:00Z"
+                        }
+                      ],
+                      "pagination": {
+                        "page": 1,
+                        "per_page": 7,
+                        "total": 2,
+                        "total_pages": 1,
+                        "has_next": false,
+                        "has_prev": false
+                      }
+                    }
+                  },
+                  "empty_page": {
+                    "summary": "Page without results",
+                    "value": {
+                      "transactions": [],
+                      "pagination": {
+                        "page": 1,
+                        "per_page": 7,
+                        "total": 0,
+                        "total_pages": 0,
+                        "has_next": false,
+                        "has_prev": false
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -2139,8 +3170,46 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Invalid page or per_page: page must be an integer >= 1 and per_page an integer between 1 and 50.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "description": "Sending it enables pagination."
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 7
+            },
+            "description": "Sending it enables pagination."
+          },
+          {
+            "$ref": "#/components/parameters/OnBehalfOf"
+          }
+        ]
       }
     },
     "/transactions/create": {
@@ -2334,8 +3403,8 @@
         "tags": [
           "Transactions · Direct-Fiat Tentatives"
         ],
-        "summary": "Create direct-fiat payment tentative",
-        "description": "Create the direct-fiat tentative and freeze the quote. This does not generate the deposit transaction yet.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
+        "summary": "Create a direct-fiat payment or purchase",
+        "description": "`fiat_transfer` / `fast_fiat_transfer`: fund with crypto to pay ARS (existing contract). `crypto_purchase`: transfer ARS to receive crypto. For Lightning use SAT/LIGHTNING and a Lightning Address. Quote first, then create the tentative, which freezes terms but does not assign a bank account yet. Each POST creates a new tentative; do not replay creation as an idempotent operation. Example amounts and fees are illustrative.\n\nAuthenticate with JWT or API Key (never both). Reads only return the effective user's operations. B2B: send `X-Wapu-User-Id` with an owned sub-user UUID.",
         "operationId": "createDirectFiatTentative",
         "security": [
           {
@@ -2350,80 +3419,36 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "amount_ars",
-                  "type",
-                  "alias",
-                  "funding_currency",
-                  "network"
-                ],
-                "properties": {
-                  "amount_ars": {
-                    "type": "number",
-                    "description": "Amount to pay in ARS.",
-                    "example": 15000
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/CryptoPurchaseRequest"
                   },
-                  "type": {
-                    "type": "string",
-                    "enum": [
-                      "fiat_transfer",
-                      "fast_fiat_transfer"
-                    ],
-                    "description": "Fiat transfer type."
-                  },
-                  "alias": {
-                    "type": "string",
-                    "description": "Recipient bank alias/CBU/CVU.",
-                    "example": "alias.demo.cvu"
-                  },
-                  "receiver_name": {
-                    "type": "string",
-                    "description": "Recipient name.",
-                    "example": "Receiver Example"
-                  },
-                  "funding_currency": {
-                    "type": "string",
-                    "enum": [
-                      "SAT",
-                      "LBTC",
-                      "USDT"
-                    ],
-                    "description": "Asset used to fund the tentative."
-                  },
-                  "network": {
-                    "type": "string",
-                    "enum": [
-                      "LIGHTNING",
-                      "LIQUID",
-                      "ETHEREUM",
-                      "POLYGON",
-                      "ARBITRUM"
-                    ],
-                    "description": "Canonical funding network. Use LIGHTNING for Lightning."
-                  },
-                  "funding_network": {
-                    "type": "string",
-                    "enum": [
-                      "LIGHTNING",
-                      "LIQUID",
-                      "ETHEREUM",
-                      "POLYGON",
-                      "ARBITRUM"
-                    ],
-                    "description": "Accepted alias for network. If both fields are sent, network takes precedence."
-                  },
-                  "refund_address": {
-                    "type": "string",
-                    "description": "Optional refund address if funding cannot be executed."
-                  },
-                  "external_reference": {
-                    "type": "string",
-                    "description": "External reference/idempotency identifier."
+                  {
+                    "$ref": "#/components/schemas/DirectFiatPaymentRequest"
                   }
-                }
+                ]
               },
               "examples": {
+                "ars_lightning": {
+                  "summary": "ARS → Lightning: exact sats",
+                  "value": {
+                    "type": "crypto_purchase",
+                    "payout_currency": "SAT",
+                    "payout_network": "LIGHTNING",
+                    "amount_out": 10000,
+                    "payout_address": "buyer@example.com"
+                  }
+                },
+                "ars_lightning_by_ars": {
+                  "summary": "ARS → Lightning: peso input",
+                  "value": {
+                    "type": "crypto_purchase",
+                    "payout_currency": "SAT",
+                    "payout_network": "LIGHTNING",
+                    "payout_address": "buyer@example.com",
+                    "amount_ars_cents": 780000
+                  }
+                },
                 "sat_lightning": {
                   "summary": "SAT funding over Lightning",
                   "value": {
@@ -2456,9 +3481,45 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DirectFiatTentative"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/CryptoPurchaseTentative"
+                    },
+                    {
+                      "$ref": "#/components/schemas/DirectFiatTentative"
+                    }
+                  ]
                 },
                 "examples": {
+                  "ars_lightning": {
+                    "summary": "Purchase created, no bank instructions yet",
+                    "value": {
+                      "tentative_id": "00000000-0000-4000-8000-000000000100",
+                      "type": "crypto_purchase",
+                      "direction": "ramp_on",
+                      "status": "CREATED",
+                      "payout_status": "waiting_ars",
+                      "payout_currency": "SAT",
+                      "payout_network": "LIGHTNING",
+                      "amount_ars_cents": 780000,
+                      "amount_out": 10000,
+                      "amount_out_unit": "sats",
+                      "network_fee_out": 200,
+                      "total_amount_usdt": 520,
+                      "fee_amount_usdt": 10,
+                      "funding_amount_usdt": 510,
+                      "payout_address": "buyer@example.com",
+                      "min_amount_ars_cents": 100000,
+                      "expires_at": "2026-10-18T15:10:00Z",
+                      "late_watch_until": null,
+                      "watch_pending": false,
+                      "txid": null,
+                      "payment_hash": null,
+                      "error_code": null,
+                      "funding_transaction_id": null,
+                      "executed_transaction_id": null
+                    }
+                  },
                   "sat_lightning": {
                     "summary": "SAT funding over Lightning",
                     "value": {
@@ -2489,7 +3550,8 @@
                       "status": "CREATED",
                       "tentative_id": "9c8b99f7-3b09-4a6e-bf7b-75e4cb8dfdb4",
                       "total_amount_sats": 999455,
-                      "total_amount_usdt": 651.01
+                      "total_amount_usdt": 651.01,
+                      "expires_at": "2026-07-25 21:17:18"
                     }
                   }
                 }
@@ -2497,7 +3559,186 @@
             }
           },
           "400": {
-            "description": "Validation error",
+            "description": "Invalid request body, payment type, funding/payout pair, amount or payout destination.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operation not authorized for this account.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Amount cannot cover the network fee or exceeds the send limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request, open-order or monthly purchase limit reached.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Provider, fee estimate or Lightning Address temporarily unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The network fee changed during destination validation. Request a new quote before creating another tentative.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/OnBehalfOf"
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "Transactions · Direct-Fiat Tentatives"
+        ],
+        "summary": "List direct-fiat payments and purchases",
+        "description": "List all tentatives of the effective user, in every status, newest first and without pagination. Includes crypto → ARS payments and ARS → crypto purchases. Each item includes created_at and public UUIDs of linked transactions. Purchases do not include invoices, credentials or internal receiver IDs.\n\nAuthenticate with JWT or API Key (never both). Reads only return the effective user's operations. B2B: send `X-Wapu-User-Id` with an owned sub-user UUID.",
+        "operationId": "listDirectFiatTentatives",
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/OnBehalfOf"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of both directions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "tentatives"
+                  ],
+                  "properties": {
+                    "tentatives": {
+                      "type": "array",
+                      "items": {
+                        "oneOf": [
+                          {
+                            "$ref": "#/components/schemas/DirectFiatTentativeStatus"
+                          },
+                          {
+                            "$ref": "#/components/schemas/CryptoPurchaseTentative"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                "examples": {
+                  "mixed": {
+                    "summary": "Lightning purchase and ARS payment",
+                    "value": {
+                      "tentatives": [
+                        {
+                          "tentative_id": "00000000-0000-4000-8000-000000000100",
+                          "type": "crypto_purchase",
+                          "direction": "ramp_on",
+                          "status": "COMPLETED",
+                          "payout_status": "completed",
+                          "payout_currency": "SAT",
+                          "payout_network": "LIGHTNING",
+                          "amount_ars_cents": 780001,
+                          "amount_out": 10000,
+                          "amount_out_unit": "sats",
+                          "network_fee_out": 200,
+                          "total_amount_usdt": 520,
+                          "fee_amount_usdt": 10,
+                          "funding_amount_usdt": 510,
+                          "payout_address": "buyer@example.com",
+                          "min_amount_ars_cents": 100000,
+                          "expires_at": "2026-10-18T15:17:00Z",
+                          "late_watch_until": "2026-10-18T15:22:00Z",
+                          "watch_pending": false,
+                          "txid": null,
+                          "payment_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                          "error_code": null,
+                          "funding_transaction_id": "00000000-0000-4000-8000-000000000101",
+                          "executed_transaction_id": "00000000-0000-4000-8000-000000000102",
+                          "created_at": "2026-10-18T15:00:00Z"
+                        },
+                        {
+                          "amount_ars": 15000,
+                          "exchange_rate": 1569.99,
+                          "expires_at": "2026-07-25 21:17:18",
+                          "fee_amount_usdt": 0.29,
+                          "funding_amount_usdt": 9.55,
+                          "funding_currency": "SAT",
+                          "funding_network": "LIGHTNING",
+                          "status": "CREATED",
+                          "tentative_id": "3f6b8e2a-8f4c-4d3b-9f62-7d4f21c8a901",
+                          "total_amount_sats": 15090,
+                          "total_amount_usdt": 9.84,
+                          "funding_transaction_id": null,
+                          "executed_transaction_id": null,
+                          "refund_transaction_id": null,
+                          "created_at": "2026-07-25T21:00:00Z"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required or invalid.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2515,7 +3756,7 @@
           "Transactions · Direct-Fiat Tentatives"
         ],
         "summary": "Get direct-fiat payment tentative",
-        "description": "Return the direct-fiat operation status by `tentative_id`, including funding and execution IDs when available.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
+        "description": "Return the state of a crypto → ARS payment or ARS → crypto purchase. For purchases, poll while watch_pending is true, even if status is EXPIRED. payout_status=completed confirms delivery; review needs resolution, and settled_to_balance credits the Wapu USDT balance, not Lightning delivery. Alias/CVU disappear when payment is matched, the order is final or an unpaid reservation is released. Linked UUIDs can be fetched with GET /transactions/{id}.\n\nAuthenticate with JWT or API Key (never both). Reads only return the effective user's operations. B2B: send `X-Wapu-User-Id` with an owned sub-user UUID.",
         "operationId": "getDirectFiatTentative",
         "security": [
           {
@@ -2535,6 +3776,9 @@
               "format": "uuid"
             },
             "description": "Tentative UUID."
+          },
+          {
+            "$ref": "#/components/parameters/OnBehalfOf"
           }
         ],
         "responses": {
@@ -2543,16 +3787,45 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "anyOf": [
+                  "oneOf": [
                     {
-                      "$ref": "#/components/schemas/DirectFiatTentativeStatus"
+                      "$ref": "#/components/schemas/CryptoPurchaseTentative"
                     },
                     {
-                      "$ref": "#/components/schemas/DirectFiatFundingInstructions"
+                      "$ref": "#/components/schemas/DirectFiatTentativeStatus"
                     }
                   ]
                 },
                 "examples": {
+                  "ars_lightning": {
+                    "summary": "Lightning delivered",
+                    "value": {
+                      "tentative_id": "00000000-0000-4000-8000-000000000100",
+                      "type": "crypto_purchase",
+                      "direction": "ramp_on",
+                      "status": "COMPLETED",
+                      "payout_status": "completed",
+                      "payout_currency": "SAT",
+                      "payout_network": "LIGHTNING",
+                      "amount_ars_cents": 780001,
+                      "amount_out": 10000,
+                      "amount_out_unit": "sats",
+                      "network_fee_out": 200,
+                      "total_amount_usdt": 520,
+                      "fee_amount_usdt": 10,
+                      "funding_amount_usdt": 510,
+                      "payout_address": "buyer@example.com",
+                      "min_amount_ars_cents": 100000,
+                      "expires_at": "2026-10-18T15:17:00Z",
+                      "late_watch_until": "2026-10-18T15:22:00Z",
+                      "watch_pending": false,
+                      "txid": null,
+                      "payment_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "error_code": null,
+                      "funding_transaction_id": "00000000-0000-4000-8000-000000000101",
+                      "executed_transaction_id": "00000000-0000-4000-8000-000000000102"
+                    }
+                  },
                   "sat_lightning": {
                     "summary": "SAT funding over Lightning",
                     "value": {
@@ -2589,7 +3862,97 @@
                       "total_amount_usdt": 651.01,
                       "funding_transaction_id": null,
                       "executed_transaction_id": null,
-                      "refund_transaction_id": null
+                      "refund_transaction_id": null,
+                      "expires_at": "2026-07-25 21:17:18"
+                    }
+                  },
+                  "ars_lightning_review": {
+                    "summary": "Payout under review",
+                    "value": {
+                      "tentative_id": "00000000-0000-4000-8000-000000000100",
+                      "type": "crypto_purchase",
+                      "direction": "ramp_on",
+                      "status": "EXECUTED",
+                      "payout_status": "review",
+                      "payout_currency": "SAT",
+                      "payout_network": "LIGHTNING",
+                      "amount_ars_cents": 780001,
+                      "amount_out": 10000,
+                      "amount_out_unit": "sats",
+                      "network_fee_out": 200,
+                      "total_amount_usdt": 520,
+                      "fee_amount_usdt": 10,
+                      "funding_amount_usdt": 510,
+                      "payout_address": "buyer@example.com",
+                      "min_amount_ars_cents": 100000,
+                      "expires_at": "2026-10-18T15:17:00Z",
+                      "late_watch_until": "2026-10-18T15:22:00Z",
+                      "watch_pending": true,
+                      "txid": null,
+                      "payment_hash": null,
+                      "error_code": "payout_review",
+                      "funding_transaction_id": "00000000-0000-4000-8000-000000000101",
+                      "executed_transaction_id": "00000000-0000-4000-8000-000000000102"
+                    }
+                  },
+                  "ars_lightning_balance": {
+                    "summary": "Credited to balance, not delivered",
+                    "value": {
+                      "tentative_id": "00000000-0000-4000-8000-000000000100",
+                      "type": "crypto_purchase",
+                      "direction": "ramp_on",
+                      "status": "SETTLED_TO_BALANCE",
+                      "payout_status": "settled_to_balance",
+                      "payout_currency": "SAT",
+                      "payout_network": "LIGHTNING",
+                      "amount_ars_cents": 780001,
+                      "amount_out": 10000,
+                      "amount_out_unit": "sats",
+                      "network_fee_out": 200,
+                      "total_amount_usdt": 520,
+                      "fee_amount_usdt": 10,
+                      "funding_amount_usdt": 510,
+                      "payout_address": "buyer@example.com",
+                      "min_amount_ars_cents": 100000,
+                      "expires_at": "2026-10-18T15:17:00Z",
+                      "late_watch_until": "2026-10-18T15:22:00Z",
+                      "watch_pending": false,
+                      "txid": null,
+                      "payment_hash": null,
+                      "error_code": "payout_not_sent",
+                      "funding_transaction_id": "00000000-0000-4000-8000-000000000101",
+                      "executed_transaction_id": "00000000-0000-4000-8000-000000000102"
+                    }
+                  },
+                  "ars_lightning_expired_watching": {
+                    "summary": "Expired, reconciliation pending",
+                    "value": {
+                      "tentative_id": "00000000-0000-4000-8000-000000000100",
+                      "type": "crypto_purchase",
+                      "direction": "ramp_on",
+                      "status": "EXPIRED",
+                      "payout_status": "waiting_ars",
+                      "payout_currency": "SAT",
+                      "payout_network": "LIGHTNING",
+                      "amount_ars_cents": 780001,
+                      "amount_out": 10000,
+                      "amount_out_unit": "sats",
+                      "network_fee_out": 200,
+                      "total_amount_usdt": 520,
+                      "fee_amount_usdt": 10,
+                      "funding_amount_usdt": 510,
+                      "payout_address": "buyer@example.com",
+                      "min_amount_ars_cents": 100000,
+                      "expires_at": "2026-10-18T15:17:00Z",
+                      "late_watch_until": "2026-10-18T15:22:00Z",
+                      "watch_pending": true,
+                      "txid": null,
+                      "payment_hash": null,
+                      "error_code": null,
+                      "funding_transaction_id": "00000000-0000-4000-8000-000000000101",
+                      "executed_transaction_id": null,
+                      "alias": "receiver.demo",
+                      "cvu": "0000000000000000000000"
                     }
                   }
                 }
@@ -2607,7 +3970,7 @@
             }
           },
           "404": {
-            "description": "Tentative not found",
+            "description": "Operation not found or not owned by the effective user.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2625,6 +3988,16 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Authentication required or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -2635,7 +4008,7 @@
           "Transactions · Direct-Fiat Tentatives"
         ],
         "summary": "Generate direct-fiat funding instructions",
-        "description": "Generate funding instructions for a direct-fiat tentative.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
+        "description": "Crypto → ARS keeps existing deposit instructions. ARS → Lightning assigns a receiver account and returns alias/CVU and the final amount_ars_cents: transfer exactly that amount, which may differ from the quote by identification cents. It does not return a Lightning invoice. Resets expires_at for the payment window. Repeating this call on an order whose bank instructions were already issued preserves the assignment without duplicating reservations or extending the deadline; alias/CVU only appear while instructions remain valid. On availability/contention 409, retry later; if the fee changed and the error requests a new quote, quote and create again.\n\nAuthenticate with JWT or API Key (never both). Reads only return the effective user's operations. B2B: send `X-Wapu-User-Id` with an owned sub-user UUID.",
         "operationId": "createDirectFiatFunding",
         "security": [
           {
@@ -2655,6 +4028,9 @@
               "format": "uuid"
             },
             "description": "Tentative UUID."
+          },
+          {
+            "$ref": "#/components/parameters/OnBehalfOf"
           }
         ],
         "responses": {
@@ -2663,9 +4039,47 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DirectFiatFundingInstructions"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/CryptoPurchaseTentative"
+                    },
+                    {
+                      "$ref": "#/components/schemas/DirectFiatFundingInstructions"
+                    }
+                  ]
                 },
                 "examples": {
+                  "ars_lightning": {
+                    "summary": "Transfer ARS 7,800.01 to this alias/CVU",
+                    "value": {
+                      "tentative_id": "00000000-0000-4000-8000-000000000100",
+                      "type": "crypto_purchase",
+                      "direction": "ramp_on",
+                      "status": "FUNDING_ISSUED",
+                      "payout_status": "waiting_ars",
+                      "payout_currency": "SAT",
+                      "payout_network": "LIGHTNING",
+                      "amount_ars_cents": 780001,
+                      "amount_out": 10000,
+                      "amount_out_unit": "sats",
+                      "network_fee_out": 200,
+                      "total_amount_usdt": 520,
+                      "fee_amount_usdt": 10,
+                      "funding_amount_usdt": 510,
+                      "payout_address": "buyer@example.com",
+                      "min_amount_ars_cents": 100000,
+                      "expires_at": "2026-10-18T15:17:00Z",
+                      "late_watch_until": "2026-10-18T15:22:00Z",
+                      "watch_pending": true,
+                      "txid": null,
+                      "payment_hash": null,
+                      "error_code": null,
+                      "funding_transaction_id": "00000000-0000-4000-8000-000000000101",
+                      "executed_transaction_id": null,
+                      "alias": "receiver.demo",
+                      "cvu": "0000000000000000000000"
+                    }
+                  },
                   "sat_lightning": {
                     "summary": "SAT funding over Lightning",
                     "value": {
@@ -2704,7 +4118,8 @@
                       "total_amount_usdt": 651.01,
                       "executed_transaction_id": null,
                       "funding_transaction_id": "db0a74a8-8df6-453b-a97e-b2e8426b3cd1",
-                      "refund_transaction_id": null
+                      "refund_transaction_id": null,
+                      "expires_at": "2026-07-25 21:17:18"
                     }
                   }
                 }
@@ -2712,7 +4127,7 @@
             }
           },
           "400": {
-            "description": "Validation error",
+            "description": "Invalid parameters, amount not a positive integer or expired tentative.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2722,7 +4137,7 @@
             }
           },
           "404": {
-            "description": "Tentative not found",
+            "description": "Operation not found or not owned by the effective user.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2732,7 +4147,47 @@
             }
           },
           "409": {
-            "description": "Tentative cannot be reused",
+            "description": "Cannot issue funding: unavailable liquidity, contention or changed fee. Retry or request a new quote according to the error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operation not authorized for this account.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request, open-order or monthly purchase limit reached.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Provider, fee estimate or Lightning Address temporarily unavailable.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3419,8 +4874,8 @@
         "tags": [
           "Transactions · Direct-Fiat Tentatives"
         ],
-        "summary": "Quote direct-fiat payment",
-        "description": "Return a current direct-fiat quote without creating a tentative.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
+        "summary": "Quote a direct-fiat payment or purchase",
+        "description": "ARS → Lightning: send `type=crypto_purchase&payout_currency=SAT&payout_network=LIGHTNING` and exactly one of `amount_ars_cents` (ARS cents) or `amount_out` (sats). Do not send amount_ars or funding_currency for a purchase. Output example: `?type=crypto_purchase&payout_currency=SAT&payout_network=LIGHTNING&amount_out=10000`. Input example: replace amount_out with `amount_ars_cents=780000` (ARS 7,800). Quotes do not reserve funds or freeze prices: creation freezes terms and /funding assigns the final bank transfer amount. Purchase USDT fields are in cents. For crypto → ARS keep the existing parameters: amount_ars, funding_currency and type=fiat_transfer/fast_fiat_transfer.\n\nAuthenticate with JWT or API Key (never both). Reads only return the effective user's operations. B2B: send `X-Wapu-User-Id` with an owned sub-user UUID.",
         "operationId": "getDirectFiatQuote",
         "security": [
           {
@@ -3434,17 +4889,17 @@
           {
             "name": "amount_ars",
             "in": "query",
-            "required": true,
+            "required": false,
             "schema": {
               "type": "number"
             },
-            "description": "Amount to quote in ARS.",
+            "description": "For crypto → ARS only. Amount to quote in ARS.",
             "example": 25000
           },
           {
             "name": "funding_currency",
             "in": "query",
-            "required": true,
+            "required": false,
             "schema": {
               "type": "string",
               "enum": [
@@ -3453,7 +4908,7 @@
                 "USDT"
               ]
             },
-            "description": "Asset used for funding.",
+            "description": "For crypto → ARS only. Asset used for funding.",
             "example": "SAT"
           },
           {
@@ -3464,7 +4919,8 @@
               "type": "string",
               "enum": [
                 "fiat_transfer",
-                "fast_fiat_transfer"
+                "fast_fiat_transfer",
+                "crypto_purchase"
               ]
             },
             "description": "Fiat transfer type.",
@@ -3473,7 +4929,7 @@
           {
             "name": "funding_network",
             "in": "query",
-            "required": true,
+            "required": false,
             "schema": {
               "type": "string",
               "enum": [
@@ -3484,8 +4940,65 @@
                 "ARBITRUM"
               ]
             },
-            "description": "Funding network.",
+            "description": "For crypto → ARS only. Funding network. May be omitted for SAT/LBTC; required for USDT.",
             "example": "LIGHTNING"
+          },
+          {
+            "name": "payout_currency",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "SAT",
+                "LBTC",
+                "USDT"
+              ]
+            },
+            "description": "For type=crypto_purchase only. "
+          },
+          {
+            "name": "payout_network",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "BITCOIN",
+                "LIGHTNING",
+                "LIQUID",
+                "POLYGON",
+                "ETHEREUM"
+              ]
+            },
+            "description": "For type=crypto_purchase only. "
+          },
+          {
+            "name": "amount_ars_cents",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "description": "Send exactly one of amount_ars_cents or amount_out. Positive integer, no decimals or booleans. ARS cents to spend."
+            },
+            "description": "For type=crypto_purchase only. Send exactly one of amount_ars_cents or amount_out. Positive integer, no decimals or booleans. ARS cents to spend."
+          },
+          {
+            "name": "amount_out",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "description": "Send exactly one of amount_ars_cents or amount_out. Positive integer, no decimals or booleans. Net external output, in sats for SAT/LBTC or USDT cents for USDT."
+            },
+            "description": "For type=crypto_purchase only. Send exactly one of amount_ars_cents or amount_out. Positive integer, no decimals or booleans. Net external output, in sats for SAT/LBTC or USDT cents for USDT."
+          },
+          {
+            "$ref": "#/components/parameters/OnBehalfOf"
           }
         ],
         "responses": {
@@ -3494,73 +5007,35 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "amount_ars",
-                    "fee_amount_usdt",
-                    "fee_rate",
-                    "funding_amount_usdt",
-                    "funding_currency",
-                    "funding_network",
-                    "total_amount_usdt",
-                    "type",
-                    "usdt_ars_rate"
-                  ],
-                  "properties": {
-                    "amount_ars": {
-                      "type": "number",
-                      "description": "Amount to pay in ARS."
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/CryptoPurchaseQuote"
                     },
-                    "fee_amount_usdt": {
-                      "type": "number"
-                    },
-                    "fee_rate": {
-                      "type": "number"
-                    },
-                    "funding_amount_usdt": {
-                      "type": "number"
-                    },
-                    "funding_currency": {
-                      "type": "string",
-                      "enum": [
-                        "SAT",
-                        "LBTC",
-                        "USDT"
-                      ],
-                      "description": "Asset used to fund the tentative."
-                    },
-                    "funding_network": {
-                      "type": "string",
-                      "enum": [
-                        "LIGHTNING",
-                        "LIQUID",
-                        "ETHEREUM",
-                        "POLYGON",
-                        "ARBITRUM"
-                      ],
-                      "description": "Funding network."
-                    },
-                    "total_amount_sats": {
-                      "type": "integer",
-                      "nullable": true
-                    },
-                    "total_amount_usdt": {
-                      "type": "number"
-                    },
-                    "type": {
-                      "type": "string",
-                      "enum": [
-                        "fiat_transfer",
-                        "fast_fiat_transfer"
-                      ],
-                      "description": "Fiat transfer type."
-                    },
-                    "usdt_ars_rate": {
-                      "type": "number"
+                    {
+                      "$ref": "#/components/schemas/DirectFiatQuote"
                     }
-                  }
+                  ]
                 },
                 "examples": {
+                  "ars_lightning": {
+                    "summary": "ARS → Lightning (base units)",
+                    "value": {
+                      "type": "crypto_purchase",
+                      "direction": "ramp_on",
+                      "payout_currency": "SAT",
+                      "payout_network": "LIGHTNING",
+                      "amount_ars_cents": 780000,
+                      "amount_out": 10000,
+                      "amount_out_unit": "sats",
+                      "network_fee_out": 200,
+                      "total_amount_usdt": 520,
+                      "fee_amount_usdt": 10,
+                      "funding_amount_usdt": 510,
+                      "min_amount_ars_cents": 100000,
+                      "expiration_minutes": 15,
+                      "liquidity_ok": true
+                    }
+                  },
                   "sat_lightning": {
                     "summary": "SAT over Lightning",
                     "value": {
@@ -3595,7 +5070,57 @@
             }
           },
           "400": {
-            "description": "Validation error",
+            "description": "Invalid type, funding/payout pair or amount. For crypto_purchase, send exactly one positive integer amount_ars_cents or amount_out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operation not authorized for this account.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Amount cannot cover the network fee or exceeds the send limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request, open-order or monthly purchase limit reached.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Provider, fee estimate or Lightning Address temporarily unavailable.",
             "content": {
               "application/json": {
                 "schema": {

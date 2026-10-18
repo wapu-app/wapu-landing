@@ -717,7 +717,7 @@ All transaction endpoints return objects of this shape:
 ```json
 {
   "transaction_id": "123e4567-e89b-12d3-a456-426614174000",
-  "status": "PENDING",
+  "status": "Pending",
   "type": "fiat_transfer",
   "type_name": "Fiat Transfer",
   "is_positive": false,
@@ -742,7 +742,7 @@ All transaction endpoints return objects of this shape:
 }
 ```
 
-> Amounts are **not** in cents — the API converts them to proper units before responding.
+> Transaction objects use display units: fiat/USDT amounts are decimals; SAT/LBTC amounts can be raw sats depending on the field and transaction direction. Direct-fiat **purchase order** objects are a separate contract and use integer base units, as documented below.
 
 ---
 
@@ -754,12 +754,30 @@ Get a single transaction by UUID or numeric ID.
 
 **Path param:** `id` — UUID (e.g. `123e4567-e89b-12d3-a456-426614174000`) or numeric ID.
 
-**Response `200`:** Transaction object (see above). Liquid deposits include an `asset_id` for the funded asset:
+**Response `200`:** Transaction detail object. Direct-fiat-linked funding, executed and refund transactions include the owning `tentative_id`. Liquid transactions include `asset_id`; when a chain txid exists, `blockchain_scan_url` links to the first txid if multiple are stored. These extra detail fields are not added to the transaction list.
+
+For a Lightning purchase withdrawal (`executed_transaction_id`), `payment_amount` is the delivered sats, `fee_taken` is sats and `total_amount_taken` is decimal USDT. Example excerpt:
+
+```json
+{
+  "transaction_id": "00000000-0000-4000-8000-000000000102",
+  "tentative_id": "00000000-0000-4000-8000-000000000100",
+  "type": "withdraw",
+  "status": "Completed",
+  "network": "LIGHTNING",
+  "currency_taken": "SAT",
+  "payment_amount": 10000,
+  "fee_taken": 200,
+  "total_amount_taken": 5.10
+}
+```
+
+Liquid deposit example:
 
 ```json
 {
   "transaction_id": "5c2f5ac1-85b5-4d9f-8b8f-b2b9a53e804d",
-  "status": "COMPLETED",
+  "status": "Completed",
   "type": "deposit",
   "is_positive": true,
   "payment_amount": 999455,
@@ -779,13 +797,36 @@ Get a single transaction by UUID or numeric ID.
 |--------|---------|
 | `404` | `"Transaction not found"` |
 
-> If the transaction is a Lightning deposit with `PENDING` status, the invoice is checked in real-time and may return `COMPLETED`.
+> If the transaction is a Lightning deposit with `Pending` status, the invoice is checked in real-time and may return `Completed`.
 
 ---
 
 #### `GET /transactions/my-transactions`
 
-Get all transactions for the authenticated user, ordered by date descending.
+Without `page` or `per_page`, get all transactions for the effective user, newest first, preserving the legacy response below (no swaps, no `kind`, no `pagination`).
+
+Sending **either** query parameter enables merged paginated history:
+
+| Parameter | Type | Default | Range |
+|-----------|------|---------|-------|
+| `page` | integer | 1 | ≥ 1 |
+| `per_page` | integer | 7 | 1–50 |
+
+Invalid values return `400`, not silently clamped results. Paginated items are basic transaction objects with `kind=transaction`, or public swap objects with `kind=swap`, ordered newest first across both types. Deposits already represented by historical swaps are excluded to avoid duplicate entries. Direct-fiat purchases are not swaps: use the tentative list/detail to follow the complete purchase.
+
+The response keeps the `transactions` array and adds `pagination` with `page`, `per_page`, `total`, `total_pages`, `has_next`, and `has_prev`. An empty history has `transactions=[]`, `total=0`, `total_pages=0`. Transaction-detail-only fields such as `tentative_id` and Liquid navigation links are not added here. B2B callers may use `X-Wapu-User-Id` for an owned sub-user.
+
+**Paginated response excerpt:**
+
+```json
+{
+  "transactions": [
+    { "kind": "transaction", "transaction_id": "00000000-0000-4000-8000-000000000102", "status": "Completed", "type": "withdraw" },
+    { "kind": "swap", "swap_id": "00000000-0000-4000-8000-000000000200", "status": "COMPLETED", "from": "LBTC", "to": "USDT_LIQUID" }
+  ],
+  "pagination": { "page": 1, "per_page": 7, "total": 2, "total_pages": 1, "has_next": false, "has_prev": false }
+}
+```
 
 **Auth:** `[JWT | API Key]`
 
@@ -795,7 +836,7 @@ Get all transactions for the authenticated user, ordered by date descending.
   "transactions": [
     {
       "transaction_id": "123e4567-e89b-12d3-a456-426614174000",
-      "status": "COMPLETED",
+      "status": "Completed",
       "type": "fiat_transfer",
       "type_name": "Fiat Transfer",
       "is_positive": false,
@@ -970,9 +1011,162 @@ receiver_username=customer_demo
 
 ---
 
+#### ARS → Lightning: direct-fiat crypto purchases
+
+Use `type=crypto_purchase` on the existing direct-fiat routes to buy sats with an ARS bank transfer and receive them at an external **Lightning Address**. This is not a Lightning deposit or a swap. The existing crypto → ARS payment flow remains available on the same routes.
+
+**Auth:** `[JWT | API Key]`, never both headers. On all seven transaction/direct-fiat operations documented here, business callers may send `X-Wapu-User-Id: <owned-sub-user-uuid>` to operate for that sub-user. Other callers operate as themselves. Detail and list requests are scoped to the effective user.
+
+**Happy path:** quote → create tentative → issue bank instructions → transfer the exact ARS amount → poll the tentative until resolved. All amounts, addresses, deadlines and fees below are fictional examples, not current quotes or payable instructions.
+
+##### Purchase request and units
+
+| Field | Meaning |
+|-------|---------|
+| `type` | `crypto_purchase` |
+| `payout_currency` / `payout_network` | `SAT` / `LIGHTNING` for Lightning delivery |
+| `amount_ars_cents` | Positive integer ARS cents to spend; `780000` means ARS 7,800 |
+| `amount_out` | Positive integer output; for Lightning, sats to receive |
+| `payout_address` | Required on creation: Lightning Address such as `buyer@example.com`, **not** a BOLT11 invoice or encoded LNURL |
+
+Send **exactly one** of `amount_ars_cents` or `amount_out`. Query values must be plain positive digits; JSON body values must be integers, not strings, decimals or booleans. Do not reuse `amount_ars`, `funding_currency`, `funding_network` or the recipient `alias` of crypto → ARS payments for a purchase. A purchase does not deduplicate creation by `external_reference`.
+
+Other supported payout pairs are `SAT/BITCOIN`, `LBTC/LIQUID`, `USDT/LIQUID`, `USDT/POLYGON` and `USDT/ETHEREUM`; this walkthrough focuses on Lightning. SAT/LBTC outputs and network fees use sats; USDT outputs and network fees use USDT cents.
+
+**Purchase response units differ from crypto → ARS:** `amount_ars_cents` is ARS cents; `total_amount_usdt`, `fee_amount_usdt` and `funding_amount_usdt` are **USDT cents**, not decimal USDT. `amount_out` and `network_fee_out` use `amount_out_unit` (`sats` or `usdt_cents`). Do not feed purchase values into decimal-amount payment schemas.
+
+##### 1. Quote without reserving funds
+
+```http
+GET /transactions/direct-fiat/quote?type=crypto_purchase&payout_currency=SAT&payout_network=LIGHTNING&amount_out=10000
+X-API-Key: <api_token>
+```
+
+To quote by ARS input instead, replace `amount_out=10000` with `amount_ars_cents=780000`; do not send both. The response includes:
+
+```json
+{
+  "type": "crypto_purchase",
+  "direction": "ramp_on",
+  "payout_currency": "SAT",
+  "payout_network": "LIGHTNING",
+  "amount_ars_cents": 780000,
+  "amount_out": 10000,
+  "amount_out_unit": "sats",
+  "network_fee_out": 200,
+  "total_amount_usdt": 520,
+  "fee_amount_usdt": 10,
+  "funding_amount_usdt": 510,
+  "min_amount_ars_cents": 100000,
+  "expiration_minutes": 15,
+  "liquidity_ok": true
+}
+```
+
+`liquidity_ok` is availability **at quote time**, not a reservation; `/funding` may still return `409`. `expiration_minutes` is the payment window **after bank instructions are issued**, not the lifetime of a newly created tentative. Both fields appear only on quotes.
+
+##### 2. Create a purchase tentative
+
+```http
+POST /transactions/direct-fiat/tentatives
+Content-Type: application/json
+X-API-Key: <api_token>
+
+{
+  "type": "crypto_purchase",
+  "payout_currency": "SAT",
+  "payout_network": "LIGHTNING",
+  "amount_out": 10000,
+  "payout_address": "buyer@example.com"
+}
+```
+
+**Response `201`:** purchase order with `tentative_id`, `status=CREATED`, `payout_status=waiting_ars`, frozen monetary terms and its persisted `expires_at` deadline. There is no assigned bank account yet: `alias` and `cvu` are absent, linked transaction IDs are null and `watch_pending=false`. That false value is not successful delivery: the next step is to issue funding instructions. The Lightning destination is validated before creation. The backend resolves invoices from the Lightning Address; clients do not supply an invoice.
+
+A quote is informational; creation calculates and freezes the order's terms. **Every creation POST creates a new tentative.** Do not blindly replay creation after an uncertain response as if it were idempotent; inspect the tentative list to recover the operation.
+
+##### 3. Issue bank instructions, then transfer exactly the returned amount
+
+```http
+POST /transactions/direct-fiat/tentatives/00000000-0000-4000-8000-000000000100/funding
+X-API-Key: <api_token>
+```
+
+**Response `201`:** the same purchase shape with `status=FUNDING_ISSUED`, an assigned `alias`/`cvu`, a non-null `funding_transaction_id`, and the **final** `amount_ars_cents`. For example:
+
+```json
+{
+  "tentative_id": "00000000-0000-4000-8000-000000000100",
+  "status": "FUNDING_ISSUED",
+  "payout_status": "waiting_ars",
+  "amount_ars_cents": 780001,
+  "amount_out": 10000,
+  "amount_out_unit": "sats",
+  "alias": "receiver.demo",
+  "cvu": "0000000000000000000000",
+  "expires_at": "2026-10-18T15:17:00Z",
+  "late_watch_until": "2026-10-18T15:22:00Z",
+  "watch_pending": true,
+  "funding_transaction_id": "00000000-0000-4000-8000-000000000101",
+  "executed_transaction_id": null
+}
+```
+
+This is a **response excerpt**, not the full purchase object. Transfer ARS **7,800.01** in this example, not the quoted ARS 7,800: funding can add identification cents while preserving the crypto output. This endpoint returns bank instructions, **not a Lightning invoice**. It resets `expires_at` to the payment deadline; use that returned timestamp instead of computing one from the quote.
+
+Replaying `/funding` for an already issued purchase preserves its assignment without duplicating reservations or extending the deadline. It returns the current order; bank instructions disappear after matching/final resolution. On an availability/contention `409`, retry later. If the fee has changed and the error requires a new quote, quote and create again rather than reusing obsolete terms.
+
+##### 4. Track payment matching and Lightning delivery
+
+```http
+GET /transactions/direct-fiat/tentatives/00000000-0000-4000-8000-000000000100
+X-API-Key: <api_token>
+```
+
+**Response `200`:** purchase order. The usual lifecycle is `CREATED → FUNDING_ISSUED → EXECUTED → COMPLETED`: after the ARS transfer is matched, the backend creates the withdrawal and sends the crypto. `EXECUTED` alone does not mean that Lightning was delivered.
+
+| Field / value | Client behavior |
+|---------------|-----------------|
+| `watch_pending=true` | Keep polling, including when `status=EXPIRED`: reconciliation or a payout may still be unresolved |
+| `payout_status=waiting_ars` | Awaiting the ARS transfer or completion of its reconciliation |
+| `payout_status=sending` | ARS matched, payout still in progress |
+| `payout_status=review` | Needs resolution; do not show successful delivery |
+| `payout_status=completed` | External crypto delivery completed |
+| `payout_status=settled_to_balance` | Credited to the buyer's Wapu USDT balance, **not** delivered via Lightning |
+| `payout_status=expired` | Unpaid order with its reservation released |
+| `payment_hash` / `txid` | Payment/chain reference when available; may be null |
+| `error_code` | `payout_review`, `payout_not_sent`, or null; no internal provider diagnostics |
+| `funding_transaction_id` | Public UUID of the credit transaction, created when bank instructions are issued |
+| `executed_transaction_id` | Public UUID of the crypto withdrawal, created when the ARS transfer is matched |
+
+Read linked transactions using `GET /transactions/<id>`. `alias` and `cvu` are only returned after funding and until the payment is matched, the order becomes final or an unpaid reservation is released. No receiver identity, credentials, internal ledger IDs or payout invoices are returned.
+
+**Purchase errors:**
+
+| HTTP status | Meaning / action |
+|-------------|------------------|
+| `400` | Invalid target, amount or destination; or expired tentative |
+| `401` | Missing/invalid authentication |
+| `403` | Operation not authorized for this account |
+| `404` | Unknown tentative, or not owned by the effective user |
+| `409` | No funding availability, contention, unusable order or changed network fee; follow the error before retrying |
+| `422` | Amount cannot cover the network fee or exceeds a send limit |
+| `429` | Quote/creation throttle, open-order cap or monthly purchase limit |
+| `503` | Provider, fee estimate or Lightning Address temporarily unavailable |
+
+#### `GET /transactions/direct-fiat/tentatives`
+
+List **all** direct-fiat tentatives of the effective user, newest first and in every status. No pagination. Includes both existing crypto → ARS payments and ARS → crypto purchases.
+
+**Auth:** `[JWT | API Key]`. Business callers may use `X-Wapu-User-Id` for an owned sub-user.
+
+**Response `200`:** `{ "tentatives": [...] }`. Each item uses the appropriate payment or purchase schema, adds `created_at` in UTC, and includes public UUIDs of linked transactions. Payment items can also include `refund_transaction_id`; purchase items use `funding_transaction_id` and `executed_transaction_id`. Purchase bank instructions follow the same visibility rules as detail/funding responses.
+
+---
+
 #### `POST /transactions/direct-fiat/tentatives`
 
-Create a direct-fiat tentative and freeze the quote. This does not generate the funding transaction yet.
+Create a direct-fiat tentative and freeze the quote. Supports crypto → ARS payments and ARS → crypto purchases. For `type=crypto_purchase`, use the [ARS → Lightning walkthrough](#ars--lightning-direct-fiat-crypto-purchases) above; the following request/response examples cover the existing crypto → ARS direction. This does not generate the funding transaction yet.
 
 **Auth:** `[JWT | API Key]`
 
@@ -997,7 +1191,7 @@ For Liquid funding, send `"funding_currency": "LBTC"` or `"USDT"` with `"network
 | `alias` | string | no | Recipient alias/CBU/CVU |
 | `receiver_name` | string | no | Recipient name |
 | `funding_currency` | string | yes | `"SAT"`, `"LBTC"`, or `"USDT"` |
-| `network` | string | yes | Canonical funding network: `"LIGHTNING"`, `"LIQUID"`, or a supported EVM network |
+| `network` | string | conditional | Required for USDT, implied for SAT/LBTC. Canonical funding network: `"LIGHTNING"`, `"LIQUID"`, or a supported EVM network |
 | `funding_network` | string | no | Accepted alias for `network`; `network` wins when both are sent |
 | `refund_address` | string | no | Optional refund address |
 | `external_reference` | string | no | External reference/idempotency identifier |
@@ -1023,7 +1217,7 @@ For Liquid funding, send `"funding_currency": "LBTC"` or `"USDT"` with `"network
 
 #### `GET /transactions/direct-fiat/tentatives/<tentative_id>`
 
-Get the status of a direct-fiat tentative.
+Get the status of a direct-fiat tentative. For purchases, use the [purchase order contract and polling rules](#4-track-payment-matching-and-lightning-delivery) above. The examples below show the existing crypto → ARS payment schema.
 
 **Auth:** `[JWT | API Key]`
 
@@ -1070,7 +1264,7 @@ A Liquid tentative also returns the funded asset identifier:
 
 #### `POST /transactions/direct-fiat/tentatives/<tentative_id>/funding`
 
-Generate funding instructions for a direct-fiat tentative.
+Generate funding instructions for a direct-fiat tentative. For purchases, returns the bank alias/CVU and final ARS cents to transfer, as described [above](#3-issue-bank-instructions-then-transfer-exactly-the-returned-amount). The invoice/address examples below apply only to the existing crypto → ARS payment direction.
 
 **Auth:** `[JWT | API Key]`
 
@@ -1114,11 +1308,11 @@ Liquid funding returns `asset_id` and a synthetic Liquid address:
 
 #### `GET /transactions/direct-fiat/quote`
 
-Return a current direct-fiat quote without creating a tentative.
+Return a current direct-fiat quote without creating a tentative. For `type=crypto_purchase`, send payout target and exactly one integer amount as described [above](#1-quote-without-reserving-funds). The parameters and examples below apply to the existing crypto → ARS direction.
 
 **Auth:** `[JWT | API Key]`
 
-**Query parameters:** `amount_ars`, `funding_currency` (`SAT`, `LBTC`, or `USDT`), `type`, and `funding_network`.
+**Query parameters (crypto → ARS):** `amount_ars`, `funding_currency` (`SAT`, `LBTC`, or `USDT`) and `type`. `funding_network` can be omitted for SAT/LBTC (implied LIGHTNING/LIQUID); it is required for USDT. A supplied network must match the selected asset.
 
 **Response `200` — SAT over Lightning:**
 ```json
@@ -1176,12 +1370,12 @@ Initiate a cryptocurrency deposit to the user's wallet.
 | `currency` | string | yes | `"USDT"`, `"USDC"` |
 | `network` | string | yes | `"ETHEREUM"`, `"BSC"`, `"POLYGON"`, `"ARBITRUM"`, `"OPTIMISM"`, `"AVAX"`, `"TRON"`, `"SOLANA"`, `"BINANCE_ID"`, `"LIQUID"` |
 
-**Response `201`:** Transaction object with `type: "deposit"` and `status: "PENDING"`.
+**Response `201`:** Transaction object with `type: "deposit"` and `status: "Pending"`.
 
 ```json
 {
   "transaction_id": "abc12345-...",
-  "status": "PENDING",
+  "status": "Pending",
   "type": "deposit",
   "type_name": "Deposit",
   "is_positive": true,
@@ -1224,7 +1418,7 @@ Initiate a SAT deposit via the Lightning Network. Returns a Lightning invoice. `
 ```json
 {
   "transaction_id": "def45678-...",
-  "status": "PENDING",
+  "status": "Pending",
   "type": "deposit",
   "network": "LIGHTNING",
   "lnurl_pr_invoice": "lnbc100u1p3...",
@@ -1265,12 +1459,12 @@ Initiate a cryptocurrency withdrawal to an external address.
 | `amount` | number | yes | Amount to withdraw |
 | `receiver_name` | string | no | Recipient name for record-keeping |
 
-**Response `201`:** Transaction object with `type: "withdrawal"` and `status: "PENDING"`.
+**Response `201`:** Transaction object with `type: "withdrawal"` and `status: "Pending"`.
 
 ```json
 {
   "transaction_id": "ghi89012-...",
-  "status": "PENDING",
+  "status": "Pending",
   "type": "withdrawal",
   "type_name": "Withdrawal",
   "is_positive": false,
@@ -1464,12 +1658,18 @@ Generate a Lightning invoice for the given user. Called by the payer's wallet af
 
 | Value | Description |
 |-------|-------------|
-| `PENDING` | Awaiting processing |
-| `COMPLETED` | Successfully processed |
-| `TAKEN` | Assigned to a payer (QR flow) |
-| `CANCELED` | Canceled by user or system |
-| `USER_PENDING` | Waiting for user confirmation |
-| `REJECTED` | Rejected by system/admin |
+| `Pending` | Awaiting processing |
+| `Completed` | Successfully processed |
+| `Processing` | Assigned to a payer (QR flow) |
+| `Canceled` | Canceled by user or system |
+| `User Pending Action` | Waiting for user confirmation |
+| `Paid` | Marked paid |
+
+Transaction objects serialize these display values. Direct-fiat tentative `status` is a separate contract with uppercase values such as `CREATED` and `COMPLETED`.
+
+History items with `kind=swap` use **SwapStatusEnum**, not Transaction status: `WAITING_DEPOSIT`, `CONFIRMING`, `SENDING`, `COMPLETED`, `EXPIRED`, `REFUNDING`, `REFUNDED`, `FAILED`. Purchase `payout_status` is another contract and keeps lowercase values such as `completed`. Status comparisons are case-sensitive; do not normalize these fields globally.
+
+Request versus response also matters: the existing `PATCH /transactions/<transaction_id>` request can send the enum name `CANCELED`, while the returned transaction serializes `Canceled`.
 
 ### Transaction Type (`TransactionTypeEnum`)
 
@@ -1520,7 +1720,7 @@ Generate a Lightning invoice for the given user. Called by the payer's wallet af
 ```json
 {
   "transaction_id": "123e4567-e89b-12d3-a456-426614174000",
-  "status": "COMPLETED",
+  "status": "Completed",
   "type": "fiat_transfer",
   "type_name": "Fiat Transfer",
   "is_positive": false,
