@@ -17,6 +17,12 @@ npm run dev
 
 En desarrollo, Turnstile usa las claves dummy oficiales de Cloudflare para que el captcha no bloquee Playwright ni pruebas locales.
 
+## Campañas de registro
+
+La home acepta `?campaign=stikers`, `twitter`, `instagram` o `tarjetas` para
+seleccionar el referido de sus botones de registro, sin cambiar el contenido.
+Mapeo, límites y pruebas: [campaign signup links](docs/2026-10-19-campaign-signup-links.md).
+
 ## Variables de entorno
 
 Para produccion, crear un widget de Cloudflare Turnstile y configurar:

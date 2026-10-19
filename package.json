@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "npm run test:api-docs && npm run test:campaign-signup",
+    "test:campaign-signup": "playwright test",
     "test:api-docs": "node --test tests/api-docs.test.mjs"
   },
   "dependencies": {

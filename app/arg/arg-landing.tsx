@@ -8,7 +8,6 @@ import { getTurnstileSiteKey } from "../w/turnstile-config";
 
 const SHOW_BUY_BTC_MODULE = false;
 const TURNSTILE_SITE_KEY = getTurnstileSiteKey();
-const WAPU_SIGNUP_URL = "https://my.wapu.app/newSignUp";
 const TUTORIAL_STEP_EVENT = "wapu:tutorial-step";
 const WAPU_SIGNUP_LINK_PROPS = {
   rel: "noopener noreferrer",
@@ -635,7 +634,7 @@ function useTutorialTimelineStep() {
 
 /* ----------------------------- PAGE ----------------------------- */
 
-export default function LatLanding() {
+export default function LatLanding({ signupUrl }: { signupUrl: string }) {
   const [orangeCount, setOrangeCount] = useState(0);
   const unlockOrange = useCallback(() => {
     setOrangeCount((count) => count + 1);
@@ -662,7 +661,7 @@ export default function LatLanding() {
             <a href="#ayuda">Ayuda</a>
             <a href="#contacto">Contacto</a>
             <Link aria-label="Ir a la landing de Wapu CLI y API" className="lat-nav-cta lat-nav-cli-api" href="/dev">CLI + API</Link>
-            <a className="lat-nav-cta" href={WAPU_SIGNUP_URL} {...WAPU_SIGNUP_LINK_PROPS}>Entrar a Wapu</a>
+            <a className="lat-nav-cta" href={signupUrl} {...WAPU_SIGNUP_LINK_PROPS}>Entrar a Wapu</a>
           </nav>
         </header>
       </div>
@@ -679,7 +678,7 @@ export default function LatLanding() {
                 Transferí pesos usando tus <span className="lat-it">BTC</span> o <span className="lat-it">USDT</span>, sin <span className="lat-strike">KYC</span>.
               </h1>
               <div className="lat-actions">
-                <a className="lat-primary-btn" href={WAPU_SIGNUP_URL} {...WAPU_SIGNUP_LINK_PROPS}>Entrar a Wapu →</a>
+                <a className="lat-primary-btn" href={signupUrl} {...WAPU_SIGNUP_LINK_PROPS}>Entrar a Wapu →</a>
                 <a className="lat-secondary-btn" href="#video">Ver flujo</a>
               </div>
               <div className="lat-proof-row" aria-label="Atributos del producto">
@@ -990,7 +989,7 @@ export default function LatLanding() {
           </div>
           <a
             className="lat-primary-btn"
-            href={WAPU_SIGNUP_URL}
+            href={signupUrl}
             {...WAPU_SIGNUP_LINK_PROPS}
             style={{ minHeight: 60, padding: "0 30px", fontSize: 16 }}
           >
