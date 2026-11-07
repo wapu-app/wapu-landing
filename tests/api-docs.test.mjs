@@ -286,3 +286,48 @@ test('Spanish and English expose the same operations and structural schemas', ()
   assert.deepEqual(structure(specs[0][1].paths), structure(specs[1][1].paths));
   assert.deepEqual(structure(specs[0][1].components), structure(specs[1][1].components));
 });
+
+for (const [locale, spec] of specs) {
+  test(`${locale}: business webhooks are documented with signature and receiver duties`, () => {
+    const paths = spec.paths;
+    assert.deepEqual(Object.keys(paths['/business/webhook']).sort(), ['delete', 'get', 'post']);
+    assert.ok(paths['/business/webhook/test'].post.responses['429']);
+    assert.ok(paths['/business/webhook/test'].post.responses['502']);
+    for (const operation of [...Object.values(paths['/business/webhook']), paths['/business/webhook/test'].post]) {
+      assert.ok(operation.security.some((item) => Object.hasOwn(item, 'BearerAuth')));
+    }
+    const created = jsonBody(paths['/business/webhook'].post, '201').example;
+    assert.ok(created.secret && created.secret_prefix);
+    const tag = spec.tags.find((item) => item.name === spec.paths['/business/webhook'].post.tags[0]);
+    for (const needle of ['X-Wapu-Signature', 'X-Wapu-Timestamp', 'event_id', 'external_reference', 'LBTC']) {
+      assert.ok(tag.description.includes(needle), `webhook docs miss ${needle}`);
+    }
+    const event = spec.components.schemas.WebhookEvent;
+    assert.deepEqual(event.properties.data.properties.type.enum.filter((type) => /qr_payment|pix_deposit/.test(type)), []);
+  });
+
+  test(`${locale}: QR and PIX payload keys are neutral and legacy types are marked`, () => {
+    const home = jsonBody(spec.paths['/users/home'].get, '200').example;
+    assert.equal(home.qr_pending, false);
+    assert.equal(home.settings.pix_key, null);
+    assert.equal(home.settings.qr_payment_fee, null);
+    assert.equal(home.settings.features.pix_deposit, false);
+    assert.equal(home.settings.features.qr_payment, false);
+    assert.ok(!Object.hasOwn(home.settings, 'qr_payment_available'));
+    assert.ok(!Object.hasOwn(jsonBody(spec.paths['/settings'].get, '200').example.settings, 'pix_key'));
+    assert.match(spec.components.schemas.Transaction.properties.type.description, /qr_payment/);
+  });
+}
+
+test('es and en specs expose the same webhook paths', () => {
+  const [[, es], [, en]] = specs;
+  assert.deepEqual(Object.keys(es.paths).filter((path) => path.startsWith('/business')).sort(),
+    Object.keys(en.paths).filter((path) => path.startsWith('/business')).sort());
+});
+
+test('api reference markdown documents webhooks and legacy QR/PIX', () => {
+  assert.match(reference, /#### `POST \/business\/webhook\/test`/);
+  assert.match(reference, /\| `qr_payment` \| `false` \| \*\*Legacy\.\*\*/);
+  assert.match(reference, /\| `pix_deposit` \| `true` \| \*\*Legacy\.\*\*/);
+  assert.doesNotMatch(reference, /pix@example\.com/);
+});
