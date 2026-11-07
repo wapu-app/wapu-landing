@@ -1357,6 +1357,118 @@
             "$ref": "#/components/schemas/Pagination"
           }
         }
+      },
+      "WebhookEvent": {
+        "type": "object",
+        "description": "Cuerpo de una entrega de webhook. Ver el tag **Webhooks de Negocio** para headers, firma y reintentos.",
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "event_type": {
+            "type": "string",
+            "enum": [
+              "transaction.status_changed",
+              "webhook.test"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "business_user_uuid": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "transaction_uuid": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "Completed",
+                  "Canceled"
+                ]
+              },
+              "previous_status": {
+                "type": "string",
+                "nullable": true
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "fiat_transfer",
+                  "fast_fiat_transfer",
+                  "deposit",
+                  "liquid_deposit",
+                  "withdraw",
+                  "send_inner_transf",
+                  "receive_inner_transf",
+                  "refund"
+                ]
+              },
+              "amount": {
+                "type": "number",
+                "description": "Decimal en unidades de `currency`; entero de sats cuando `currency` es `SAT` o `LBTC`."
+              },
+              "currency": {
+                "type": "string"
+              },
+              "external_reference": {
+                "type": "string",
+                "nullable": true
+              },
+              "sub_user_uuid": {
+                "type": "string",
+                "format": "uuid",
+                "nullable": true
+              },
+              "updated_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        },
+        "example": {
+          "event_id": "5b1e7c1a-3f0e-4c1b-9d57-0a4b6f2e8c11",
+          "event_type": "transaction.status_changed",
+          "created_at": "2026-11-07T14:03:21.123456Z",
+          "business_user_uuid": "a91c0d2e-7b34-4f6a-8e15-2c9d4b7a1f30",
+          "data": {
+            "transaction_uuid": "f0c2b8d4-1a96-4e7b-b3c5-6d8e9f0a1b2c",
+            "status": "Completed",
+            "previous_status": "Pending",
+            "type": "fiat_transfer",
+            "amount": 1500.0,
+            "currency": "ARS",
+            "external_reference": "ORDER-123",
+            "sub_user_uuid": "7de4a3b1-92c0-4d58-a6f7-3e1b5c8d0a49",
+            "updated_at": "2026-11-07T14:03:20.654321Z"
+          }
+        }
+      },
+      "WebhookTestResult": {
+        "type": "object",
+        "properties": {
+          "delivered": {
+            "type": "boolean"
+          },
+          "status_code": {
+            "type": "integer",
+            "nullable": true
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          }
+        }
       }
     },
     "parameters": {
@@ -1499,7 +1611,6 @@
                     "buy_spread_usdtbrl_fee": 0.01,
                     "discount_referrals_days": 1,
                     "discount_referrals_percentage": 1,
-                    "exchange_source_btcusd": "letsbit",
                     "external_kyc_url": "https://example.com/kyc/demo",
                     "fast_fiat_transfer_fee": 0.04,
                     "feedback_url": "https://example.com/feedback/demo",
@@ -1511,9 +1622,7 @@
                     "max_payment_amount_usdt_kyc_3": 5000,
                     "min_deposit_usdt": 1,
                     "min_payment_amount_ars": 10000,
-                    "min_pix_deposit_brl": 100,
                     "minimum_withdrawal_amount_usdt": 10,
-                    "pix_deposit_fee": 0.01,
                     "referral_reward_fee_percentage": 0.5,
                     "referral_rewards_days": 90,
                     "sell_spread_usdtars_fee": 0.02,
@@ -2387,7 +2496,6 @@
                   "is_payer": true,
                   "kyc_status": "Pending",
                   "kyc_tier": 2,
-                  "qr_pending": null,
                   "rates": [
                     {
                       "buy": 1432.5,
@@ -2480,7 +2588,6 @@
                       "fast_fiat_transfer": true,
                       "fiat_transfer": false,
                       "lightning_deposit": true,
-                      "pix_deposit": false,
                       "pwa_pop_up": true,
                       "send_inner_transf": true,
                       "show_recent_fav_contacts": true
@@ -2488,9 +2595,7 @@
                     "fiat_transfer_fee": 0,
                     "min_deposit_usdt": 1,
                     "min_payment_amount_ars": 10000,
-                    "min_pix_deposit_brl": 100,
                     "minimum_withdrawal_amount_usdt": 1000,
-                    "pix_deposit_fee": 0.01,
                     "referral_reward_fee_percentage": 0.5,
                     "referral_rewards_days": 90,
                     "webapp_design": "tamagui-1.0"
@@ -5134,6 +5239,389 @@
           }
         }
       }
+    },
+    "/business/webhook": {
+      "post": {
+        "tags": [
+          "Webhooks de Negocio"
+        ],
+        "summary": "Registrar o rotar el webhook de la cuenta business",
+        "description": "Crea el webhook o lo reemplaza (upsert) con la URL indicada, y **rota el secret de firma**. El secret se devuelve **solo en esta respuesta**. En la descripción del tag **Webhooks de Negocio** se explica cómo se firman las entregas. Autentica con Bearer JWT o X-API-Key, no ambos.",
+        "operationId": "registerBusinessWebhook",
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "url"
+                ],
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "format": "uri",
+                    "maxLength": 2048,
+                    "description": "URL HTTPS pública que recibirá los eventos. Se rechazan los hosts que resuelven a direcciones no públicas.",
+                    "example": "https://example.com/wapu-webhook"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Webhook registrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "description": "URL de destino registrada"
+                    },
+                    "secret": {
+                      "type": "string",
+                      "description": "Secret de firma, se muestra una sola vez. Guárdalo de forma segura."
+                    },
+                    "secret_prefix": {
+                      "type": "string",
+                      "description": "Primeros 10 caracteres del secret, para identificarlo"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Mensaje de confirmación"
+                    }
+                  }
+                },
+                "example": {
+                  "url": "https://example.com/wapu-webhook",
+                  "secret": "3Kf9sQe1V0aZb7mXcP2rT8uYhLw4NdGjOiBvCxE5yMk",
+                  "secret_prefix": "3Kf9sQe1V0",
+                  "message": "Webhook registrado"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "URL ausente, mal formada o no pública (p. ej. `url is required`, `Webhook URL must use https`, `Webhook URL resolves to a disallowed address`, `Webhook URL host could not be resolved`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales ausentes o inválidas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No es una cuenta business (`Webhooks are only available for business accounts`) o es un sub-usuario gestionado (`Sub-users cannot manage webhooks`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Webhooks de Negocio"
+        ],
+        "summary": "Consultar el estado del webhook de la cuenta business",
+        "description": "Devuelve la URL registrada, si está activo y la última entrega. Nunca devuelve el secret, solo su prefijo. Autentica con Bearer JWT o X-API-Key, no ambos.",
+        "operationId": "getBusinessWebhook",
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Estado del webhook",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "has_webhook": {
+                      "type": "boolean",
+                      "description": "`false` si nunca se registró un webhook"
+                    },
+                    "is_active": {
+                      "type": "boolean",
+                      "description": "`false` después de `DELETE /business/webhook`"
+                    },
+                    "url": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "URL de destino registrada"
+                    },
+                    "secret_prefix": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "Primeros 10 caracteres del secret, para identificarlo"
+                    },
+                    "last_delivery": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Entrega más reciente, o `null`",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "pending",
+                            "delivered",
+                            "canceled",
+                            "dead"
+                          ],
+                          "description": "Estado de la entrega: `pending`, `delivered`, `canceled` o `dead`"
+                        },
+                        "at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "description": "Momento del último intento, o de creación si nunca se intentó (ISO 8601 UTC)"
+                        },
+                        "status_code": {
+                          "type": "integer",
+                          "nullable": true,
+                          "description": "Estado HTTP del último intento, o `null`"
+                        }
+                      }
+                    }
+                  }
+                },
+                "examples": {
+                  "has_webhook": {
+                    "summary": "Webhook registrado",
+                    "value": {
+                      "has_webhook": true,
+                      "is_active": true,
+                      "url": "https://example.com/wapu-webhook",
+                      "secret_prefix": "3Kf9sQe1V0",
+                      "last_delivery": {
+                        "status": "delivered",
+                        "at": "2026-11-07T14:03:21.500000Z",
+                        "status_code": 200
+                      }
+                    }
+                  },
+                  "no_webhook": {
+                    "summary": "Sin webhook registrado",
+                    "value": {
+                      "has_webhook": false,
+                      "is_active": false,
+                      "url": null,
+                      "secret_prefix": null,
+                      "last_delivery": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales ausentes o inválidas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No es una cuenta business (`Webhooks are only available for business accounts`) o es un sub-usuario gestionado (`Sub-users cannot manage webhooks`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Webhooks de Negocio"
+        ],
+        "summary": "Deshabilitar el webhook de la cuenta business",
+        "description": "Deshabilita el webhook. Las entregas pendientes se cancelan y no se encolan eventos nuevos. Llamarlo cuando no hay un webhook activo no es un error. Autentica con Bearer JWT o X-API-Key, no ambos.",
+        "operationId": "deleteBusinessWebhook",
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Webhook deshabilitado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "message": "Webhook disabled"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales ausentes o inválidas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No es una cuenta business (`Webhooks are only available for business accounts`) o es un sub-usuario gestionado (`Sub-users cannot manage webhooks`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/business/webhook/test": {
+      "post": {
+        "tags": [
+          "Webhooks de Negocio"
+        ],
+        "summary": "Enviar un evento de prueba al webhook de la cuenta business",
+        "description": "Envía de forma síncrona un evento `webhook.test` firmado a la URL registrada, para comprobar que tu receptor lo acepta y verifica la firma. Limitado a 5 requests por minuto por cuenta. El mensaje de error nunca incluye detalles de red.",
+        "operationId": "testBusinessWebhook",
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "El receptor respondió con un estado `2xx`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookTestResult"
+                },
+                "example": {
+                  "delivered": true,
+                  "status_code": 200,
+                  "error": null
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "La URL registrada ya no es un destino HTTPS público válido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales ausentes o inválidas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No es una cuenta business (`Webhooks are only available for business accounts`) o es un sub-usuario gestionado (`Sub-users cannot manage webhooks`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No hay un webhook activo registrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Demasiados pedidos de prueba, intenta de nuevo en un minuto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "No se pudo contactar al receptor o respondió con un estado distinto de `2xx`. `delivered` es `false`; `error` es `Could not reach the webhook URL` o `HTTP <status>`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookTestResult"
+                },
+                "example": {
+                  "delivered": false,
+                  "status_code": null,
+                  "error": "Could not reach the webhook URL"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "tags": [
@@ -5172,6 +5660,10 @@
     {
       "name": "Lightning Address",
       "description": "Endpoints del protocolo LNURL-pay para direcciones Lightning <username>@wapu.app"
+    },
+    {
+      "name": "Webhooks de Negocio",
+      "description": "Webhooks salientes para **cuentas business**. WapuPay envía un `POST` firmado a la URL HTTPS que registres cada vez que una transacción de tu cuenta, o de uno de tus sub-usuarios gestionados, llega a un estado terminal.\n\nSolo el dueño de la cuenta business puede gestionar el webhook. Los sub-usuarios y las cuentas que no son business reciben `403`. Hay un webhook por cuenta: registrar de nuevo reemplaza la URL y **rota el secret**.\n\n### Entrega\n\n- **Método y cuerpo:** `POST` con `Content-Type: application/json`. El cuerpo es el evento descrito más abajo.\n- **Éxito:** cualquier respuesta `2xx`. Cualquier otra respuesta, un timeout o un error de red cuenta como fallo. Las redirecciones (`3xx`) **no** se siguen y cuentan como fallo. El cuerpo de la respuesta se ignora.\n- **Timeouts:** 3 s para conectar y 5 s para leer la respuesta.\n- **Reglas de la URL:** solo `https`, hasta 2048 caracteres, y el host debe resolver únicamente a direcciones públicas. Se rechazan direcciones privadas, loopback, link-local, de CGNAT (`100.64.0.0/10`) y otras no públicas, tanto al registrar como en cada entrega.\n- **Reintentos:** cada ronda de entrega hace hasta 3 intentos, separados por 1 s. Si todos fallan, el evento se reintenta en la ronda siguiente (cada 30 s por defecto). Tras 100 rondas fallidas (unos 50 minutos) el evento se descarta. La entrega es **al menos una vez** y el orden **no está garantizado**.\n\n### Headers\n\n| Header | Valor |\n|--------|-------|\n| `X-Wapu-Timestamp` | Hora Unix en segundos, como string, tomada al firmar la request. |\n| `X-Wapu-Signature` | `sha256=<hex>`, el HMAC-SHA256 de `\"<timestamp>.<cuerpo crudo>\"` usando el secret de tu webhook. |\n| `Content-Type` | `application/json` |\n\nEl secret nunca viaja por la red. `POST /business/webhook` lo devuelve una sola vez.\n\n### Payload del evento\n\n| Campo | Tipo | Descripción |\n|-------|------|-------------|\n| `event_id` | UUID | Único por evento. Úsalo para deduplicar. |\n| `event_type` | string | `transaction.status_changed`, o `webhook.test` en los eventos de prueba. |\n| `created_at` | string | Momento de creación del evento, ISO 8601 UTC. |\n| `business_user_uuid` | UUID | La cuenta business dueña del webhook. |\n| `data.transaction_uuid` | UUID | Id público de la transacción (el mismo `transaction_id` de la API de transacciones). |\n| `data.status` | string | Nuevo estado: `Completed` o `Canceled`. |\n| `data.previous_status` | string o null | Estado anterior al cambio. `null` cuando la transacción se creó ya en un estado terminal. |\n| `data.type` | string | Tipo de transacción, ver la lista más abajo. |\n| `data.amount` | number | Monto **en unidades de `data.currency`**: un decimal para fiat y stablecoins (`1500.0` ARS, `25.5` USDT) y un **número entero de sats** para `SAT` y `LBTC`. |\n| `data.currency` | string | Moneda de `data.amount`. En los depósitos hechos por Lightning o Liquid es `SAT` o `LBTC` y el monto son los sats recibidos. |\n| `data.external_reference` | string o null | La referencia que enviaste al crear la transacción, si la hay. |\n| `data.sub_user_uuid` | UUID o null | El usuario que inició la transacción. Es igual a `business_user_uuid` cuando la inició la propia cuenta business. |\n| `data.updated_at` | string | Última actualización de la transacción, ISO 8601 UTC. |\n\nSolo notifican estos tipos de transacción: `fiat_transfer`, `fast_fiat_transfer`, `deposit`, `liquid_deposit`, `withdraw`, `send_inner_transf`, `receive_inner_transf` y `refund`. Los tipos internos del ledger nunca notifican. Solo notifican los estados terminales `Completed` y `Canceled`.\n\nEjemplo:\n\n```json\n{\n  \"event_id\": \"5b1e7c1a-3f0e-4c1b-9d57-0a4b6f2e8c11\",\n  \"event_type\": \"transaction.status_changed\",\n  \"created_at\": \"2026-11-07T14:03:21.123456Z\",\n  \"business_user_uuid\": \"a91c0d2e-7b34-4f6a-8e15-2c9d4b7a1f30\",\n  \"data\": {\n    \"transaction_uuid\": \"f0c2b8d4-1a96-4e7b-b3c5-6d8e9f0a1b2c\",\n    \"status\": \"Completed\",\n    \"previous_status\": \"Pending\",\n    \"type\": \"fiat_transfer\",\n    \"amount\": 1500.0,\n    \"currency\": \"ARS\",\n    \"external_reference\": \"ORDER-123\",\n    \"sub_user_uuid\": \"7de4a3b1-92c0-4d58-a6f7-3e1b5c8d0a49\",\n    \"updated_at\": \"2026-11-07T14:03:20.654321Z\"\n  }\n}\n```\n\n### Qué debe hacer tu receptor\n\n1. **Verificar la firma** sobre el cuerpo **crudo** de la request, no sobre un JSON re-serializado, y comparar en tiempo constante.\n2. **Rechazar timestamps viejos.** Descarta las requests cuyo `X-Wapu-Timestamp` esté a más de 5 minutos de tu reloj. WapuPay no aplica esta ventana por ti.\n3. **Deduplicar por `event_id`.** Los reintentos pueden entregar el mismo evento más de una vez.\n4. Responder `2xx` rápido y hacer el trabajo pesado de forma asíncrona.\n\n```python\nimport hashlib, hmac, time\n\ndef verify(secret: str, raw_body: bytes, signature: str, timestamp: str, max_age: int = 300) -> bool:\n    if abs(time.time() - int(timestamp)) > max_age:  # rechaza requests viejas o repetidas\n        return False\n    signed = timestamp.encode() + b\".\" + raw_body      # bytes crudos tal como llegaron\n    expected = \"sha256=\" + hmac.new(secret.encode(), signed, hashlib.sha256).hexdigest()\n    return hmac.compare_digest(expected, signature)\n```"
     }
   ]
 }

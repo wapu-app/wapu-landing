@@ -16,6 +16,7 @@ WapuPay is a platform that allows users to pay in local currency (ARS, BRL) usin
    - [Utils](#utils)
    - [Auth & Session](#auth--session)
    - [API Token Management](#api-token-management)
+   - [Business Webhooks](#business-webhooks)
    - [Users](#users)
    - [Transactions](#transactions)
    - [Wallet](#wallet)
@@ -152,12 +153,11 @@ Application-wide settings. No authentication required.
 ```json
 {
   "min_payment_amount_ars": 100,
-  "min_pix_deposit_brl": 10,
   "minimum_withdrawal_amount_usdt": 5,
   "min_deposit_usdt": 5,
   "blockchains": ["TRON", "ETHEREUM", "BSC", "POLYGON"],
-  "pix_key": "pix@example.com",
-  "pix_deposit_fee": 0.02
+  "fiat_transfer_fee": 0.02,
+  "fast_fiat_transfer_fee": 0.04
 }
 ```
 
@@ -510,6 +510,198 @@ Revoke the API token for a B2B sub-user.
 
 ---
 
+### Business Webhooks
+
+All endpoints in this section accept `[JWT]` or `[API Key]` (not both) and are only available to **business owner** accounts. Non-business accounts get `403 "Webhooks are only available for business accounts"` and managed sub-users get `403 "Sub-users cannot manage webhooks"`.
+
+Outbound webhooks for **business accounts**. WapuPay sends a signed `POST` to the HTTPS URL you register whenever a transaction of your account, or of one of your managed sub-users, reaches a terminal status.
+
+Only the business owner can manage the webhook. Sub-users and non-business accounts get `403`. There is one webhook per business: registering again replaces the URL and **rotates the secret**.
+
+#### Delivery
+
+- **Method and body:** `POST` with `Content-Type: application/json`. The body is the event described below.
+- **Success:** any `2xx` response. Anything else, a timeout or a network error counts as a failure. Redirects (`3xx`) are **not** followed and count as a failure. The response body is ignored.
+- **Timeouts:** 3 s to connect and 5 s to read the response.
+- **URL rules:** `https` only, at most 2048 characters, and the host must resolve only to public addresses. Private, loopback, link-local, carrier-grade NAT (`100.64.0.0/10`) and other non-public addresses are rejected, both when you register and on every delivery.
+- **Retries:** each delivery round makes up to 3 attempts, 1 s apart. If they all fail, the event is retried on the next round (every 30 s by default). After 100 failed rounds (about 50 minutes) the event is dropped. Delivery is **at least once** and ordering is **not guaranteed**.
+
+#### Headers
+
+| Header | Value |
+|--------|-------|
+| `X-Wapu-Timestamp` | Unix time in seconds, as a string, taken when the request was signed. |
+| `X-Wapu-Signature` | `sha256=<hex>`, the HMAC-SHA256 of `"<timestamp>.<raw body>"` using your webhook secret. |
+| `Content-Type` | `application/json` |
+
+The secret is never sent over the wire. It is returned once by `POST /business/webhook`.
+
+#### Event payload
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `event_id` | UUID | Unique per event. Use it to deduplicate. |
+| `event_type` | string | `transaction.status_changed`, or `webhook.test` for test events. |
+| `created_at` | string | Event creation time, ISO 8601 UTC. |
+| `business_user_uuid` | UUID | The business owner account. |
+| `data.transaction_uuid` | UUID | Public transaction id (same as `transaction_id` in the transactions API). |
+| `data.status` | string | New status: `Completed` or `Canceled`. |
+| `data.previous_status` | string or null | Status before the change. `null` when the transaction was created already in a terminal status. |
+| `data.type` | string | Transaction type, see the list below. |
+| `data.amount` | number | Amount **in `data.currency` units**: a decimal for fiat and stablecoins (`1500.0` ARS, `25.5` USDT), an **integer number of sats** for `SAT` and `LBTC`. |
+| `data.currency` | string | Currency of `data.amount`. For deposits made with Lightning or Liquid it is `SAT` or `LBTC` and the amount is the sats received. |
+| `data.external_reference` | string or null | The reference you sent when creating the transaction, if any. |
+| `data.sub_user_uuid` | UUID or null | The user that initiated the transaction. It equals `business_user_uuid` when the business itself initiated it. |
+| `data.updated_at` | string | Last update of the transaction, ISO 8601 UTC. |
+
+Only these transaction types notify: `fiat_transfer`, `fast_fiat_transfer`, `deposit`, `liquid_deposit`, `withdraw`, `send_inner_transf`, `receive_inner_transf` and `refund`. Internal ledger types never notify. Only the terminal statuses `Completed` and `Canceled` notify.
+
+Example:
+
+```json
+{
+  "event_id": "5b1e7c1a-3f0e-4c1b-9d57-0a4b6f2e8c11",
+  "event_type": "transaction.status_changed",
+  "created_at": "2026-11-07T14:03:21.123456Z",
+  "business_user_uuid": "a91c0d2e-7b34-4f6a-8e15-2c9d4b7a1f30",
+  "data": {
+    "transaction_uuid": "f0c2b8d4-1a96-4e7b-b3c5-6d8e9f0a1b2c",
+    "status": "Completed",
+    "previous_status": "Pending",
+    "type": "fiat_transfer",
+    "amount": 1500.0,
+    "currency": "ARS",
+    "external_reference": "ORDER-123",
+    "sub_user_uuid": "7de4a3b1-92c0-4d58-a6f7-3e1b5c8d0a49",
+    "updated_at": "2026-11-07T14:03:20.654321Z"
+  }
+}
+```
+
+#### What your receiver must do
+
+1. **Verify the signature** over the **raw** request body, not over re-serialized JSON, and compare in constant time.
+2. **Reject stale timestamps.** Discard requests whose `X-Wapu-Timestamp` is more than 5 minutes away from your clock. WapuPay does not enforce this window for you.
+3. **Deduplicate by `event_id`.** Retries can deliver the same event more than once.
+4. Answer `2xx` quickly and do the heavy work asynchronously.
+
+```python
+import hashlib, hmac, time
+
+def verify(secret: str, raw_body: bytes, signature: str, timestamp: str, max_age: int = 300) -> bool:
+    if abs(time.time() - int(timestamp)) > max_age:  # reject stale or replayed requests
+        return False
+    signed = timestamp.encode() + b"." + raw_body      # raw bytes exactly as received
+    expected = "sha256=" + hmac.new(secret.encode(), signed, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, signature)
+```
+
+---
+
+#### `POST /business/webhook`
+
+Register the business webhook, or replace it (upsert). Re-registering updates the URL and **rotates the secret**. The secret is returned **only in this response**.
+
+**Request body** (`application/json` or form):
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `url` | string | yes | Public `https` URL (max 2048 characters). Hosts that resolve to non-public addresses are rejected. |
+
+**Response `201`:**
+```json
+{
+  "url": "https://example.com/wapu-webhook",
+  "secret": "3Kf9sQe1V0aZb7mXcP2rT8uYhLw4NdGjOiBvCxE5yMk",
+  "secret_prefix": "3Kf9sQe1V0",
+  "message": "Webhook registered"
+}
+```
+
+**Errors:**
+
+| Status | Message |
+|--------|---------|
+| `400` | `"url is required"`, `"Invalid webhook URL"`, `"Webhook URL must use https"`, `"Webhook URL host could not be resolved"`, `"Webhook URL host resolution timed out"`, `"Webhook URL resolves to a disallowed address"` |
+| `401` | Missing or invalid credentials |
+| `403` | Not a business account, or a managed sub-user |
+
+---
+
+#### `GET /business/webhook`
+
+Returns the webhook status. The secret is never returned, only its prefix.
+
+**Response `200`:**
+```json
+{
+  "has_webhook": true,
+  "is_active": true,
+  "url": "https://example.com/wapu-webhook",
+  "secret_prefix": "3Kf9sQe1V0",
+  "last_delivery": {
+    "status": "delivered",
+    "at": "2026-11-07T14:03:21.500000Z",
+    "status_code": 200
+  }
+}
+```
+
+`last_delivery` is `null` until the first event is queued. `last_delivery.status` is one of `pending`, `delivered`, `canceled` or `dead`. When no webhook was ever registered the response is `{"has_webhook": false, "is_active": false, "url": null, "secret_prefix": null, "last_delivery": null}`.
+
+---
+
+#### `DELETE /business/webhook`
+
+Disables the webhook. Pending deliveries are canceled and no new events are queued. It succeeds even when there is no active webhook.
+
+**Response `200`:**
+```json
+{
+  "message": "Webhook disabled"
+}
+```
+
+---
+
+#### `POST /business/webhook/test`
+
+Synchronously sends a signed `webhook.test` event to the registered URL. Limited to **5 requests per minute** per account. The error message never includes network details.
+
+**Response `200`** (receiver answered `2xx`):
+```json
+{
+  "delivered": true,
+  "status_code": 200,
+  "error": null
+}
+```
+
+**Response `502`** (unreachable or non-`2xx`): same shape with `"delivered": false`, and `"error"` set to `"Could not reach the webhook URL"` (no response) or `"HTTP <status>"`.
+
+The test event body:
+```json
+{
+  "event_id": "0c6d2f8e-4b1a-4e93-8a27-9f3b5d7c1e64",
+  "event_type": "webhook.test",
+  "created_at": "2026-11-07T14:05:00.000000Z",
+  "business_user_uuid": "a91c0d2e-7b34-4f6a-8e15-2c9d4b7a1f30",
+  "data": { "message": "WapuPay webhook test event" }
+}
+```
+
+**Errors:**
+
+| Status | Message |
+|--------|---------|
+| `400` | The registered URL is no longer a valid public HTTPS destination (same messages as registration) |
+| `401` / `403` | As above |
+| `404` | `"No active webhook registered"` |
+| `429` | `"Too many test requests, try again in a minute"` |
+| `502` | See above |
+
+---
+
 ### Users
 
 #### `GET /users/home`
@@ -534,9 +726,6 @@ Get all home screen data: balance, rates, settings, KYC status.
     }
   ],
   "settings": {
-    "pix_key": "pix@example.com",
-    "min_pix_deposit_brl": 10.0,
-    "pix_deposit_fee": 0.02,
     "minimum_withdrawal_amount_usdt": 5.0,
     "min_deposit_usdt": 5.0,
     "min_payment_amount_ars": 100.0,
@@ -551,7 +740,6 @@ Get all home screen data: balance, rates, settings, KYC status.
     "beta_version": false,
     "features": {
       "alternative_deposit": true,
-      "pix_deposit": true,
       "fast_fiat_transfer": true,
       "fiat_transfer": true,
       "deposit": true,
@@ -1660,7 +1848,7 @@ Generate a Lightning invoice for the given user. Called by the payer's wallet af
 |-------|-------------|
 | `Pending` | Awaiting processing |
 | `Completed` | Successfully processed |
-| `Processing` | Assigned to a payer (QR flow) |
+| `Processing` | Assigned to a payer |
 | `Canceled` | Canceled by user or system |
 | `User Pending Action` | Waiting for user confirmation |
 | `Paid` | Marked paid |
@@ -1678,10 +1866,9 @@ Request versus response also matters: the existing `PATCH /transactions/<transac
 | `fiat_transfer` | `false` | Standard bank transfer in local currency |
 | `fast_fiat_transfer` | `false` | Faster bank transfer (higher fee) |
 | `deposit` | `true` | Cryptocurrency deposit to wallet |
-| `withdrawal` | `false` | Cryptocurrency withdrawal to external address |
+| `withdraw` | `false` | Cryptocurrency withdrawal to external address |
 | `send_inner_transf` | `false` | Internal transfer sent to another user |
 | `receive_inner_transf` | `true` | Internal transfer received from another user |
-| `pix_deposit` | `true` | PIX deposit (Brazil) |
 
 ### Currency (`CurrencyEnum`)
 

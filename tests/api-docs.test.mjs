@@ -286,3 +286,36 @@ test('Spanish and English expose the same operations and structural schemas', ()
   assert.deepEqual(structure(specs[0][1].paths), structure(specs[1][1].paths));
   assert.deepEqual(structure(specs[0][1].components), structure(specs[1][1].components));
 });
+
+for (const [locale, spec] of specs) {
+  test(`${locale}: business webhooks are documented with signature and receiver duties`, () => {
+    const paths = spec.paths;
+    assert.deepEqual(Object.keys(paths['/business/webhook']).sort(), ['delete', 'get', 'post']);
+    assert.ok(paths['/business/webhook/test'].post.responses['429']);
+    assert.ok(paths['/business/webhook/test'].post.responses['502']);
+    for (const operation of [...Object.values(paths['/business/webhook']), paths['/business/webhook/test'].post]) {
+      assert.ok(operation.security.some((item) => Object.hasOwn(item, 'BearerAuth')));
+    }
+    const created = jsonBody(paths['/business/webhook'].post, '201').example;
+    assert.ok(created.secret && created.secret_prefix);
+    const tag = spec.tags.find((item) => item.name === spec.paths['/business/webhook'].post.tags[0]);
+    for (const needle of ['X-Wapu-Signature', 'X-Wapu-Timestamp', 'event_id', 'external_reference', 'LBTC']) {
+      assert.ok(tag.description.includes(needle), `webhook docs miss ${needle}`);
+    }
+  });
+
+  test(`${locale}: QR and PIX do not appear in the spec`, () => {
+    assert.doesNotMatch(JSON.stringify(spec), /pix|qr_|\bqr\b/i);
+  });
+}
+
+test('es and en specs expose the same webhook paths', () => {
+  const [[, es], [, en]] = specs;
+  assert.deepEqual(Object.keys(es.paths).filter((path) => path.startsWith('/business')).sort(),
+    Object.keys(en.paths).filter((path) => path.startsWith('/business')).sort());
+});
+
+test('api reference markdown documents webhooks and has no QR/PIX', () => {
+  assert.match(reference, /#### `POST \/business\/webhook\/test`/);
+  assert.doesNotMatch(reference, /pix|qr_|\bqr\b/i);
+});
