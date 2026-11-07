@@ -121,6 +121,8 @@ Formato recomendado:
 
 Evitar commits gigantes: preferir cambios atómicos.
 
+Los títulos y las descripciones de los pull requests deben redactarse en español.
+
 ## 9) Qué NO tocar sin aprobación
 
 - identidad de marca Wapu
