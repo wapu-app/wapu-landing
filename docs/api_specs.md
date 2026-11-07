@@ -153,16 +153,13 @@ Application-wide settings. No authentication required.
 ```json
 {
   "min_payment_amount_ars": 100,
-  "min_pix_deposit_brl": 10,
   "minimum_withdrawal_amount_usdt": 5,
   "min_deposit_usdt": 5,
   "blockchains": ["TRON", "ETHEREUM", "BSC", "POLYGON"],
-  "pix_deposit_fee": 0.02,
-  "qr_payment_fee": 0.02
+  "fiat_transfer_fee": 0.02,
+  "fast_fiat_transfer_fee": 0.04
 }
 ```
-
-> QR payments and PIX deposits were removed. `qr_payment_fee`, `pix_deposit_fee` and `min_pix_deposit_brl` are legacy values still stored in the configuration and returned as-is; they no longer drive any feature. `pix_key` is never returned.
 
 ---
 
@@ -557,7 +554,7 @@ The secret is never sent over the wire. It is returned once by `POST /business/w
 | `data.sub_user_uuid` | UUID or null | The user that initiated the transaction. It equals `business_user_uuid` when the business itself initiated it. |
 | `data.updated_at` | string | Last update of the transaction, ISO 8601 UTC. |
 
-Only these transaction types notify: `fiat_transfer`, `fast_fiat_transfer`, `deposit`, `liquid_deposit`, `withdraw`, `send_inner_transf`, `receive_inner_transf` and `refund`. Legacy (`qr_payment`, `pix_deposit`) and internal ledger types never notify. Only the terminal statuses `Completed` and `Canceled` notify.
+Only these transaction types notify: `fiat_transfer`, `fast_fiat_transfer`, `deposit`, `liquid_deposit`, `withdraw`, `send_inner_transf`, `receive_inner_transf` and `refund`. Internal ledger types never notify. Only the terminal statuses `Completed` and `Canceled` notify.
 
 Example:
 
@@ -728,12 +725,7 @@ Get all home screen data: balance, rates, settings, KYC status.
       "currency": "USDT"
     }
   ],
-  "qr_pending": false,
   "settings": {
-    "pix_key": null,
-    "min_pix_deposit_brl": null,
-    "pix_deposit_fee": null,
-    "qr_payment_fee": null,
     "minimum_withdrawal_amount_usdt": 5.0,
     "min_deposit_usdt": 5.0,
     "min_payment_amount_ars": 100.0,
@@ -748,8 +740,6 @@ Get all home screen data: balance, rates, settings, KYC status.
     "beta_version": false,
     "features": {
       "alternative_deposit": true,
-      "pix_deposit": false,
-      "qr_payment": false,
       "fast_fiat_transfer": true,
       "fiat_transfer": true,
       "deposit": true,
@@ -768,8 +758,6 @@ Get all home screen data: balance, rates, settings, KYC status.
   ]
 }
 ```
-
-> QR payments and PIX deposits were removed. `qr_pending` is always `false`, `features.pix_deposit` and `features.qr_payment` are always `false`, and `settings.pix_key`, `settings.min_pix_deposit_brl`, `settings.pix_deposit_fee` and `settings.qr_payment_fee` are always `null`. The keys stay in the payload so existing clients keep working.
 
 **`kyc_status` values:** `"Incomplete"`, `"PENDING"`, `"ACCEPTED"`, `"REJECTED"`, `"INCOMPLETE"`
 
@@ -1860,7 +1848,7 @@ Generate a Lightning invoice for the given user. Called by the payer's wallet af
 |-------|-------------|
 | `Pending` | Awaiting processing |
 | `Completed` | Successfully processed |
-| `Processing` | Assigned to a payer (QR flow) |
+| `Processing` | Assigned to a payer |
 | `Canceled` | Canceled by user or system |
 | `User Pending Action` | Waiting for user confirmation |
 | `Paid` | Marked paid |
@@ -1881,8 +1869,6 @@ Request versus response also matters: the existing `PATCH /transactions/<transac
 | `withdraw` | `false` | Cryptocurrency withdrawal to external address |
 | `send_inner_transf` | `false` | Internal transfer sent to another user |
 | `receive_inner_transf` | `true` | Internal transfer received from another user |
-| `qr_payment` | `false` | **Legacy.** QR payment. Appears in history only; it can no longer be created |
-| `pix_deposit` | `true` | **Legacy.** PIX deposit (Brazil). Appears in history only; it can no longer be created |
 
 ### Currency (`CurrencyEnum`)
 

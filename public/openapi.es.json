@@ -76,8 +76,7 @@
             ]
           },
           "type": {
-            "type": "string",
-            "description": "Tipo de transacción. `qr_payment` y `pix_deposit` son legacy: aparecen en el historial de transacciones antiguas pero ya no se pueden crear."
+            "type": "string"
           },
           "type_name": {
             "type": "string"
@@ -1598,7 +1597,7 @@
           "Utils"
         ],
         "summary": "Obtener configuración de la aplicación",
-        "description": "Valores de configuración globales de la plataforma. No requiere autenticación.\n\nLos pagos QR y los depósitos PIX fueron eliminados. Los valores `qr_payment_fee`, `pix_deposit_fee` y `min_pix_deposit_brl` son datos legacy que siguen guardados en la configuración y se devuelven tal cual; ya no activan ninguna funcionalidad y `pix_key` nunca se devuelve.",
+        "description": "Valores de configuración globales de la plataforma. No requiere autenticación.",
         "operationId": "getSettings",
         "responses": {
           "200": {
@@ -1623,10 +1622,7 @@
                     "max_payment_amount_usdt_kyc_3": 5000,
                     "min_deposit_usdt": 1,
                     "min_payment_amount_ars": 10000,
-                    "min_pix_deposit_brl": 100,
                     "minimum_withdrawal_amount_usdt": 10,
-                    "pix_deposit_fee": 0.01,
-                    "qr_payment_fee": 0.02,
                     "referral_reward_fee_percentage": 0.5,
                     "referral_rewards_days": 90,
                     "sell_spread_usdtars_fee": 0.02,
@@ -2471,7 +2467,7 @@
           "Usuarios"
         ],
         "summary": "Datos de pantalla principal",
-        "description": "Retorna todos los datos de la pantalla principal: balance, tasas, configuración y estado de la cuenta.\n\nUsá `Authorization: Bearer <jwt>` o `X-API-Key: <api_token>`. No envíes ambos headers en la misma request.\n\nLos pagos QR y los depósitos PIX fueron eliminados. `qr_pending` es siempre `false`, `features.pix_deposit` y `features.qr_payment` son siempre `false`, y `settings.pix_key`, `settings.min_pix_deposit_brl`, `settings.pix_deposit_fee` y `settings.qr_payment_fee` son siempre `null`. Las claves se mantienen en el payload para que los clientes existentes sigan funcionando.",
+        "description": "Retorna todos los datos de la pantalla principal: balance, tasas, configuración y estado de la cuenta.\n\nUsá `Authorization: Bearer <jwt>` o `X-API-Key: <api_token>`. No envíes ambos headers en la misma request.",
         "operationId": "getHome",
         "security": [
           {
@@ -2500,7 +2496,6 @@
                   "is_payer": true,
                   "kyc_status": "Pending",
                   "kyc_tier": 2,
-                  "qr_pending": false,
                   "rates": [
                     {
                       "buy": 1432.5,
@@ -2593,20 +2588,14 @@
                       "fast_fiat_transfer": true,
                       "fiat_transfer": false,
                       "lightning_deposit": true,
-                      "pix_deposit": false,
                       "pwa_pop_up": true,
-                      "qr_payment": false,
                       "send_inner_transf": true,
                       "show_recent_fav_contacts": true
                     },
                     "fiat_transfer_fee": 0,
                     "min_deposit_usdt": 1,
                     "min_payment_amount_ars": 10000,
-                    "min_pix_deposit_brl": null,
                     "minimum_withdrawal_amount_usdt": 1000,
-                    "pix_deposit_fee": null,
-                    "pix_key": null,
-                    "qr_payment_fee": null,
                     "referral_reward_fee_percentage": 0.5,
                     "referral_rewards_days": 90,
                     "webapp_design": "tamagui-1.0"
@@ -5674,7 +5663,7 @@
     },
     {
       "name": "Webhooks de Negocio",
-      "description": "Webhooks salientes para **cuentas business**. WapuPay envía un `POST` firmado a la URL HTTPS que registres cada vez que una transacción de tu cuenta, o de uno de tus sub-usuarios gestionados, llega a un estado terminal.\n\nSolo el dueño de la cuenta business puede gestionar el webhook. Los sub-usuarios y las cuentas que no son business reciben `403`. Hay un webhook por cuenta: registrar de nuevo reemplaza la URL y **rota el secret**.\n\n### Entrega\n\n- **Método y cuerpo:** `POST` con `Content-Type: application/json`. El cuerpo es el evento descrito más abajo.\n- **Éxito:** cualquier respuesta `2xx`. Cualquier otra respuesta, un timeout o un error de red cuenta como fallo. Las redirecciones (`3xx`) **no** se siguen y cuentan como fallo. El cuerpo de la respuesta se ignora.\n- **Timeouts:** 3 s para conectar y 5 s para leer la respuesta.\n- **Reglas de la URL:** solo `https`, hasta 2048 caracteres, y el host debe resolver únicamente a direcciones públicas. Se rechazan direcciones privadas, loopback, link-local, de CGNAT (`100.64.0.0/10`) y otras no públicas, tanto al registrar como en cada entrega.\n- **Reintentos:** cada ronda de entrega hace hasta 3 intentos, separados por 1 s. Si todos fallan, el evento se reintenta en la ronda siguiente (cada 30 s por defecto). Tras 100 rondas fallidas (unos 50 minutos) el evento se descarta. La entrega es **al menos una vez** y el orden **no está garantizado**.\n\n### Headers\n\n| Header | Valor |\n|--------|-------|\n| `X-Wapu-Timestamp` | Hora Unix en segundos, como string, tomada al firmar la request. |\n| `X-Wapu-Signature` | `sha256=<hex>`, el HMAC-SHA256 de `\"<timestamp>.<cuerpo crudo>\"` usando el secret de tu webhook. |\n| `Content-Type` | `application/json` |\n\nEl secret nunca viaja por la red. `POST /business/webhook` lo devuelve una sola vez.\n\n### Payload del evento\n\n| Campo | Tipo | Descripción |\n|-------|------|-------------|\n| `event_id` | UUID | Único por evento. Úsalo para deduplicar. |\n| `event_type` | string | `transaction.status_changed`, o `webhook.test` en los eventos de prueba. |\n| `created_at` | string | Momento de creación del evento, ISO 8601 UTC. |\n| `business_user_uuid` | UUID | La cuenta business dueña del webhook. |\n| `data.transaction_uuid` | UUID | Id público de la transacción (el mismo `transaction_id` de la API de transacciones). |\n| `data.status` | string | Nuevo estado: `Completed` o `Canceled`. |\n| `data.previous_status` | string o null | Estado anterior al cambio. `null` cuando la transacción se creó ya en un estado terminal. |\n| `data.type` | string | Tipo de transacción, ver la lista más abajo. |\n| `data.amount` | number | Monto **en unidades de `data.currency`**: un decimal para fiat y stablecoins (`1500.0` ARS, `25.5` USDT) y un **número entero de sats** para `SAT` y `LBTC`. |\n| `data.currency` | string | Moneda de `data.amount`. En los depósitos hechos por Lightning o Liquid es `SAT` o `LBTC` y el monto son los sats recibidos. |\n| `data.external_reference` | string o null | La referencia que enviaste al crear la transacción, si la hay. |\n| `data.sub_user_uuid` | UUID o null | El usuario que inició la transacción. Es igual a `business_user_uuid` cuando la inició la propia cuenta business. |\n| `data.updated_at` | string | Última actualización de la transacción, ISO 8601 UTC. |\n\nSolo notifican estos tipos de transacción: `fiat_transfer`, `fast_fiat_transfer`, `deposit`, `liquid_deposit`, `withdraw`, `send_inner_transf`, `receive_inner_transf` y `refund`. Los tipos legacy (`qr_payment`, `pix_deposit`) y los tipos internos del ledger nunca notifican. Solo notifican los estados terminales `Completed` y `Canceled`.\n\nEjemplo:\n\n```json\n{\n  \"event_id\": \"5b1e7c1a-3f0e-4c1b-9d57-0a4b6f2e8c11\",\n  \"event_type\": \"transaction.status_changed\",\n  \"created_at\": \"2026-11-07T14:03:21.123456Z\",\n  \"business_user_uuid\": \"a91c0d2e-7b34-4f6a-8e15-2c9d4b7a1f30\",\n  \"data\": {\n    \"transaction_uuid\": \"f0c2b8d4-1a96-4e7b-b3c5-6d8e9f0a1b2c\",\n    \"status\": \"Completed\",\n    \"previous_status\": \"Pending\",\n    \"type\": \"fiat_transfer\",\n    \"amount\": 1500.0,\n    \"currency\": \"ARS\",\n    \"external_reference\": \"ORDER-123\",\n    \"sub_user_uuid\": \"7de4a3b1-92c0-4d58-a6f7-3e1b5c8d0a49\",\n    \"updated_at\": \"2026-11-07T14:03:20.654321Z\"\n  }\n}\n```\n\n### Qué debe hacer tu receptor\n\n1. **Verificar la firma** sobre el cuerpo **crudo** de la request, no sobre un JSON re-serializado, y comparar en tiempo constante.\n2. **Rechazar timestamps viejos.** Descarta las requests cuyo `X-Wapu-Timestamp` esté a más de 5 minutos de tu reloj. WapuPay no aplica esta ventana por ti.\n3. **Deduplicar por `event_id`.** Los reintentos pueden entregar el mismo evento más de una vez.\n4. Responder `2xx` rápido y hacer el trabajo pesado de forma asíncrona.\n\n```python\nimport hashlib, hmac, time\n\ndef verify(secret: str, raw_body: bytes, signature: str, timestamp: str, max_age: int = 300) -> bool:\n    if abs(time.time() - int(timestamp)) > max_age:  # rechaza requests viejas o repetidas\n        return False\n    signed = timestamp.encode() + b\".\" + raw_body      # bytes crudos tal como llegaron\n    expected = \"sha256=\" + hmac.new(secret.encode(), signed, hashlib.sha256).hexdigest()\n    return hmac.compare_digest(expected, signature)\n```"
+      "description": "Webhooks salientes para **cuentas business**. WapuPay envía un `POST` firmado a la URL HTTPS que registres cada vez que una transacción de tu cuenta, o de uno de tus sub-usuarios gestionados, llega a un estado terminal.\n\nSolo el dueño de la cuenta business puede gestionar el webhook. Los sub-usuarios y las cuentas que no son business reciben `403`. Hay un webhook por cuenta: registrar de nuevo reemplaza la URL y **rota el secret**.\n\n### Entrega\n\n- **Método y cuerpo:** `POST` con `Content-Type: application/json`. El cuerpo es el evento descrito más abajo.\n- **Éxito:** cualquier respuesta `2xx`. Cualquier otra respuesta, un timeout o un error de red cuenta como fallo. Las redirecciones (`3xx`) **no** se siguen y cuentan como fallo. El cuerpo de la respuesta se ignora.\n- **Timeouts:** 3 s para conectar y 5 s para leer la respuesta.\n- **Reglas de la URL:** solo `https`, hasta 2048 caracteres, y el host debe resolver únicamente a direcciones públicas. Se rechazan direcciones privadas, loopback, link-local, de CGNAT (`100.64.0.0/10`) y otras no públicas, tanto al registrar como en cada entrega.\n- **Reintentos:** cada ronda de entrega hace hasta 3 intentos, separados por 1 s. Si todos fallan, el evento se reintenta en la ronda siguiente (cada 30 s por defecto). Tras 100 rondas fallidas (unos 50 minutos) el evento se descarta. La entrega es **al menos una vez** y el orden **no está garantizado**.\n\n### Headers\n\n| Header | Valor |\n|--------|-------|\n| `X-Wapu-Timestamp` | Hora Unix en segundos, como string, tomada al firmar la request. |\n| `X-Wapu-Signature` | `sha256=<hex>`, el HMAC-SHA256 de `\"<timestamp>.<cuerpo crudo>\"` usando el secret de tu webhook. |\n| `Content-Type` | `application/json` |\n\nEl secret nunca viaja por la red. `POST /business/webhook` lo devuelve una sola vez.\n\n### Payload del evento\n\n| Campo | Tipo | Descripción |\n|-------|------|-------------|\n| `event_id` | UUID | Único por evento. Úsalo para deduplicar. |\n| `event_type` | string | `transaction.status_changed`, o `webhook.test` en los eventos de prueba. |\n| `created_at` | string | Momento de creación del evento, ISO 8601 UTC. |\n| `business_user_uuid` | UUID | La cuenta business dueña del webhook. |\n| `data.transaction_uuid` | UUID | Id público de la transacción (el mismo `transaction_id` de la API de transacciones). |\n| `data.status` | string | Nuevo estado: `Completed` o `Canceled`. |\n| `data.previous_status` | string o null | Estado anterior al cambio. `null` cuando la transacción se creó ya en un estado terminal. |\n| `data.type` | string | Tipo de transacción, ver la lista más abajo. |\n| `data.amount` | number | Monto **en unidades de `data.currency`**: un decimal para fiat y stablecoins (`1500.0` ARS, `25.5` USDT) y un **número entero de sats** para `SAT` y `LBTC`. |\n| `data.currency` | string | Moneda de `data.amount`. En los depósitos hechos por Lightning o Liquid es `SAT` o `LBTC` y el monto son los sats recibidos. |\n| `data.external_reference` | string o null | La referencia que enviaste al crear la transacción, si la hay. |\n| `data.sub_user_uuid` | UUID o null | El usuario que inició la transacción. Es igual a `business_user_uuid` cuando la inició la propia cuenta business. |\n| `data.updated_at` | string | Última actualización de la transacción, ISO 8601 UTC. |\n\nSolo notifican estos tipos de transacción: `fiat_transfer`, `fast_fiat_transfer`, `deposit`, `liquid_deposit`, `withdraw`, `send_inner_transf`, `receive_inner_transf` y `refund`. Los tipos internos del ledger nunca notifican. Solo notifican los estados terminales `Completed` y `Canceled`.\n\nEjemplo:\n\n```json\n{\n  \"event_id\": \"5b1e7c1a-3f0e-4c1b-9d57-0a4b6f2e8c11\",\n  \"event_type\": \"transaction.status_changed\",\n  \"created_at\": \"2026-11-07T14:03:21.123456Z\",\n  \"business_user_uuid\": \"a91c0d2e-7b34-4f6a-8e15-2c9d4b7a1f30\",\n  \"data\": {\n    \"transaction_uuid\": \"f0c2b8d4-1a96-4e7b-b3c5-6d8e9f0a1b2c\",\n    \"status\": \"Completed\",\n    \"previous_status\": \"Pending\",\n    \"type\": \"fiat_transfer\",\n    \"amount\": 1500.0,\n    \"currency\": \"ARS\",\n    \"external_reference\": \"ORDER-123\",\n    \"sub_user_uuid\": \"7de4a3b1-92c0-4d58-a6f7-3e1b5c8d0a49\",\n    \"updated_at\": \"2026-11-07T14:03:20.654321Z\"\n  }\n}\n```\n\n### Qué debe hacer tu receptor\n\n1. **Verificar la firma** sobre el cuerpo **crudo** de la request, no sobre un JSON re-serializado, y comparar en tiempo constante.\n2. **Rechazar timestamps viejos.** Descarta las requests cuyo `X-Wapu-Timestamp` esté a más de 5 minutos de tu reloj. WapuPay no aplica esta ventana por ti.\n3. **Deduplicar por `event_id`.** Los reintentos pueden entregar el mismo evento más de una vez.\n4. Responder `2xx` rápido y hacer el trabajo pesado de forma asíncrona.\n\n```python\nimport hashlib, hmac, time\n\ndef verify(secret: str, raw_body: bytes, signature: str, timestamp: str, max_age: int = 300) -> bool:\n    if abs(time.time() - int(timestamp)) > max_age:  # rechaza requests viejas o repetidas\n        return False\n    signed = timestamp.encode() + b\".\" + raw_body      # bytes crudos tal como llegaron\n    expected = \"sha256=\" + hmac.new(secret.encode(), signed, hashlib.sha256).hexdigest()\n    return hmac.compare_digest(expected, signature)\n```"
     }
   ]
 }

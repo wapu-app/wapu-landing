@@ -302,20 +302,10 @@ for (const [locale, spec] of specs) {
     for (const needle of ['X-Wapu-Signature', 'X-Wapu-Timestamp', 'event_id', 'external_reference', 'LBTC']) {
       assert.ok(tag.description.includes(needle), `webhook docs miss ${needle}`);
     }
-    const event = spec.components.schemas.WebhookEvent;
-    assert.deepEqual(event.properties.data.properties.type.enum.filter((type) => /qr_payment|pix_deposit/.test(type)), []);
   });
 
-  test(`${locale}: QR and PIX payload keys are neutral and legacy types are marked`, () => {
-    const home = jsonBody(spec.paths['/users/home'].get, '200').example;
-    assert.equal(home.qr_pending, false);
-    assert.equal(home.settings.pix_key, null);
-    assert.equal(home.settings.qr_payment_fee, null);
-    assert.equal(home.settings.features.pix_deposit, false);
-    assert.equal(home.settings.features.qr_payment, false);
-    assert.ok(!Object.hasOwn(home.settings, 'qr_payment_available'));
-    assert.ok(!Object.hasOwn(jsonBody(spec.paths['/settings'].get, '200').example.settings, 'pix_key'));
-    assert.match(spec.components.schemas.Transaction.properties.type.description, /qr_payment/);
+  test(`${locale}: QR and PIX do not appear in the spec`, () => {
+    assert.doesNotMatch(JSON.stringify(spec), /pix|qr_|\bqr\b/i);
   });
 }
 
@@ -325,9 +315,7 @@ test('es and en specs expose the same webhook paths', () => {
     Object.keys(en.paths).filter((path) => path.startsWith('/business')).sort());
 });
 
-test('api reference markdown documents webhooks and legacy QR/PIX', () => {
+test('api reference markdown documents webhooks and has no QR/PIX', () => {
   assert.match(reference, /#### `POST \/business\/webhook\/test`/);
-  assert.match(reference, /\| `qr_payment` \| `false` \| \*\*Legacy\.\*\*/);
-  assert.match(reference, /\| `pix_deposit` \| `true` \| \*\*Legacy\.\*\*/);
-  assert.doesNotMatch(reference, /pix@example\.com/);
+  assert.doesNotMatch(reference, /pix|qr_|\bqr\b/i);
 });
