@@ -522,8 +522,8 @@ Only the business owner can manage the webhook. Sub-users and non-business accou
 
 - **Method and body:** `POST` with `Content-Type: application/json`. The body is the event described below.
 - **Success:** any `2xx` response. Anything else, a timeout or a network error counts as a failure. Redirects (`3xx`) are **not** followed and count as a failure. The response body is ignored.
-- **Timeouts:** 3 s to connect and 5 s to read the response.
-- **URL rules:** `https` only, at most 2048 characters, and the host must resolve only to public addresses. Private, loopback, link-local, carrier-grade NAT (`100.64.0.0/10`) and other non-public addresses are rejected, both when you register and on every delivery.
+- **Timeouts:** 3 s to connect and 5 s to read the response. Each attempt is also aborted after 10 s in total, so a receiver that trickles bytes cannot hold it open.
+- **URL rules:** `https` only, at most 2048 characters, and the host must resolve only to public addresses. An internationalized (unicode) host is accepted and stored in its punycode form (`https://例え.jp/hook` becomes `https://xn--r8jz45g.jp/hook`), which is the `url` the API returns. A host that cannot be encoded is rejected with `400 Invalid webhook URL`. Private, loopback, link-local, carrier-grade NAT (`100.64.0.0/10`) and other non-public addresses are rejected, both when you register and on every delivery.
 - **Retries:** each delivery round makes up to 3 attempts, 1 s apart. If they all fail, the event is retried on the next round (every 30 s by default). After 100 failed rounds (about 50 minutes) the event is dropped. Delivery is **at least once** and ordering is **not guaranteed**.
 
 #### Headers
@@ -640,14 +640,14 @@ Returns the webhook status. The secret is never returned, only its prefix.
   "url": "https://example.com/wapu-webhook",
   "secret_prefix": "3Kf9sQe1V0",
   "last_delivery": {
-    "status": "delivered",
+    "status": "DELIVERED",
     "at": "2026-11-07T14:03:21.500000Z",
     "status_code": 200
   }
 }
 ```
 
-`last_delivery` is `null` until the first event is queued. `last_delivery.status` is one of `pending`, `delivered`, `canceled` or `dead`. When no webhook was ever registered the response is `{"has_webhook": false, "is_active": false, "url": null, "secret_prefix": null, "last_delivery": null}`.
+`last_delivery` is `null` until the first event is queued. `last_delivery.status` is one of `PENDING`, `DELIVERED`, `CANCELED` or `DEAD` (uppercase). When no webhook was ever registered the response is `{"has_webhook": false, "is_active": false, "url": null, "secret_prefix": null, "last_delivery": null}`.
 
 ---
 
@@ -1647,14 +1647,14 @@ Initiate a cryptocurrency withdrawal to an external address.
 | `amount` | number | yes | Amount to withdraw |
 | `receiver_name` | string | no | Recipient name for record-keeping |
 
-**Response `201`:** Transaction object with `type: "withdrawal"` and `status: "Pending"`.
+**Response `201`:** Transaction object with `type: "withdraw"` and `status: "Pending"`.
 
 ```json
 {
   "transaction_id": "ghi89012-...",
   "status": "Pending",
-  "type": "withdrawal",
-  "type_name": "Withdrawal",
+  "type": "withdraw",
+  "type_name": "Withdraw",
   "is_positive": false,
   "payment_amount": 20.00,
   "currency_taken": "USDT",

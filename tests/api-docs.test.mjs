@@ -299,9 +299,16 @@ for (const [locale, spec] of specs) {
     const created = jsonBody(paths['/business/webhook'].post, '201').example;
     assert.ok(created.secret && created.secret_prefix);
     const tag = spec.tags.find((item) => item.name === spec.paths['/business/webhook'].post.tags[0]);
-    for (const needle of ['X-Wapu-Signature', 'X-Wapu-Timestamp', 'event_id', 'external_reference', 'LBTC']) {
+    for (const needle of ['X-Wapu-Signature', 'X-Wapu-Timestamp', 'event_id', 'external_reference', 'LBTC', '10 s', 'punycode']) {
       assert.ok(tag.description.includes(needle), `webhook docs miss ${needle}`);
     }
+  });
+
+  test(`${locale}: webhook delivery statuses are uppercase like the backend`, () => {
+    const get = spec.paths['/business/webhook'].get;
+    const schema = get.responses['200'].content['application/json'].schema;
+    assert.deepEqual(schema.properties.last_delivery.properties.status.enum, ['PENDING', 'DELIVERED', 'CANCELED', 'DEAD']);
+    assert.equal(jsonBody(get, '200').examples.has_webhook.value.last_delivery.status, 'DELIVERED');
   });
 
   test(`${locale}: QR and PIX do not appear in the spec`, () => {
@@ -318,4 +325,12 @@ test('es and en specs expose the same webhook paths', () => {
 test('api reference markdown documents webhooks and has no QR/PIX', () => {
   assert.match(reference, /#### `POST \/business\/webhook\/test`/);
   assert.doesNotMatch(reference, /pix|qr_|\bqr\b/i);
+});
+
+test('api reference markdown uses backend values for delivery status and withdraw type', () => {
+  assert.match(reference, /`PENDING`, `DELIVERED`, `CANCELED` or `DEAD`/);
+  assert.match(reference, /"status": "DELIVERED"/);
+  assert.doesNotMatch(reference, /"type": "withdrawal"|"type_name": "Withdrawal"/);
+  assert.match(reference, /aborted after 10 s in total/);
+  assert.match(reference, /punycode/);
 });
