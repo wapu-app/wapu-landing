@@ -5394,12 +5394,12 @@
                         "status": {
                           "type": "string",
                           "enum": [
-                            "pending",
-                            "delivered",
-                            "canceled",
-                            "dead"
+                            "PENDING",
+                            "DELIVERED",
+                            "CANCELED",
+                            "DEAD"
                           ],
-                          "description": "Estado de la entrega: `pending`, `delivered`, `canceled` o `dead`"
+                          "description": "Estado de la entrega (en mayúsculas): `PENDING`, `DELIVERED`, `CANCELED` o `DEAD`"
                         },
                         "at": {
                           "type": "string",
@@ -5424,7 +5424,7 @@
                       "url": "https://example.com/wapu-webhook",
                       "secret_prefix": "3Kf9sQe1V0",
                       "last_delivery": {
-                        "status": "delivered",
+                        "status": "DELIVERED",
                         "at": "2026-11-07T14:03:21.500000Z",
                         "status_code": 200
                       }

@@ -640,14 +640,14 @@ Returns the webhook status. The secret is never returned, only its prefix.
   "url": "https://example.com/wapu-webhook",
   "secret_prefix": "3Kf9sQe1V0",
   "last_delivery": {
-    "status": "delivered",
+    "status": "DELIVERED",
     "at": "2026-11-07T14:03:21.500000Z",
     "status_code": 200
   }
 }
 ```
 
-`last_delivery` is `null` until the first event is queued. `last_delivery.status` is one of `pending`, `delivered`, `canceled` or `dead`. When no webhook was ever registered the response is `{"has_webhook": false, "is_active": false, "url": null, "secret_prefix": null, "last_delivery": null}`.
+`last_delivery` is `null` until the first event is queued. `last_delivery.status` is one of `PENDING`, `DELIVERED`, `CANCELED` or `DEAD` (uppercase). When no webhook was ever registered the response is `{"has_webhook": false, "is_active": false, "url": null, "secret_prefix": null, "last_delivery": null}`.
 
 ---
 
