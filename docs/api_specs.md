@@ -1647,14 +1647,14 @@ Initiate a cryptocurrency withdrawal to an external address.
 | `amount` | number | yes | Amount to withdraw |
 | `receiver_name` | string | no | Recipient name for record-keeping |
 
-**Response `201`:** Transaction object with `type: "withdrawal"` and `status: "Pending"`.
+**Response `201`:** Transaction object with `type: "withdraw"` and `status: "Pending"`.
 
 ```json
 {
   "transaction_id": "ghi89012-...",
   "status": "Pending",
-  "type": "withdrawal",
-  "type_name": "Withdrawal",
+  "type": "withdraw",
+  "type_name": "Withdraw",
   "is_positive": false,
   "payment_amount": 20.00,
   "currency_taken": "USDT",
