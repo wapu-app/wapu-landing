@@ -522,8 +522,8 @@ Only the business owner can manage the webhook. Sub-users and non-business accou
 
 - **Method and body:** `POST` with `Content-Type: application/json`. The body is the event described below.
 - **Success:** any `2xx` response. Anything else, a timeout or a network error counts as a failure. Redirects (`3xx`) are **not** followed and count as a failure. The response body is ignored.
-- **Timeouts:** 3 s to connect and 5 s to read the response.
-- **URL rules:** `https` only, at most 2048 characters, and the host must resolve only to public addresses. Private, loopback, link-local, carrier-grade NAT (`100.64.0.0/10`) and other non-public addresses are rejected, both when you register and on every delivery.
+- **Timeouts:** 3 s to connect and 5 s to read the response. Each attempt is also aborted after 10 s in total, so a receiver that trickles bytes cannot hold it open.
+- **URL rules:** `https` only, at most 2048 characters, and the host must resolve only to public addresses. An internationalized (unicode) host is accepted and stored in its punycode form (`https://例え.jp/hook` becomes `https://xn--r8jz45g.jp/hook`), which is the `url` the API returns. A host that cannot be encoded is rejected with `400 Invalid webhook URL`. Private, loopback, link-local, carrier-grade NAT (`100.64.0.0/10`) and other non-public addresses are rejected, both when you register and on every delivery.
 - **Retries:** each delivery round makes up to 3 attempts, 1 s apart. If they all fail, the event is retried on the next round (every 30 s by default). After 100 failed rounds (about 50 minutes) the event is dropped. Delivery is **at least once** and ordering is **not guaranteed**.
 
 #### Headers
