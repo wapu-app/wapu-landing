@@ -3277,7 +3277,7 @@
             }
           },
           "400": {
-            "description": "page o per_page inválidos: page debe ser un entero ≥ 1 y per_page un entero entre 1 y 50.",
+            "description": "Sin page ni per_page devuelve las 30 transacciones más recientes; con limit=all devuelve todas. Devuelve 400 si page no es un entero ≥ 1, per_page no está entre 1 y 50, limit tiene otro valor que all, o se combina limit con page/per_page.",
             "content": {
               "application/json": {
                 "schema": {

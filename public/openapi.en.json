@@ -3277,7 +3277,7 @@
             }
           },
           "400": {
-            "description": "Invalid page or per_page: page must be an integer >= 1 and per_page an integer between 1 and 50.",
+            "description": "Without page or per_page, returns the 30 newest transactions; use limit=all for all. Returns 400 for invalid page (integer >= 1), per_page (integer 1–50), limit other than all, or combining limit with page/per_page.",
             "content": {
               "application/json": {
                 "schema": {
