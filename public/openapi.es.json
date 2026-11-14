@@ -3097,7 +3097,7 @@
           "Transacciones"
         ],
         "summary": "Listar mis transacciones",
-        "description": "Sin page ni per_page: listado legacy completo de transacciones, sin swaps, sin kind y sin pagination. Si enviás cualquiera de esos parámetros: historial paginado que combina transacciones y swaps, del más nuevo al más antiguo; cada elemento lleva kind=transaction o kind=swap. Defaults: page=1, per_page=7; máximo 50. Los depósitos vinculados a swaps históricos se excluyen del modo paginado para no duplicar operaciones. Las compras direct-fiat se siguen con /transactions/direct-fiat/tentatives, no como swaps. Este listado serializa transacciones básicas; tentative_id y los enlaces Liquid del detalle no se agregan aquí.\n\nAutenticación: JWT o API Key (nunca ambos). Las lecturas sólo devuelven operaciones del usuario efectivo. B2B: enviá `X-Wapu-User-Id` con el UUID de un subusuario propio.",
+        "description": "Sin page ni per_page: listado legacy con las 30 transacciones más recientes, sin swaps, sin kind y sin pagination. Con limit=all devuelve todas las transacciones. Si enviás cualquiera de esos parámetros: historial paginado que combina transacciones y swaps, del más nuevo al más antiguo; cada elemento lleva kind=transaction o kind=swap. Defaults: page=1, per_page=7; máximo 50. Los depósitos vinculados a swaps históricos se excluyen del modo paginado para no duplicar operaciones. Las compras direct-fiat se siguen con /transactions/direct-fiat/tentatives, no como swaps. Este listado serializa transacciones básicas; tentative_id y los enlaces Liquid del detalle no se agregan aquí.\n\nAutenticación: JWT o API Key (nunca ambos). Las lecturas sólo devuelven operaciones del usuario efectivo. B2B: enviá `X-Wapu-User-Id` con el UUID de un subusuario propio.",
         "operationId": "listMyTransactions",
         "security": [
           {
@@ -3310,6 +3310,17 @@
               "default": 7
             },
             "description": "Al enviarlo activa la paginación."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Sólo modo legacy. Sin este parámetro, la respuesta trae las 30 transacciones más recientes; con `all` trae todas. Otro valor, o combinarlo con page/per_page, devuelve 400.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "all"
+              ]
+            }
           },
           {
             "$ref": "#/components/parameters/OnBehalfOf"
