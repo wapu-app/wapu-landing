@@ -442,7 +442,15 @@ for (const [locale, spec] of specs) {
     assert.equal(status.suspended_at.format, 'date-time');
     assert.equal(status.suspended_at.nullable, true);
     assert.deepEqual(status.suspension_reason.enum, ['consecutive_delivery_failures', null]);
-    assert.deepEqual(status.last_delivery.properties.status.enum, ['PENDING', 'DELIVERED', 'CANCELED']);
+    assert.deepEqual(status.last_delivery.properties.status.enum, ['PENDING', 'DELIVERED', 'CANCELED', 'DEAD']);
+    assert.match(schemas.WebhookStatus.properties.last_delivery.properties.status.description, /legacy|heredado/);
+    assert.match(schemas.WebhookCreated.properties.secret.description, /only in this response|solo en esta respuesta/);
+    assert.match(schemas.WebhookUpdated.properties.secret.description, /rotation|rotación/);
+    assert.match(paths['/webhook/test'].post.requestBody.content['application/json'].schema.properties.status.description, /`kind`/);
+    for (const name of ['WebhookEvent', 'WebhookTestEvent']) {
+      assert.match(schemas[name].properties.data.properties.tentative_uuid.description, /EXECUTED/);
+    }
+    assert.match(tag.description, /`EXECUTED`/);
     const examples = jsonBody(paths['/webhook'].get, '200').examples;
     assert.equal(examples.suspended.value.is_active, false);
     assert.equal(examples.suspended.value.consecutive_failures, 30);
@@ -452,7 +460,6 @@ for (const [locale, spec] of specs) {
     assert.match(paths['/webhook'].post.description, /reactiv/i);
     assert.match(tag.description, /POST \/webhook/);
     assert.match(tag.description, /not replayed|no se reenvían/);
-    assert.equal(schemas.WebhookStatus.properties.last_delivery.properties.status.enum.includes('DEAD'), false);
   });
 
   test(`${locale}: retry and suspension defaults are documented`, () => {
@@ -499,7 +506,8 @@ test('api reference markdown documents the webhook subscriptions contract and ha
   assert.match(blocks, /"rotate_secret": true/);
   assert.match(blocks, /"suspension_reason": "consecutive_delivery_failures"/);
   assert.match(blocks, /"statuses": \["\*"\]/);
-  assert.match(reference, /`PENDING`, `DELIVERED` or `CANCELED`/);
+  assert.match(reference, /`PENDING`, `DELIVERED`, `CANCELED` or the legacy `DEAD`/);
+  assert.match(reference, /`tentative\.\*` `EXECUTED` event/);
   assert.match(reference, /aborted after 10 s in total/);
   assert.match(reference, /punycode/);
   assert.match(reference, /30th consecutive failed attempt/);

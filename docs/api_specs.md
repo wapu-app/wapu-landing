@@ -570,7 +570,7 @@ The secret is never sent over the wire.
 | `business_user_uuid` | UUID | The business owner account. |
 | `is_test` | boolean | `true` only for events sent by `POST /webhook/test`. Ignore them in your business logic. |
 | `data.transaction_uuid` | UUID or null | Public transaction id. `null` when there is no such entity yet. A `tentative.*` event carries the executed transfer, never the funding deposit. |
-| `data.tentative_uuid` | UUID or null | Public direct-fiat payment id, when the transaction is linked to one. |
+| `data.tentative_uuid` | UUID or null | Public direct-fiat payment id, when the transaction is linked to one. On the creation (`PENDING`) event of a ramp-off transfer it can be `null`, because the link is assigned right after creation; correlate through the `tentative.*` `EXECUTED` event (which carries `transaction_uuid`) or through later transaction events. |
 | `data.sub_user_uuid` | UUID | The user the source object belongs to. It equals `business_user_uuid` when the business itself initiated it. |
 | `data.previous_status` | string or null | Previous status, uppercase. `null` on creation. |
 | `data.amount` | number | Amount **in `data.currency` units**: an **integer number of sats** for `SAT` and `LBTC`, a decimal otherwise (`1500.0` ARS). A tentative reports its ARS amount in pesos. |
@@ -787,7 +787,7 @@ Returns the webhook status and delivery health. The secret is never returned, on
 }
 ```
 
-`is_active` is `false` when the webhook is disabled or suspended. `consecutive_failures` counts failed attempts in a row and resets to 0 on a `2xx`. `suspended_at` and `suspension_reason` are `null` unless the webhook was suspended automatically, in which case `suspension_reason` is `consecutive_delivery_failures`. `last_delivery` is `null` until the first event is queued. `last_delivery.status` is the internal delivery state, one of `PENDING`, `DELIVERED` or `CANCELED` (uppercase), and `status_code` is the receiver's last HTTP status or `null`.
+`is_active` is `false` when the webhook is disabled or suspended. `consecutive_failures` counts failed attempts in a row and resets to 0 on a `2xx`. `suspended_at` and `suspension_reason` are `null` unless the webhook was suspended automatically, in which case `suspension_reason` is `consecutive_delivery_failures`. `last_delivery` is `null` until the first event is queued. `last_delivery.status` is the internal delivery state, one of `PENDING`, `DELIVERED`, `CANCELED` or the legacy `DEAD` (uppercase; historical rows can still return it, new code never sets it), and `status_code` is the receiver's last HTTP status or `null`.
 
 When no webhook was ever registered the response is `{"has_webhook": false, "is_active": false, "url": null, "secret_prefix": null, "consecutive_failures": 0, "suspended_at": null, "suspension_reason": null, "last_delivery": null}`.
 
