@@ -1358,9 +1358,187 @@
           }
         }
       },
+      "WebhookCreated": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "secret": {
+            "type": "string",
+            "description": "Nuevo secret de firma, mostrado una sola vez. Solo aparece tras una rotación."
+          },
+          "secret_prefix": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "WebhookUpdated": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "secret_prefix": {
+            "type": "string"
+          },
+          "secret": {
+            "type": "string",
+            "description": "Nuevo secret de firma, mostrado una sola vez. Solo aparece tras una rotación."
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "WebhookStatus": {
+        "type": "object",
+        "properties": {
+          "has_webhook": {
+            "type": "boolean",
+            "description": "`false` si nunca se registró un webhook"
+          },
+          "is_active": {
+            "type": "boolean",
+            "description": "`false` si está deshabilitado o suspendido. Reactívalo con `POST /webhook`."
+          },
+          "url": {
+            "type": "string",
+            "nullable": true
+          },
+          "secret_prefix": {
+            "type": "string",
+            "nullable": true
+          },
+          "consecutive_failures": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Intentos de entrega fallidos seguidos. Un `2xx` lo reinicia a 0. A los 30 el webhook se suspende."
+          },
+          "suspended_at": {
+            "type": "string",
+            "nullable": true,
+            "description": "Momento de la suspensión automática (ISO 8601 UTC), o `null`",
+            "format": "date-time"
+          },
+          "suspension_reason": {
+            "type": "string",
+            "nullable": true,
+            "description": "`consecutive_delivery_failures` tras una suspensión automática, o `null`",
+            "enum": [
+              "consecutive_delivery_failures",
+              null
+            ]
+          },
+          "last_delivery": {
+            "type": "object",
+            "nullable": true,
+            "description": "Entrega más reciente, o `null`",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "PENDING",
+                  "DELIVERED",
+                  "CANCELED"
+                ],
+                "description": "Estado interno de la entrega (mayúsculas): `PENDING`, `DELIVERED` o `CANCELED`"
+              },
+              "at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Momento del último intento, o de creación si nunca se intentó (ISO 8601 UTC)"
+              },
+              "status_code": {
+                "type": "integer",
+                "nullable": true,
+                "description": "Último status HTTP con el que respondió el receptor, o `null`"
+              }
+            }
+          }
+        }
+      },
+      "WebhookSubscription": {
+        "type": "object",
+        "required": [
+          "kind",
+          "statuses"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "transaction.fiat_transfer",
+              "transaction.fast_fiat_transfer",
+              "transaction.deposit",
+              "transaction.liquid_deposit",
+              "transaction.withdraw",
+              "transaction.send_inner_transf",
+              "transaction.receive_inner_transf",
+              "transaction.refund",
+              "tentative.fiat_transfer",
+              "tentative.fast_fiat_transfer"
+            ],
+            "description": "Kind de evento del catálogo"
+          },
+          "statuses": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "PAID",
+                "TAKEN",
+                "USER_PENDING",
+                "COMPLETED",
+                "CANCELED",
+                "CREATED",
+                "FUNDING_ISSUED",
+                "EXECUTED",
+                "EXPIRED",
+                "SETTLED_TO_BALANCE",
+                "FAILED",
+                "PROCESSING_REFUND",
+                "REFUNDED",
+                "*"
+              ]
+            },
+            "description": "Nombres de estado en mayúsculas válidos para el kind, o `[\"*\"]` para todos los estados actuales y futuros de ese kind"
+          }
+        }
+      },
+      "WebhookSubscriptions": {
+        "type": "object",
+        "required": [
+          "subscriptions"
+        ],
+        "properties": {
+          "subscriptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebhookSubscription"
+            }
+          }
+        }
+      },
       "WebhookEvent": {
         "type": "object",
-        "description": "Cuerpo de una entrega de webhook. Ver el tag **Webhooks de Negocio** para headers, firma y reintentos.",
+        "description": "Cuerpo de una entrega de webhook. Consulta el tag **Webhooks de Negocio** para headers, firma, catálogo y reintentos.",
+        "required": [
+          "event_id",
+          "event_type",
+          "status",
+          "created_at",
+          "business_user_uuid",
+          "is_test",
+          "data"
+        ],
         "properties": {
           "event_id": {
             "type": "string",
@@ -1369,9 +1547,38 @@
           "event_type": {
             "type": "string",
             "enum": [
-              "transaction.status_changed",
-              "webhook.test"
-            ]
+              "transaction.fiat_transfer",
+              "transaction.fast_fiat_transfer",
+              "transaction.deposit",
+              "transaction.liquid_deposit",
+              "transaction.withdraw",
+              "transaction.send_inner_transf",
+              "transaction.receive_inner_transf",
+              "transaction.refund",
+              "tentative.fiat_transfer",
+              "tentative.fast_fiat_transfer"
+            ],
+            "description": "Kind de evento suscrito"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "PAID",
+              "TAKEN",
+              "USER_PENDING",
+              "COMPLETED",
+              "CANCELED",
+              "CREATED",
+              "FUNDING_ISSUED",
+              "EXECUTED",
+              "EXPIRED",
+              "SETTLED_TO_BALANCE",
+              "FAILED",
+              "PROCESSING_REFUND",
+              "REFUNDED"
+            ],
+            "description": "Estado alcanzado, en mayúsculas"
           },
           "created_at": {
             "type": "string",
@@ -1379,54 +1586,44 @@
           },
           "business_user_uuid": {
             "type": "string",
-            "format": "uuid",
-            "nullable": true
+            "format": "uuid"
+          },
+          "is_test": {
+            "type": "boolean",
+            "enum": [
+              false
+            ]
           },
           "data": {
             "type": "object",
             "properties": {
               "transaction_uuid": {
                 "type": "string",
+                "nullable": true,
                 "format": "uuid"
               },
-              "status": {
+              "tentative_uuid": {
                 "type": "string",
-                "enum": [
-                  "Completed",
-                  "Canceled"
-                ]
+                "nullable": true,
+                "format": "uuid"
+              },
+              "sub_user_uuid": {
+                "type": "string",
+                "format": "uuid"
               },
               "previous_status": {
                 "type": "string",
                 "nullable": true
               },
-              "type": {
-                "type": "string",
-                "enum": [
-                  "fiat_transfer",
-                  "fast_fiat_transfer",
-                  "deposit",
-                  "liquid_deposit",
-                  "withdraw",
-                  "send_inner_transf",
-                  "receive_inner_transf",
-                  "refund"
-                ]
-              },
               "amount": {
                 "type": "number",
-                "description": "Decimal en unidades de `currency`; entero de sats cuando `currency` es `SAT` o `LBTC`."
+                "description": "Monto **en unidades de `currency`**: un número entero de sats para `SAT` y `LBTC`, un decimal en los demás casos."
               },
               "currency": {
                 "type": "string"
               },
               "external_reference": {
                 "type": "string",
-                "nullable": true
-              },
-              "sub_user_uuid": {
-                "type": "string",
-                "format": "uuid",
                 "nullable": true
               },
               "updated_at": {
@@ -1437,20 +1634,146 @@
           }
         },
         "example": {
-          "event_id": "5b1e7c1a-3f0e-4c1b-9d57-0a4b6f2e8c11",
-          "event_type": "transaction.status_changed",
-          "created_at": "2026-11-07T14:03:21.123456Z",
-          "business_user_uuid": "a91c0d2e-7b34-4f6a-8e15-2c9d4b7a1f30",
+          "event_id": "e5c370a2-19aa-48ec-a73e-93e096647873",
+          "event_type": "transaction.fiat_transfer",
+          "status": "COMPLETED",
+          "created_at": "2026-11-15T12:00:00Z",
+          "business_user_uuid": "2015f38f-f058-4527-b29d-d5e5d1c042a3",
+          "is_test": false,
           "data": {
-            "transaction_uuid": "f0c2b8d4-1a96-4e7b-b3c5-6d8e9f0a1b2c",
-            "status": "Completed",
-            "previous_status": "Pending",
-            "type": "fiat_transfer",
+            "transaction_uuid": "a244ce39-b5a8-45cd-af8d-0f60e3af9282",
+            "tentative_uuid": "5ee406a2-3c5d-42b5-8aca-5b3d398f2210",
+            "sub_user_uuid": "2015f38f-f058-4527-b29d-d5e5d1c042a3",
+            "previous_status": "TAKEN",
             "amount": 1500.0,
             "currency": "ARS",
-            "external_reference": "ORDER-123",
-            "sub_user_uuid": "7de4a3b1-92c0-4d58-a6f7-3e1b5c8d0a49",
-            "updated_at": "2026-11-07T14:03:20.654321Z"
+            "external_reference": "merchant-order-123",
+            "updated_at": "2026-11-15T12:00:00Z"
+          }
+        }
+      },
+      "WebhookTestEvent": {
+        "type": "object",
+        "description": "Cuerpo de un evento de prueba enviado por `POST /webhook/test`. Mismo envelope que `WebhookEvent`, con `is_test` siempre `true`.",
+        "required": [
+          "event_id",
+          "event_type",
+          "status",
+          "created_at",
+          "business_user_uuid",
+          "is_test",
+          "data"
+        ],
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "event_type": {
+            "type": "string",
+            "enum": [
+              "transaction.fiat_transfer",
+              "transaction.fast_fiat_transfer",
+              "transaction.deposit",
+              "transaction.liquid_deposit",
+              "transaction.withdraw",
+              "transaction.send_inner_transf",
+              "transaction.receive_inner_transf",
+              "transaction.refund",
+              "tentative.fiat_transfer",
+              "tentative.fast_fiat_transfer"
+            ],
+            "description": "Kind de evento suscrito"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "PAID",
+              "TAKEN",
+              "USER_PENDING",
+              "COMPLETED",
+              "CANCELED",
+              "CREATED",
+              "FUNDING_ISSUED",
+              "EXECUTED",
+              "EXPIRED",
+              "SETTLED_TO_BALANCE",
+              "FAILED",
+              "PROCESSING_REFUND",
+              "REFUNDED"
+            ],
+            "description": "Estado alcanzado, en mayúsculas"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "business_user_uuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "is_test": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "transaction_uuid": {
+                "type": "string",
+                "nullable": true,
+                "format": "uuid"
+              },
+              "tentative_uuid": {
+                "type": "string",
+                "nullable": true,
+                "format": "uuid"
+              },
+              "sub_user_uuid": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "previous_status": {
+                "type": "string",
+                "nullable": true
+              },
+              "amount": {
+                "type": "number",
+                "description": "Monto **en unidades de `currency`**: un número entero de sats para `SAT` y `LBTC`, un decimal en los demás casos."
+              },
+              "currency": {
+                "type": "string"
+              },
+              "external_reference": {
+                "type": "string",
+                "nullable": true
+              },
+              "updated_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        },
+        "example": {
+          "event_id": "0b1f6b5e-7f3e-4d77-9a07-0f1d2c9a41aa",
+          "event_type": "tentative.fiat_transfer",
+          "status": "COMPLETED",
+          "created_at": "2026-11-15T12:00:00Z",
+          "business_user_uuid": "2015f38f-f058-4527-b29d-d5e5d1c042a3",
+          "is_test": true,
+          "data": {
+            "transaction_uuid": null,
+            "tentative_uuid": "5ee406a2-3c5d-42b5-8aca-5b3d398f2210",
+            "sub_user_uuid": "2015f38f-f058-4527-b29d-d5e5d1c042a3",
+            "previous_status": null,
+            "amount": 1500.0,
+            "currency": "ARS",
+            "external_reference": "test-order-123",
+            "updated_at": "2026-11-15T12:00:00Z"
           }
         }
       },
@@ -5240,13 +5563,13 @@
         }
       }
     },
-    "/business/webhook": {
+    "/webhook": {
       "post": {
         "tags": [
           "Webhooks de Negocio"
         ],
-        "summary": "Registrar o rotar el webhook de la cuenta business",
-        "description": "Crea el webhook o lo reemplaza (upsert) con la URL indicada, y **rota el secret de firma**. El secret se devuelve **solo en esta respuesta**. En la descripción del tag **Webhooks de Negocio** se explica cómo se firman las entregas. Autentica con Bearer JWT o X-API-Key, no ambos.",
+        "summary": "Registrar, actualizar o reactivar el webhook de la cuenta business",
+        "description": "Crea el destino y devuelve su secret de firma **una sola vez** (`201`). **No suscribe a ningún evento**: llama a continuación a `PUT /webhook/subscriptions`. Llamarlo de nuevo nunca rota el secret ni cambia las selecciones: un webhook activo solo actualiza su URL, y uno deshabilitado o suspendido se **reactiva** (se limpian el contador de fallos y la suspensión), ambos con `200` y sin secret. Usa `PATCH /webhook` para rotar el secret. Autentica con Bearer JWT o X-API-Key, no ambos.",
         "operationId": "registerBusinessWebhook",
         "security": [
           {
@@ -5270,7 +5593,7 @@
                     "type": "string",
                     "format": "uri",
                     "maxLength": 2048,
-                    "description": "URL HTTPS pública que recibirá los eventos. Se rechazan los hosts que resuelven a direcciones no públicas.",
+                    "description": "URL HTTPS pública que recibirá los eventos. Se rechazan hosts que resuelven a direcciones no públicas.",
                     "example": "https://example.com/wapu-webhook"
                   }
                 }
@@ -5280,35 +5603,32 @@
         },
         "responses": {
           "201": {
-            "description": "Webhook registrado",
+            "description": "Webhook creado. No se envía ningún evento de producción hasta definir las suscripciones.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "url": {
-                      "type": "string",
-                      "description": "URL de destino registrada"
-                    },
-                    "secret": {
-                      "type": "string",
-                      "description": "Secret de firma, se muestra una sola vez. Guárdalo de forma segura."
-                    },
-                    "secret_prefix": {
-                      "type": "string",
-                      "description": "Primeros 10 caracteres del secret, para identificarlo"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Mensaje de confirmación"
-                    }
-                  }
+                  "$ref": "#/components/schemas/WebhookCreated"
                 },
                 "example": {
                   "url": "https://example.com/wapu-webhook",
                   "secret": "3Kf9sQe1V0aZb7mXcP2rT8uYhLw4NdGjOiBvCxE5yMk",
                   "secret_prefix": "3Kf9sQe1V0",
-                  "message": "Webhook registrado"
+                  "message": "Webhook registered"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Webhook existente actualizado o reactivado. No se devuelve el secret.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookUpdated"
+                },
+                "example": {
+                  "url": "https://example.com/wapu-webhook",
+                  "secret_prefix": "3Kf9sQe1V0",
+                  "message": "Webhook updated"
                 }
               }
             }
@@ -5349,8 +5669,8 @@
         "tags": [
           "Webhooks de Negocio"
         ],
-        "summary": "Consultar el estado del webhook de la cuenta business",
-        "description": "Devuelve la URL registrada, si está activo y la última entrega. Nunca devuelve el secret, solo su prefijo. Autentica con Bearer JWT o X-API-Key, no ambos.",
+        "summary": "Consultar el estado y la salud de entrega del webhook",
+        "description": "Devuelve la URL registrada, si está activo, el contador de fallos consecutivos, los datos de suspensión y la última entrega. Nunca devuelve el secret, solo su prefijo. Autentica con Bearer JWT o X-API-Key, no ambos.",
         "operationId": "getBusinessWebhook",
         "security": [
           {
@@ -5366,67 +5686,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "has_webhook": {
-                      "type": "boolean",
-                      "description": "`false` si nunca se registró un webhook"
-                    },
-                    "is_active": {
-                      "type": "boolean",
-                      "description": "`false` después de `DELETE /business/webhook`"
-                    },
-                    "url": {
-                      "type": "string",
-                      "nullable": true,
-                      "description": "URL de destino registrada"
-                    },
-                    "secret_prefix": {
-                      "type": "string",
-                      "nullable": true,
-                      "description": "Primeros 10 caracteres del secret, para identificarlo"
-                    },
-                    "last_delivery": {
-                      "type": "object",
-                      "nullable": true,
-                      "description": "Entrega más reciente, o `null`",
-                      "properties": {
-                        "status": {
-                          "type": "string",
-                          "enum": [
-                            "PENDING",
-                            "DELIVERED",
-                            "CANCELED",
-                            "DEAD"
-                          ],
-                          "description": "Estado de la entrega (en mayúsculas): `PENDING`, `DELIVERED`, `CANCELED` o `DEAD`"
-                        },
-                        "at": {
-                          "type": "string",
-                          "format": "date-time",
-                          "description": "Momento del último intento, o de creación si nunca se intentó (ISO 8601 UTC)"
-                        },
-                        "status_code": {
-                          "type": "integer",
-                          "nullable": true,
-                          "description": "Estado HTTP del último intento, o `null`"
-                        }
-                      }
-                    }
-                  }
+                  "$ref": "#/components/schemas/WebhookStatus"
                 },
                 "examples": {
-                  "has_webhook": {
-                    "summary": "Webhook registrado",
+                  "active": {
+                    "summary": "Webhook activo",
                     "value": {
                       "has_webhook": true,
                       "is_active": true,
                       "url": "https://example.com/wapu-webhook",
                       "secret_prefix": "3Kf9sQe1V0",
+                      "consecutive_failures": 0,
+                      "suspended_at": null,
+                      "suspension_reason": null,
                       "last_delivery": {
                         "status": "DELIVERED",
-                        "at": "2026-11-07T14:03:21.500000Z",
+                        "at": "2026-11-15T11:59:30Z",
                         "status_code": 200
+                      }
+                    }
+                  },
+                  "suspended": {
+                    "summary": "Suspendido tras 30 fallos consecutivos",
+                    "value": {
+                      "has_webhook": true,
+                      "is_active": false,
+                      "url": "https://example.com/wapu-webhook",
+                      "secret_prefix": "3Kf9sQe1V0",
+                      "consecutive_failures": 30,
+                      "suspended_at": "2026-11-15T12:00:00Z",
+                      "suspension_reason": "consecutive_delivery_failures",
+                      "last_delivery": {
+                        "status": "PENDING",
+                        "at": "2026-11-15T11:59:30Z",
+                        "status_code": 500
                       }
                     }
                   },
@@ -5437,6 +5730,9 @@
                       "is_active": false,
                       "url": null,
                       "secret_prefix": null,
+                      "consecutive_failures": 0,
+                      "suspended_at": null,
+                      "suspension_reason": null,
                       "last_delivery": null
                     }
                   }
@@ -5466,12 +5762,123 @@
           }
         }
       },
+      "patch": {
+        "tags": [
+          "Webhooks de Negocio"
+        ],
+        "summary": "Actualizar la URL del webhook o rotar su secret",
+        "description": "Envía `url`, `rotate_secret` o ambos. Cambiar solo la URL nunca devuelve el secret. `rotate_secret: true` genera un secret nuevo, devuelto **una sola vez**; la rotación siempre es explícita. No cambia el estado activo, así que no reactiva un webhook suspendido (usa `POST /webhook`). Autentica con Bearer JWT o X-API-Key, no ambos.",
+        "operationId": "updateBusinessWebhook",
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "format": "uri",
+                    "maxLength": 2048,
+                    "description": "URL HTTPS pública que recibirá los eventos. Se rechazan hosts que resuelven a direcciones no públicas.",
+                    "example": "https://example.com/wapu-webhook"
+                  },
+                  "rotate_secret": {
+                    "type": "boolean",
+                    "description": "Envía `true` para generar un nuevo secret de firma"
+                  }
+                }
+              },
+              "examples": {
+                "rotate": {
+                  "summary": "rotate_secret",
+                  "value": {
+                    "rotate_secret": true
+                  }
+                },
+                "url": {
+                  "summary": "url",
+                  "value": {
+                    "url": "https://example.com/wapu-webhook"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook actualizado. `secret` solo aparece cuando `rotate_secret` fue `true`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookUpdated"
+                },
+                "example": {
+                  "url": "https://example.com/wapu-webhook",
+                  "secret_prefix": "3Kf9sQe1V0",
+                  "secret": "3Kf9sQe1V0aZb7mXcP2rT8uYhLw4NdGjOiBvCxE5yMk",
+                  "message": "Webhook updated"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No se envió `url` ni `rotate_secret`, o `url` no es una URL HTTPS pública válida, o `rotate_secret` no es booleano",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales ausentes o inválidas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No es una cuenta business (`Webhooks are only available for business accounts`) o es un sub-usuario gestionado (`Sub-users cannot manage webhooks`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No hay un webhook registrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
       "delete": {
         "tags": [
           "Webhooks de Negocio"
         ],
         "summary": "Deshabilitar el webhook de la cuenta business",
-        "description": "Deshabilita el webhook. Las entregas pendientes se cancelan y no se encolan eventos nuevos. Llamarlo cuando no hay un webhook activo no es un error. Autentica con Bearer JWT o X-API-Key, no ambos.",
+        "description": "Deshabilita el webhook y cancela sus entregas pendientes. Los eventos cancelados nunca se reenvían, y una request ya iniciada no puede retirarse. Las suscripciones se conservan: `POST /webhook` lo reactiva. Autentica con Bearer JWT o X-API-Key, no ambos.",
         "operationId": "deleteBusinessWebhook",
         "security": [
           {
@@ -5523,14 +5930,14 @@
         }
       }
     },
-    "/business/webhook/test": {
-      "post": {
+    "/webhook/subscriptions": {
+      "get": {
         "tags": [
           "Webhooks de Negocio"
         ],
-        "summary": "Enviar un evento de prueba al webhook de la cuenta business",
-        "description": "Envía de forma síncrona un evento `webhook.test` firmado a la URL registrada, para comprobar que tu receptor lo acepta y verifica la firma. Limitado a 5 requests por minuto por cuenta. El mensaje de error nunca incluye detalles de red.",
-        "operationId": "testBusinessWebhook",
+        "summary": "Listar las suscripciones explícitas a eventos del webhook",
+        "description": "Devuelve las selecciones actuales. Es una lista vacía hasta que te suscribes. Autentica con Bearer JWT o X-API-Key, no ambos.",
+        "operationId": "getBusinessWebhookSubscriptions",
         "security": [
           {
             "BearerAuth": []
@@ -5541,22 +5948,148 @@
         ],
         "responses": {
           "200": {
-            "description": "El receptor respondió con un estado `2xx`",
+            "description": "Selecciones actuales",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/WebhookTestResult"
+                  "$ref": "#/components/schemas/WebhookSubscriptions"
+                },
+                "examples": {
+                  "subscribed": {
+                    "summary": "Estados explícitos y comodín",
+                    "value": {
+                      "subscriptions": [
+                        {
+                          "kind": "transaction.fiat_transfer",
+                          "statuses": [
+                            "TAKEN",
+                            "COMPLETED"
+                          ]
+                        },
+                        {
+                          "kind": "tentative.fiat_transfer",
+                          "statuses": [
+                            "*"
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "empty": {
+                    "summary": "Cancelar todas las suscripciones",
+                    "value": {
+                      "subscriptions": []
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales ausentes o inválidas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No es una cuenta business (`Webhooks are only available for business accounts`) o es un sub-usuario gestionado (`Sub-users cannot manage webhooks`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Webhooks de Negocio"
+        ],
+        "summary": "Reemplazar las suscripciones explícitas a eventos del webhook",
+        "description": "Reemplaza de forma atómica toda la selección de un webhook configurado. Cada entrada tiene exactamente `kind` y `statuses`. `[\"*\"]` significa todos los estados actuales y futuros de ese kind y no se puede mezclar con estados explícitos. `{\"subscriptions\": []}` cancela todas las suscripciones sin deshabilitar el destino. Primero se valida toda la request: kinds desconocidos, un estado que no es válido para el kind, duplicados, `statuses` vacío y listas que mezclan comodín y estados explícitos devuelven `400` y dejan intacta la selección anterior. Los eventos pendientes que ya no coinciden se cancelan; volver a suscribirse nunca reenvía el historial. Autentica con Bearer JWT o X-API-Key, no ambos.",
+        "operationId": "replaceBusinessWebhookSubscriptions",
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookSubscriptions"
+              },
+              "examples": {
+                "mixed": {
+                  "summary": "Estados explícitos y comodín",
+                  "value": {
+                    "subscriptions": [
+                      {
+                        "kind": "transaction.fiat_transfer",
+                        "statuses": [
+                          "TAKEN",
+                          "COMPLETED"
+                        ]
+                      },
+                      {
+                        "kind": "tentative.fiat_transfer",
+                        "statuses": [
+                          "*"
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "clear": {
+                  "summary": "Cancelar todas las suscripciones",
+                  "value": {
+                    "subscriptions": []
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Selecciones reemplazadas. Misma representación que `GET /webhook/subscriptions`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookSubscriptions"
                 },
                 "example": {
-                  "delivered": true,
-                  "status_code": 200,
-                  "error": null
+                  "subscriptions": [
+                    {
+                      "kind": "transaction.fiat_transfer",
+                      "statuses": [
+                        "TAKEN",
+                        "COMPLETED"
+                      ]
+                    },
+                    {
+                      "kind": "tentative.fiat_transfer",
+                      "statuses": [
+                        "*"
+                      ]
+                    }
+                  ]
                 }
               }
             }
           },
           "400": {
-            "description": "La URL registrada ya no es un destino HTTPS público válido",
+            "description": "Suscripciones inválidas (kind o estado no soportado, duplicado, `statuses` vacío o mezclado)",
             "content": {
               "application/json": {
                 "schema": {
@@ -5586,7 +6119,206 @@
             }
           },
           "404": {
-            "description": "No hay un webhook activo registrado",
+            "description": "No hay un webhook registrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhook/test": {
+      "post": {
+        "tags": [
+          "Webhooks de Negocio"
+        ],
+        "summary": "Enviar un evento de prueba firmado al webhook de la cuenta business",
+        "description": "Envía de forma síncrona un evento sintético firmado para un par `kind` y `status` soportado, aunque ese par no esté suscrito. El cuerpo es el envelope real con `is_test: true`, un `event_id` aleatorio, `previous_status` en `null` y UUID y montos ficticios. Se firma igual que las entregas de producción. No se guarda nada, y una prueba nunca cambia el contador de fallos, así que no suspende ni reactiva el webhook. Requiere un webhook activo. Limitado a 5 requests por minuto por cuenta. El mensaje de error nunca incluye detalles de red. Autentica con Bearer JWT o X-API-Key, no ambos.",
+        "operationId": "testBusinessWebhook",
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "kind",
+                  "status"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "transaction.fiat_transfer",
+                      "transaction.fast_fiat_transfer",
+                      "transaction.deposit",
+                      "transaction.liquid_deposit",
+                      "transaction.withdraw",
+                      "transaction.send_inner_transf",
+                      "transaction.receive_inner_transf",
+                      "transaction.refund",
+                      "tentative.fiat_transfer",
+                      "tentative.fast_fiat_transfer"
+                    ],
+                    "description": "Kind del evento, del catálogo. Se envía como `event_type`."
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "PENDING",
+                      "PAID",
+                      "TAKEN",
+                      "USER_PENDING",
+                      "COMPLETED",
+                      "CANCELED",
+                      "CREATED",
+                      "FUNDING_ISSUED",
+                      "EXECUTED",
+                      "EXPIRED",
+                      "SETTLED_TO_BALANCE",
+                      "FAILED",
+                      "PROCESSING_REFUND",
+                      "REFUNDED"
+                    ],
+                    "description": "Nombre del estado en mayúsculas, válido para el kind."
+                  }
+                }
+              },
+              "examples": {
+                "transaction_fiat_transfer": {
+                  "summary": "transaction.fiat_transfer",
+                  "value": {
+                    "kind": "transaction.fiat_transfer",
+                    "status": "COMPLETED"
+                  }
+                },
+                "transaction_fast_fiat_transfer": {
+                  "summary": "transaction.fast_fiat_transfer",
+                  "value": {
+                    "kind": "transaction.fast_fiat_transfer",
+                    "status": "COMPLETED"
+                  }
+                },
+                "transaction_deposit": {
+                  "summary": "transaction.deposit",
+                  "value": {
+                    "kind": "transaction.deposit",
+                    "status": "COMPLETED"
+                  }
+                },
+                "transaction_liquid_deposit": {
+                  "summary": "transaction.liquid_deposit",
+                  "value": {
+                    "kind": "transaction.liquid_deposit",
+                    "status": "COMPLETED"
+                  }
+                },
+                "transaction_withdraw": {
+                  "summary": "transaction.withdraw",
+                  "value": {
+                    "kind": "transaction.withdraw",
+                    "status": "COMPLETED"
+                  }
+                },
+                "transaction_send_inner_transf": {
+                  "summary": "transaction.send_inner_transf",
+                  "value": {
+                    "kind": "transaction.send_inner_transf",
+                    "status": "COMPLETED"
+                  }
+                },
+                "transaction_receive_inner_transf": {
+                  "summary": "transaction.receive_inner_transf",
+                  "value": {
+                    "kind": "transaction.receive_inner_transf",
+                    "status": "COMPLETED"
+                  }
+                },
+                "transaction_refund": {
+                  "summary": "transaction.refund",
+                  "value": {
+                    "kind": "transaction.refund",
+                    "status": "COMPLETED"
+                  }
+                },
+                "tentative_fiat_transfer": {
+                  "summary": "tentative.fiat_transfer",
+                  "value": {
+                    "kind": "tentative.fiat_transfer",
+                    "status": "COMPLETED"
+                  }
+                },
+                "tentative_fast_fiat_transfer": {
+                  "summary": "tentative.fast_fiat_transfer",
+                  "value": {
+                    "kind": "tentative.fast_fiat_transfer",
+                    "status": "COMPLETED"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "El receptor respondió con un status `2xx`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookTestResult"
+                },
+                "example": {
+                  "delivered": true,
+                  "status_code": 200,
+                  "error": null
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Falta `kind` o `status`, el par no está en el catálogo, o la URL registrada ya no es un destino HTTPS público válido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales ausentes o inválidas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No es una cuenta business (`Webhooks are only available for business accounts`) o es un sub-usuario gestionado (`Sub-users cannot manage webhooks`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No hay un webhook activo registrado (ninguno, deshabilitado o suspendido)",
             "content": {
               "application/json": {
                 "schema": {
@@ -5596,7 +6328,7 @@
             }
           },
           "429": {
-            "description": "Demasiados pedidos de prueba, intenta de nuevo en un minuto",
+            "description": "Demasiadas pruebas, intenta de nuevo en un minuto",
             "content": {
               "application/json": {
                 "schema": {
@@ -5606,7 +6338,7 @@
             }
           },
           "502": {
-            "description": "No se pudo contactar al receptor o respondió con un estado distinto de `2xx`. `delivered` es `false`; `error` es `Could not reach the webhook URL` o `HTTP <status>`.",
+            "description": "No se pudo contactar al receptor o respondió un status distinto de `2xx`. `delivered` es `false`; `error` es `Could not reach the webhook URL` o `HTTP <status>`.",
             "content": {
               "application/json": {
                 "schema": {
@@ -5614,8 +6346,8 @@
                 },
                 "example": {
                   "delivered": false,
-                  "status_code": null,
-                  "error": "Could not reach the webhook URL"
+                  "status_code": 500,
+                  "error": "HTTP 500"
                 }
               }
             }
@@ -5663,7 +6395,7 @@
     },
     {
       "name": "Webhooks de Negocio",
-      "description": "Webhooks salientes para **cuentas business**. WapuPay envía un `POST` firmado a la URL HTTPS que registres cada vez que una transacción de tu cuenta, o de uno de tus sub-usuarios gestionados, llega a un estado terminal.\n\nSolo el dueño de la cuenta business puede gestionar el webhook. Los sub-usuarios y las cuentas que no son business reciben `403`. Hay un webhook por cuenta: registrar de nuevo reemplaza la URL y **rota el secret**.\n\n### Entrega\n\n- **Método y cuerpo:** `POST` con `Content-Type: application/json`. El cuerpo es el evento descrito más abajo.\n- **Éxito:** cualquier respuesta `2xx`. Cualquier otra respuesta, un timeout o un error de red cuenta como fallo. Las redirecciones (`3xx`) **no** se siguen y cuentan como fallo. El cuerpo de la respuesta se ignora.\n- **Timeouts:** 3 s para conectar y 5 s para leer la respuesta. Además, cada intento se aborta a los 10 s en total, así que un receptor que gotea bytes no lo mantiene abierto.\n- **Reglas de la URL:** solo `https`, hasta 2048 caracteres, y el host debe resolver únicamente a direcciones públicas. Un host internacionalizado (unicode) se acepta y se guarda en punycode (`https://例え.jp/hook` pasa a `https://xn--r8jz45g.jp/hook`), que es la `url` que devuelve la API. Un host que no se puede codificar se rechaza con `400 Invalid webhook URL`. Se rechazan direcciones privadas, loopback, link-local, de CGNAT (`100.64.0.0/10`) y otras no públicas, tanto al registrar como en cada entrega.\n- **Reintentos:** cada ronda de entrega hace hasta 3 intentos, separados por 1 s. Si todos fallan, el evento se reintenta en la ronda siguiente (cada 30 s por defecto). Tras 100 rondas fallidas (unos 50 minutos) el evento se descarta. La entrega es **al menos una vez** y el orden **no está garantizado**.\n\n### Headers\n\n| Header | Valor |\n|--------|-------|\n| `X-Wapu-Timestamp` | Hora Unix en segundos, como string, tomada al firmar la request. |\n| `X-Wapu-Signature` | `sha256=<hex>`, el HMAC-SHA256 de `\"<timestamp>.<cuerpo crudo>\"` usando el secret de tu webhook. |\n| `Content-Type` | `application/json` |\n\nEl secret nunca viaja por la red. `POST /business/webhook` lo devuelve una sola vez.\n\n### Payload del evento\n\n| Campo | Tipo | Descripción |\n|-------|------|-------------|\n| `event_id` | UUID | Único por evento. Úsalo para deduplicar. |\n| `event_type` | string | `transaction.status_changed`, o `webhook.test` en los eventos de prueba. |\n| `created_at` | string | Momento de creación del evento, ISO 8601 UTC. |\n| `business_user_uuid` | UUID | La cuenta business dueña del webhook. |\n| `data.transaction_uuid` | UUID | Id público de la transacción (el mismo `transaction_id` de la API de transacciones). |\n| `data.status` | string | Nuevo estado: `Completed` o `Canceled`. |\n| `data.previous_status` | string o null | Estado anterior al cambio. `null` cuando la transacción se creó ya en un estado terminal. |\n| `data.type` | string | Tipo de transacción, ver la lista más abajo. |\n| `data.amount` | number | Monto **en unidades de `data.currency`**: un decimal para fiat y stablecoins (`1500.0` ARS, `25.5` USDT) y un **número entero de sats** para `SAT` y `LBTC`. |\n| `data.currency` | string | Moneda de `data.amount`. En los depósitos hechos por Lightning o Liquid es `SAT` o `LBTC` y el monto son los sats recibidos. |\n| `data.external_reference` | string o null | La referencia que enviaste al crear la transacción, si la hay. |\n| `data.sub_user_uuid` | UUID o null | El usuario que inició la transacción. Es igual a `business_user_uuid` cuando la inició la propia cuenta business. |\n| `data.updated_at` | string | Última actualización de la transacción, ISO 8601 UTC. |\n\nSolo notifican estos tipos de transacción: `fiat_transfer`, `fast_fiat_transfer`, `deposit`, `liquid_deposit`, `withdraw`, `send_inner_transf`, `receive_inner_transf` y `refund`. Los tipos internos del ledger nunca notifican. Solo notifican los estados terminales `Completed` y `Canceled`.\n\nEjemplo:\n\n```json\n{\n  \"event_id\": \"5b1e7c1a-3f0e-4c1b-9d57-0a4b6f2e8c11\",\n  \"event_type\": \"transaction.status_changed\",\n  \"created_at\": \"2026-11-07T14:03:21.123456Z\",\n  \"business_user_uuid\": \"a91c0d2e-7b34-4f6a-8e15-2c9d4b7a1f30\",\n  \"data\": {\n    \"transaction_uuid\": \"f0c2b8d4-1a96-4e7b-b3c5-6d8e9f0a1b2c\",\n    \"status\": \"Completed\",\n    \"previous_status\": \"Pending\",\n    \"type\": \"fiat_transfer\",\n    \"amount\": 1500.0,\n    \"currency\": \"ARS\",\n    \"external_reference\": \"ORDER-123\",\n    \"sub_user_uuid\": \"7de4a3b1-92c0-4d58-a6f7-3e1b5c8d0a49\",\n    \"updated_at\": \"2026-11-07T14:03:20.654321Z\"\n  }\n}\n```\n\n### Qué debe hacer tu receptor\n\n1. **Verificar la firma** sobre el cuerpo **crudo** de la request, no sobre un JSON re-serializado, y comparar en tiempo constante.\n2. **Rechazar timestamps viejos.** Descarta las requests cuyo `X-Wapu-Timestamp` esté a más de 5 minutos de tu reloj. WapuPay no aplica esta ventana por ti.\n3. **Deduplicar por `event_id`.** Los reintentos pueden entregar el mismo evento más de una vez.\n4. Responder `2xx` rápido y hacer el trabajo pesado de forma asíncrona.\n\n```python\nimport hashlib, hmac, time\n\ndef verify(secret: str, raw_body: bytes, signature: str, timestamp: str, max_age: int = 300) -> bool:\n    if abs(time.time() - int(timestamp)) > max_age:  # rechaza requests viejas o repetidas\n        return False\n    signed = timestamp.encode() + b\".\" + raw_body      # bytes crudos tal como llegaron\n    expected = \"sha256=\" + hmac.new(secret.encode(), signed, hashlib.sha256).hexdigest()\n    return hmac.compare_digest(expected, signature)\n```"
+      "description": "Webhooks salientes para **cuentas business**. Registras un destino HTTPS y luego eliges, de forma explícita, qué eventos recibe. WapuPay envía un `POST` firmado a esa URL cuando una transacción o un pago direct-fiat de tu cuenta, o de uno de tus sub-usuarios gestionados, llega a un estado al que te suscribiste.\n\n**Registrar un destino no te suscribe a nada.** No se envía ningún evento de producción hasta que llames a `PUT /webhook/subscriptions`. El flujo es: `POST /webhook` (guarda el secret), `PUT /webhook/subscriptions` y luego `POST /webhook/test` para comprobar tu receptor.\n\nSolo el dueño de la cuenta business puede gestionar el webhook. Los sub-usuarios y las cuentas que no son business reciben `403`. Hay un webhook por cuenta. Autentica con Bearer JWT o X-API-Key, no ambos.\n\n### Endpoints\n\n| Método y ruta | Propósito |\n|---|---|\n| `POST /webhook` | Crear el destino, actualizar su URL o reactivarlo. |\n| `GET /webhook` | Estado y salud de entrega. Nunca devuelve el secret. |\n| `PATCH /webhook` | Cambiar la URL y/o rotar el secret (`rotate_secret`). |\n| `DELETE /webhook` | Deshabilitarlo. Las entregas pendientes se cancelan. |\n| `GET /webhook/subscriptions` | Selecciones de eventos actuales. |\n| `PUT /webhook/subscriptions` | Reemplazar las selecciones de forma atómica. |\n| `POST /webhook/test` | Enviar un evento sintético firmado. |\n\nEl secret se muestra solo al crear el webhook y al rotarlo. `POST /webhook` sobre un webhook existente **nunca rota el secret**: la rotación es explícita, con `PATCH /webhook` y `{\"rotate_secret\": true}`.\n\n### Catálogo de eventos\n\nCada suscripción es un `kind` más una lista de `statuses`. Los estados son nombres de enum en mayúsculas (`TAKEN`), no los valores de presentación de la API de transacciones (`Processing`). `[\"*\"]` significa todos los estados actuales y futuros de ese kind. Nunca te suscribe a kinds futuros, no se puede mezclar con estados explícitos y no existe un kind comodín global.\n\n| Kind | Estados válidos |\n|---|---|\n| `transaction.fiat_transfer` | `PENDING`, `PAID`, `TAKEN`, `USER_PENDING`, `COMPLETED`, `CANCELED` |\n| `transaction.fast_fiat_transfer` | `PENDING`, `PAID`, `TAKEN`, `USER_PENDING`, `COMPLETED`, `CANCELED` |\n| `transaction.deposit` | `PENDING`, `COMPLETED`, `CANCELED` |\n| `transaction.liquid_deposit` | `PENDING`, `COMPLETED`, `CANCELED` |\n| `transaction.withdraw` | `PENDING`, `COMPLETED`, `CANCELED` |\n| `transaction.send_inner_transf` | `PENDING`, `COMPLETED`, `CANCELED` |\n| `transaction.receive_inner_transf` | `PENDING`, `COMPLETED`, `CANCELED` |\n| `transaction.refund` | `PENDING`, `COMPLETED`, `CANCELED` |\n| `tentative.fiat_transfer` | `CREATED`, `FUNDING_ISSUED`, `EXECUTED`, `COMPLETED`, `CANCELED`, `EXPIRED`, `SETTLED_TO_BALANCE`, `FAILED`, `PROCESSING_REFUND`, `REFUNDED` |\n| `tentative.fast_fiat_transfer` | `CREATED`, `FUNDING_ISSUED`, `EXECUTED`, `COMPLETED`, `CANCELED`, `EXPIRED`, `SETTLED_TO_BALANCE`, `FAILED`, `PROCESSING_REFUND`, `REFUNDED` |\n\nLos eventos `tentative.*` cubren solo los pagos direct-fiat de **ramp-off**. Los swaps y las órdenes de ramp-on no emiten eventos. Se envía un evento cuando se alcanza un estado suscrito, tanto al crear el objeto como en una transición. Un estado repetido, o un cambio solo en otros campos, no envía nada. Al suscribirte nunca se reenvía el historial.\n\n### Entrega\n\n- **Método y cuerpo:** `POST` con `Content-Type: application/json`. El cuerpo es el evento descrito más abajo.\n- **Éxito:** cualquier respuesta `2xx`. Cualquier otra respuesta, un timeout o un error de red cuenta como fallo. Las redirecciones (`3xx`) **no** se siguen y cuentan como fallo. El cuerpo de la respuesta se ignora.\n- **Timeouts:** 3 s para conectar y 5 s para leer la respuesta. Además, cada intento se aborta a los 10 s en total, así que un receptor que gotea bytes no lo mantiene abierto.\n- **Reglas de la URL:** solo `https`, hasta 2048 caracteres, y el host debe resolver únicamente a direcciones públicas. Un host internacionalizado (unicode) se acepta y se guarda en punycode (`https://例え.jp/hook` pasa a `https://xn--r8jz45g.jp/hook`), que es la `url` que devuelve la API. Un host que no se puede codificar se rechaza con `400 Invalid webhook URL`. Se rechazan direcciones privadas, loopback, link-local, de CGNAT (`100.64.0.0/10`) y otras no públicas, tanto al registrar como en cada entrega.\n- **Garantías:** la entrega es **al menos una vez**: deduplica por `event_id`, que se mantiene igual en los reintentos. Los eventos de un mismo endpoint pueden llegar desordenados: usa `data.updated_at` y `data.previous_status`. El cuerpo es una instantánea tomada cuando ocurrió el evento, así que un reintento reenvía los mismos bytes.\n\n### Headers\n\n| Header | Valor |\n|--------|-------|\n| `X-Wapu-Timestamp` | Hora Unix en segundos, como string, tomada al firmar la request. |\n| `X-Wapu-Signature` | `sha256=<hex>`, el HMAC-SHA256 en hexadecimal minúscula de `\"<timestamp>.<cuerpo crudo>\"` usando el secret de tu webhook. |\n| `Content-Type` | `application/json` |\n\nEl secret nunca viaja por la red.\n\n### Payload del evento\n\n| Campo | Tipo | Descripción |\n|-------|------|-------------|\n| `event_id` | UUID | Único por evento, estable entre reintentos. Úsalo para deduplicar. |\n| `event_type` | string | El `kind` suscrito, por ejemplo `transaction.fiat_transfer`. |\n| `status` | string | El estado alcanzado, en mayúsculas, válido para el kind. |\n| `created_at` | string | Momento de creación del evento, ISO 8601 UTC. |\n| `business_user_uuid` | UUID | La cuenta business dueña del webhook. |\n| `is_test` | boolean | `true` solo en los eventos enviados por `POST /webhook/test`. Ignóralos en tu lógica de negocio. |\n| `data.transaction_uuid` | UUID o null | Id público de la transacción. `null` cuando aún no existe esa entidad. Un evento `tentative.*` lleva la transferencia ejecutada, nunca el depósito de fondeo. |\n| `data.tentative_uuid` | UUID o null | Id público del pago direct-fiat, cuando la transacción está vinculada a uno. |\n| `data.sub_user_uuid` | UUID | El usuario al que pertenece el objeto de origen. Es igual a `business_user_uuid` cuando lo inició la propia cuenta business. |\n| `data.previous_status` | string o null | Estado anterior, en mayúsculas. `null` al crearse. |\n| `data.amount` | number | Monto **en unidades de `data.currency`**: un **número entero de sats** para `SAT` y `LBTC`, un decimal en los demás casos (`1500.0` ARS). Una tentativa informa su monto en ARS, en pesos. |\n| `data.currency` | string | Moneda de `data.amount`. |\n| `data.external_reference` | string o null | La referencia que enviaste al crear el objeto, si la hay. |\n| `data.updated_at` | string | Última actualización del objeto de origen, ISO 8601 UTC. |\n\nEl cuerpo nunca contiene identidad bancaria, datos del destinatario, secrets ni ids numéricos internos.\n\n**Evento real** (`is_test: false`), `transaction.fiat_transfer` que llega a `COMPLETED`:\n\n```json\n{\n  \"event_id\": \"e5c370a2-19aa-48ec-a73e-93e096647873\",\n  \"event_type\": \"transaction.fiat_transfer\",\n  \"status\": \"COMPLETED\",\n  \"created_at\": \"2026-11-15T12:00:00Z\",\n  \"business_user_uuid\": \"2015f38f-f058-4527-b29d-d5e5d1c042a3\",\n  \"is_test\": false,\n  \"data\": {\n    \"transaction_uuid\": \"a244ce39-b5a8-45cd-af8d-0f60e3af9282\",\n    \"tentative_uuid\": \"5ee406a2-3c5d-42b5-8aca-5b3d398f2210\",\n    \"sub_user_uuid\": \"2015f38f-f058-4527-b29d-d5e5d1c042a3\",\n    \"previous_status\": \"TAKEN\",\n    \"amount\": 1500.0,\n    \"currency\": \"ARS\",\n    \"external_reference\": \"merchant-order-123\",\n    \"updated_at\": \"2026-11-15T12:00:00Z\"\n  }\n}\n```\n\n**Evento real**, un `transaction.deposit` en sats:\n\n```json\n{\n  \"event_id\": \"71a4e8c3-52d9-4f06-b8e1-3a9c0d5f7b42\",\n  \"event_type\": \"transaction.deposit\",\n  \"status\": \"COMPLETED\",\n  \"created_at\": \"2026-11-15T12:00:00Z\",\n  \"business_user_uuid\": \"2015f38f-f058-4527-b29d-d5e5d1c042a3\",\n  \"is_test\": false,\n  \"data\": {\n    \"transaction_uuid\": \"9b6f2d10-4c7a-4e83-a1b5-0d3c8e7f6a21\",\n    \"tentative_uuid\": null,\n    \"sub_user_uuid\": \"2015f38f-f058-4527-b29d-d5e5d1c042a3\",\n    \"previous_status\": \"PENDING\",\n    \"amount\": 100000,\n    \"currency\": \"SAT\",\n    \"external_reference\": null,\n    \"updated_at\": \"2026-11-15T12:00:00Z\"\n  }\n}\n```\n\n**Evento real**, un pago direct-fiat (`tentative.fiat_transfer`) ejecutado:\n\n```json\n{\n  \"event_id\": \"3c9d7a52-6e41-4b0f-8d1a-7f2e5b9c0a13\",\n  \"event_type\": \"tentative.fiat_transfer\",\n  \"status\": \"EXECUTED\",\n  \"created_at\": \"2026-11-15T12:00:00Z\",\n  \"business_user_uuid\": \"2015f38f-f058-4527-b29d-d5e5d1c042a3\",\n  \"is_test\": false,\n  \"data\": {\n    \"transaction_uuid\": \"a244ce39-b5a8-45cd-af8d-0f60e3af9282\",\n    \"tentative_uuid\": \"5ee406a2-3c5d-42b5-8aca-5b3d398f2210\",\n    \"sub_user_uuid\": \"2015f38f-f058-4527-b29d-d5e5d1c042a3\",\n    \"previous_status\": \"FUNDING_ISSUED\",\n    \"amount\": 1500.0,\n    \"currency\": \"ARS\",\n    \"external_reference\": \"merchant-order-123\",\n    \"updated_at\": \"2026-11-15T12:00:00Z\"\n  }\n}\n```\n\n**Evento de prueba** (`is_test: true`), enviado por `POST /webhook/test` con `{\"kind\": \"tentative.fiat_transfer\", \"status\": \"COMPLETED\"}`. Mismo envelope, con `event_id` aleatorio, `previous_status` en `null`, UUID que no corresponden a ningún registro y montos ficticios. `business_user_uuid` y `sub_user_uuid` son los de tu propia cuenta.\n\n```json\n{\n  \"event_id\": \"0b1f6b5e-7f3e-4d77-9a07-0f1d2c9a41aa\",\n  \"event_type\": \"tentative.fiat_transfer\",\n  \"status\": \"COMPLETED\",\n  \"created_at\": \"2026-11-15T12:00:00Z\",\n  \"business_user_uuid\": \"2015f38f-f058-4527-b29d-d5e5d1c042a3\",\n  \"is_test\": true,\n  \"data\": {\n    \"transaction_uuid\": null,\n    \"tentative_uuid\": \"5ee406a2-3c5d-42b5-8aca-5b3d398f2210\",\n    \"sub_user_uuid\": \"2015f38f-f058-4527-b29d-d5e5d1c042a3\",\n    \"previous_status\": null,\n    \"amount\": 1500.0,\n    \"currency\": \"ARS\",\n    \"external_reference\": \"test-order-123\",\n    \"updated_at\": \"2026-11-15T12:00:00Z\"\n  }\n}\n```\n\n**Evento de prueba** de un `transaction.deposit`, `COMPLETED`:\n\n```json\n{\n  \"event_id\": \"d4f20b9e-8a13-4c75-b6e9-1f7a3c5d2e80\",\n  \"event_type\": \"transaction.deposit\",\n  \"status\": \"COMPLETED\",\n  \"created_at\": \"2026-11-15T12:00:00Z\",\n  \"business_user_uuid\": \"2015f38f-f058-4527-b29d-d5e5d1c042a3\",\n  \"is_test\": true,\n  \"data\": {\n    \"transaction_uuid\": \"c8e1a5f7-3b02-49d6-9a74-e6d0b2f81c35\",\n    \"tentative_uuid\": null,\n    \"sub_user_uuid\": \"2015f38f-f058-4527-b29d-d5e5d1c042a3\",\n    \"previous_status\": null,\n    \"amount\": 100000,\n    \"currency\": \"SAT\",\n    \"external_reference\": \"test-order-123\",\n    \"updated_at\": \"2026-11-15T12:00:00Z\"\n  }\n}\n```\n\nUn evento de prueba se envía aunque el par no esté suscrito. No se guarda nada, y nunca cambia el contador de fallos ni reactiva un webhook suspendido.\n\n### Qué debe hacer tu receptor\n\n1. **Verificar la firma** sobre el cuerpo **crudo** de la request, no sobre un JSON re-serializado, y comparar en tiempo constante.\n2. **Rechazar timestamps viejos.** Descarta las requests cuyo `X-Wapu-Timestamp` esté a más de 5 minutos de tu reloj. WapuPay no aplica esta ventana por ti.\n3. **Deduplicar por `event_id`.** Los reintentos pueden entregar el mismo evento más de una vez.\n4. **Ignorar los eventos con `is_test: true`** en tu lógica de negocio.\n5. Responder `2xx` rápido y hacer el trabajo pesado de forma asíncrona.\n\n```python\nimport hashlib, hmac, time\n\ndef verify(secret: str, raw_body: bytes, signature: str, timestamp: str, max_age: int = 300) -> bool:\n    if abs(time.time() - int(timestamp)) > max_age:  # rechaza requests viejas o repetidas\n        return False\n    signed = timestamp.encode() + b\".\" + raw_body      # bytes crudos tal como llegaron\n    expected = \"sha256=\" + hmac.new(secret.encode(), signed, hashlib.sha256).hexdigest()\n    return hmac.compare_digest(expected, signature)\n```\n\n### Reintentos, cancelación y suspensión\n\n- **Reintentos:** cada ronda de entrega hace hasta **3 intentos**, separados por 1 s. Si todos fallan, el evento se reintenta en la ronda siguiente, cada **30 segundos** por defecto. No hay backoff exponencial.\n- **Los cambios rigen antes de cada intento:** si quitas una suscripción o deshabilitas el webhook, el evento pendiente se cancela y no se envía. Una request ya iniciada no puede retirarse, así que puedes recibir un evento justo después del cambio.\n- **Suspensión automática:** cada intento fallido incrementa un contador de tu endpoint, común a todos los eventos, y un `2xx` lo reinicia a cero. En el **intento fallido consecutivo número 30** el webhook se suspende: `is_active` pasa a `false`, se registran `suspended_at` y `suspension_reason: \"consecutive_delivery_failures\"`, y se cancelan todas las entregas pendientes. La URL, el secret y las suscripciones se conservan, y no se encolan eventos nuevos mientras esté inactivo. No cuentes con un tiempo exacto hasta la suspensión.\n- **Aviso:** WapuPay envía un email a la dirección de la cuenta del dueño business, una vez por suspensión. Es de mejor esfuerzo, así que consulta `GET /webhook` como fuente de verdad (`consecutive_failures`, `suspended_at`, `suspension_reason`).\n- **Reactivación manual:** corrige el destino y llama a `POST /webhook` con la URL. Pone `is_active` en `true`, reinicia `consecutive_failures` a 0, limpia los campos de suspensión y conserva tus suscripciones. Los eventos cancelados por la suspensión o por `DELETE` **no se reenvían**. `PUT`, `PATCH` y el endpoint de prueba nunca reactivan un webhook."
     }
   ]
 }

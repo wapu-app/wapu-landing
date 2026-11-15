@@ -11,12 +11,30 @@ const jsonBody = (operation, status) => operation.responses[status].content['app
 // Response values verified against survivors develop 495cb7ed serializers (not mocked API fixtures).
 const transactionStatuses = ['Pending', 'Completed', 'Canceled', 'Paid', 'Processing', 'User Pending Action'];
 const swapStatuses = ['WAITING_DEPOSIT', 'CONFIRMING', 'SENDING', 'COMPLETED', 'EXPIRED', 'REFUNDING', 'REFUNDED', 'FAILED'];
+const fiat = ['PENDING', 'PAID', 'TAKEN', 'USER_PENDING', 'COMPLETED', 'CANCELED'];
+const basic = ['PENDING', 'COMPLETED', 'CANCELED'];
+const tentative = ['CREATED', 'FUNDING_ISSUED', 'EXECUTED', 'COMPLETED', 'CANCELED', 'EXPIRED',
+  'SETTLED_TO_BALANCE', 'FAILED', 'PROCESSING_REFUND', 'REFUNDED'];
+// Mirrors survivors app/services/webhook_catalog.py (CATALOG).
+const webhookCatalog = {
+  'transaction.fiat_transfer': fiat, 'transaction.fast_fiat_transfer': fiat,
+  'transaction.deposit': basic, 'transaction.liquid_deposit': basic, 'transaction.withdraw': basic,
+  'transaction.send_inner_transf': basic, 'transaction.receive_inner_transf': basic, 'transaction.refund': basic,
+  'tentative.fiat_transfer': tentative, 'tentative.fast_fiat_transfer': tentative,
+};
+const webhookPaths = ['/webhook', '/webhook/subscriptions', '/webhook/test'];
 const reference = readFileSync(new URL('../docs/api_specs.md', import.meta.url), 'utf8');
 
 function checkExampleStatuses(value) {
   if (Array.isArray(value)) {
     value.forEach(checkExampleStatuses);
   } else if (value && typeof value === 'object') {
+    if (typeof value.event_id === 'string' && typeof value.event_type === 'string') {
+      // Webhook envelope: uppercase enum names validated against the catalog, not display statuses.
+      assert.ok(webhookCatalog[value.event_type]?.includes(value.status),
+        `invalid webhook pair: ${value.event_type} ${value.status}`);
+      return;
+    }
     if (typeof value.transaction_id === 'string' && typeof value.status === 'string') {
       assert.ok(transactionStatuses.includes(value.status), `invalid Transaction.status: ${value.status}`);
     }
@@ -287,28 +305,161 @@ test('Spanish and English expose the same operations and structural schemas', ()
   assert.deepEqual(structure(specs[0][1].components), structure(specs[1][1].components));
 });
 
+const jsonBlocks = (text) => [...text.matchAll(/```json\s*\n([\s\S]*?)\n```/g)].map((m) => JSON.parse(m[1]));
+
 for (const [locale, spec] of specs) {
-  test(`${locale}: business webhooks are documented with signature and receiver duties`, () => {
-    const paths = spec.paths;
-    assert.deepEqual(Object.keys(paths['/business/webhook']).sort(), ['delete', 'get', 'post']);
-    assert.ok(paths['/business/webhook/test'].post.responses['429']);
-    assert.ok(paths['/business/webhook/test'].post.responses['502']);
-    for (const operation of [...Object.values(paths['/business/webhook']), paths['/business/webhook/test'].post]) {
-      assert.ok(operation.security.some((item) => Object.hasOwn(item, 'BearerAuth')));
+  const paths = spec.paths;
+  const schemas = spec.components.schemas;
+  const tag = spec.tags.find((item) => /Webhooks/.test(item.name));
+  const requestExamples = (operation) => Object.values(operation.requestBody.content['application/json'].examples)
+    .map((example) => example.value);
+
+  test(`${locale}: webhook management uses /webhook and no /business/webhook path`, () => {
+    assert.deepEqual(Object.keys(paths['/webhook']).sort(), ['delete', 'get', 'patch', 'post']);
+    assert.deepEqual(Object.keys(paths['/webhook/subscriptions']).sort(), ['get', 'put']);
+    assert.deepEqual(Object.keys(paths['/webhook/test']), ['post']);
+    assert.ok(!Object.keys(paths).some((path) => path.startsWith('/business')));
+    assert.doesNotMatch(JSON.stringify(spec), /\/business\/webhook/);
+    assert.doesNotMatch(reference, /\/business\/webhook/);
+    for (const path of webhookPaths) {
+      for (const operation of Object.values(paths[path])) {
+        assert.deepEqual(operation.security, [{ BearerAuth: [] }, { ApiKeyAuth: [] }]);
+        assert.ok(operation.responses['401'] && operation.responses['403']);
+      }
     }
-    const created = jsonBody(paths['/business/webhook'].post, '201').example;
+    assert.ok(paths['/webhook/test'].post.responses['429']);
+    assert.ok(paths['/webhook/test'].post.responses['502']);
+    assert.ok(paths['/webhook/subscriptions'].put.responses['404']);
+    assert.ok(paths['/webhook'].patch.responses['404']);
+  });
+
+  test(`${locale}: registration subscribes to nothing and never rotates the secret`, () => {
+    const post = paths['/webhook'].post;
+    assert.ok(post.responses['201'] && post.responses['200']);
+    const created = jsonBody(post, '201').example;
     assert.ok(created.secret && created.secret_prefix);
-    const tag = spec.tags.find((item) => item.name === spec.paths['/business/webhook'].post.tags[0]);
-    for (const needle of ['X-Wapu-Signature', 'X-Wapu-Timestamp', 'event_id', 'external_reference', 'LBTC', '10 s', 'punycode']) {
-      assert.ok(tag.description.includes(needle), `webhook docs miss ${needle}`);
+    assert.ok(!Object.hasOwn(jsonBody(post, '200').example, 'secret'));
+    assert.match(post.description, /PUT \/webhook\/subscriptions/);
+    assert.match(tag.description, /subscribes you to nothing|no te suscribe a nada/);
+    const empty = jsonBody(paths['/webhook/subscriptions'].get, '200').examples.empty.value;
+    assert.deepEqual(empty, { subscriptions: [] });
+  });
+
+  test(`${locale}: subscriptions schema covers every catalog kind, status and the wildcard`, () => {
+    const entry = schemas.WebhookSubscription;
+    assert.deepEqual(entry.required, ['kind', 'statuses']);
+    assert.equal(entry.additionalProperties, false);
+    assert.deepEqual(entry.properties.kind.enum, Object.keys(webhookCatalog));
+    const statuses = entry.properties.statuses;
+    assert.equal(statuses.type, 'array');
+    assert.equal(statuses.minItems, 1);
+    const allStatuses = [...new Set(Object.values(webhookCatalog).flat())];
+    assert.deepEqual(statuses.items.enum, [...allStatuses, '*']);
+    const body = paths['/webhook/subscriptions'].put.requestBody.content['application/json'];
+    assert.equal(body.schema.$ref, ref('WebhookSubscriptions'));
+    assert.deepEqual(schemas.WebhookSubscriptions.required, ['subscriptions']);
+    const examples = Object.values(body.examples).flatMap((example) => example.value.subscriptions);
+    assert.ok(examples.some((item) => item.statuses.length === 1 && item.statuses[0] === '*'));
+    for (const item of examples) {
+      for (const status of item.statuses) {
+        assert.ok(status === '*' || webhookCatalog[item.kind].includes(status), `${item.kind} ${status}`);
+      }
+    }
+    assert.match(paths['/webhook/subscriptions'].put.description, /\["\*"\]/);
+    assert.ok(Object.hasOwn(body.examples, 'clear'));
+  });
+
+  test(`${locale}: every catalog kind and status pair is documented`, () => {
+    for (const [kind, statuses] of Object.entries(webhookCatalog)) {
+      const row = tag.description.split('\n').find((line) => line.startsWith(`| \`${kind}\` |`));
+      assert.ok(row, `catalog row missing for ${kind}`);
+      for (const status of statuses) assert.ok(row.includes(`\`${status}\``), `${kind} ${status}`);
+      assert.ok(schemas.WebhookEvent.properties.event_type.enum.includes(kind));
+    }
+    assert.match(tag.description, /tentative\.\*/);
+  });
+
+  test(`${locale}: test endpoint requires a catalog kind and status`, () => {
+    const post = paths['/webhook/test'].post;
+    const schema = post.requestBody.content['application/json'].schema;
+    assert.deepEqual(schema.required, ['kind', 'status']);
+    assert.deepEqual(schema.properties.kind.enum, Object.keys(webhookCatalog));
+    const pairs = requestExamples(post);
+    assert.deepEqual(pairs.map((pair) => pair.kind), Object.keys(webhookCatalog));
+    for (const { kind, status } of pairs) assert.ok(webhookCatalog[kind].includes(status));
+    assert.match(post.description, /is_test/);
+    assert.match(post.description, /never changes the failure counter|nunca cambia el contador de fallos/);
+  });
+
+  test(`${locale}: secret rotation is explicit through PATCH rotate_secret`, () => {
+    const patch = paths['/webhook'].patch;
+    const schema = patch.requestBody.content['application/json'].schema;
+    assert.equal(schema.properties.rotate_secret.type, 'boolean');
+    assert.ok(Object.hasOwn(schema.properties, 'url'));
+    assert.ok(requestExamples(patch).some((value) => value.rotate_secret === true));
+    assert.ok(Object.hasOwn(jsonBody(patch, '200').example, 'secret'));
+    assert.ok(patch.responses['400']);
+    assert.match(tag.description, /never rotates the secret|nunca rota el secret/);
+    assert.doesNotMatch(paths['/webhook'].post.description, /rotates the signing secret|rota el secret de firma/);
+  });
+
+  test(`${locale}: real and test payload examples are separate and match the catalog`, () => {
+    const documented = jsonBlocks(tag.description).filter((block) => block.event_id);
+    const real = documented.filter((block) => block.is_test === false);
+    const synthetic = documented.filter((block) => block.is_test === true);
+    assert.ok(real.length >= 2 && synthetic.length >= 2, 'real and test examples must both be documented');
+    for (const block of documented) {
+      assert.ok(webhookCatalog[block.event_type].includes(block.status));
+      assert.deepEqual(Object.keys(block), ['event_id', 'event_type', 'status', 'created_at',
+        'business_user_uuid', 'is_test', 'data']);
+      assert.deepEqual(Object.keys(block.data), ['transaction_uuid', 'tentative_uuid', 'sub_user_uuid',
+        'previous_status', 'amount', 'currency', 'external_reference', 'updated_at']);
+    }
+    for (const block of synthetic) {
+      assert.equal(block.data.previous_status, null);
+      assert.equal(block.data.sub_user_uuid, block.business_user_uuid);
+      assert.ok(block.event_type.startsWith('tentative.') ? block.data.transaction_uuid === null
+        : block.data.tentative_uuid === null || typeof block.data.tentative_uuid === 'string');
+    }
+    assert.ok(real.some((block) => block.event_type.startsWith('tentative.') && block.data.transaction_uuid));
+    assert.ok(real.some((block) => block.data.currency === 'SAT' && Number.isInteger(block.data.amount)));
+    assert.equal(schemas.WebhookEvent.example.is_test, false);
+    assert.equal(schemas.WebhookTestEvent.example.is_test, true);
+    assert.deepEqual(schemas.WebhookEvent.properties.is_test.enum, [false]);
+    assert.deepEqual(schemas.WebhookTestEvent.properties.is_test.enum, [true]);
+    for (const name of ['WebhookEvent', 'WebhookTestEvent']) {
+      assert.deepEqual(schemas[name].properties.event_type.enum, Object.keys(webhookCatalog));
+    }
+    for (const header of ['X-Wapu-Signature', 'X-Wapu-Timestamp', 'sha256=', 'event_id', 'external_reference',
+      'LBTC', '10 s', 'punycode']) {
+      assert.ok(tag.description.includes(header), `webhook docs miss ${header}`);
     }
   });
 
-  test(`${locale}: webhook delivery statuses are uppercase like the backend`, () => {
-    const get = spec.paths['/business/webhook'].get;
-    const schema = get.responses['200'].content['application/json'].schema;
-    assert.deepEqual(schema.properties.last_delivery.properties.status.enum, ['PENDING', 'DELIVERED', 'CANCELED', 'DEAD']);
-    assert.equal(jsonBody(get, '200').examples.has_webhook.value.last_delivery.status, 'DELIVERED');
+  test(`${locale}: status exposes suspension metadata and manual reactivation`, () => {
+    const status = schemas.WebhookStatus.properties;
+    assert.equal(status.consecutive_failures.type, 'integer');
+    assert.equal(status.suspended_at.format, 'date-time');
+    assert.equal(status.suspended_at.nullable, true);
+    assert.deepEqual(status.suspension_reason.enum, ['consecutive_delivery_failures', null]);
+    assert.deepEqual(status.last_delivery.properties.status.enum, ['PENDING', 'DELIVERED', 'CANCELED']);
+    const examples = jsonBody(paths['/webhook'].get, '200').examples;
+    assert.equal(examples.suspended.value.is_active, false);
+    assert.equal(examples.suspended.value.consecutive_failures, 30);
+    assert.equal(examples.suspended.value.suspension_reason, 'consecutive_delivery_failures');
+    assert.ok(examples.suspended.value.suspended_at);
+    assert.equal(examples.active.value.suspension_reason, null);
+    assert.match(paths['/webhook'].post.description, /reactiv/i);
+    assert.match(tag.description, /POST \/webhook/);
+    assert.match(tag.description, /not replayed|no se reenvían/);
+    assert.equal(schemas.WebhookStatus.properties.last_delivery.properties.status.enum.includes('DEAD'), false);
+  });
+
+  test(`${locale}: retry and suspension defaults are documented`, () => {
+    assert.match(tag.description, /\*\*30 seconds\*\*|\*\*30 segundos\*\*/);
+    assert.match(tag.description, /\*\*3 attempts\*\*|\*\*3 intentos\*\*/);
+    assert.match(tag.description, /30th consecutive failed attempt|intento fallido consecutivo número 30/);
+    assert.doesNotMatch(tag.description, /100 failed rounds|100 rondas fallidas/);
   });
 
   test(`${locale}: QR and PIX do not appear in the spec`, () => {
@@ -318,19 +469,41 @@ for (const [locale, spec] of specs) {
 
 test('es and en specs expose the same webhook paths', () => {
   const [[, es], [, en]] = specs;
-  assert.deepEqual(Object.keys(es.paths).filter((path) => path.startsWith('/business')).sort(),
-    Object.keys(en.paths).filter((path) => path.startsWith('/business')).sort());
+  const webhookKeys = (spec) => Object.keys(spec.paths).filter((path) => path.startsWith('/webhook')).sort();
+  assert.deepEqual(webhookKeys(es), webhookPaths);
+  assert.deepEqual(webhookKeys(en), webhookPaths);
 });
 
-test('api reference markdown documents webhooks and has no QR/PIX', () => {
-  assert.match(reference, /#### `POST \/business\/webhook\/test`/);
+test('webhook example checker tells uppercase envelopes from transaction-detail examples', () => {
+  checkExampleStatuses({ event_id: 'x', event_type: 'transaction.fiat_transfer', status: 'TAKEN' });
+  assert.throws(() => checkExampleStatuses({ event_id: 'x', event_type: 'transaction.deposit', status: 'TAKEN' }));
+  assert.throws(() => checkExampleStatuses({ event_id: 'x', event_type: 'transaction.deposit', status: 'Completed' }));
+  assert.throws(() => checkExampleStatuses({ transaction_id: 'x', status: 'COMPLETED' }));
+});
+
+test('api reference markdown documents the webhook subscriptions contract and has no QR/PIX', () => {
+  for (const heading of ['POST /webhook', 'GET /webhook', 'PATCH /webhook', 'DELETE /webhook',
+    'GET /webhook/subscriptions', 'PUT /webhook/subscriptions', 'POST /webhook/test']) {
+    assert.ok(reference.includes(`#### \`${heading}\``), `missing ${heading}`);
+  }
   assert.doesNotMatch(reference, /pix|qr_|\bqr\b/i);
-});
-
-test('api reference markdown uses backend values for delivery status and withdraw type', () => {
-  assert.match(reference, /`PENDING`, `DELIVERED`, `CANCELED` or `DEAD`/);
-  assert.match(reference, /"status": "DELIVERED"/);
-  assert.doesNotMatch(reference, /"type": "withdrawal"|"type_name": "Withdrawal"/);
+  assert.doesNotMatch(reference, /transaction\.status_changed|webhook\.test/);
+  for (const [kind, statuses] of Object.entries(webhookCatalog)) {
+    const row = reference.split('\n').find((line) => line.startsWith(`| \`${kind}\` |`));
+    assert.ok(row, `markdown catalog row missing for ${kind}`);
+    for (const status of statuses) assert.ok(row.includes(`\`${status}\``), `${kind} ${status}`);
+  }
+  const blocks = reference.match(/```json[\s\S]*?```/g).join('\n');
+  assert.match(blocks, /"is_test": true/);
+  assert.match(blocks, /"is_test": false/);
+  assert.match(blocks, /"rotate_secret": true/);
+  assert.match(blocks, /"suspension_reason": "consecutive_delivery_failures"/);
+  assert.match(blocks, /"statuses": \["\*"\]/);
+  assert.match(reference, /`PENDING`, `DELIVERED` or `CANCELED`/);
   assert.match(reference, /aborted after 10 s in total/);
   assert.match(reference, /punycode/);
+  assert.match(reference, /30th consecutive failed attempt/);
+  assert.match(reference, /up to \*\*3 attempts\*\*/);
+  assert.match(reference, /every \*\*30 seconds\*\*/);
+  assert.doesNotMatch(reference, /"type": "withdrawal"|"type_name": "Withdrawal"/);
 });
