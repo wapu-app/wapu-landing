@@ -253,6 +253,9 @@ for (const [locale, spec] of specs) {
     const historyError = paths['/transactions/my-transactions'].get.responses['400'].description;
     assert.match(historyError, /page/);
     assert.match(historyError, /per_page/);
+    assert.match(historyError, /limit/);
+    assert.match(historyError, /limit=all|que all/);
+    assert.match(historyError, locale === 'es' ? /combina limit con page\/per_page/ : /combining limit with page\/per_page/);
     assert.doesNotMatch(historyError, /amount|monto|tentativ|expir|vencid/i);
     const quoteError = paths[`${base}/quote`].get.responses['400'].description;
     assert.match(quoteError, /amount_ars_cents/);
