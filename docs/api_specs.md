@@ -524,9 +524,9 @@ The secret is shown only when the webhook is created and when you rotate it. `PO
 
 #### Event catalog
 
-Each subscription is a `kind` plus a list of `statuses`. Statuses are uppercase enum names (`TAKEN`), not the display values of the transactions API (`Processing`). `["*"]` means every current and future status of that kind. It never subscribes you to future kinds, it cannot be mixed with explicit statuses, and there is no global wildcard kind.
+Each subscription is an `event_type` plus a list of `statuses`. Statuses are uppercase enum names (`TAKEN`), not the display values of the transactions API (`Processing`). `["*"]` means every current and future status of that event type. It never subscribes you to future event types, it cannot be mixed with explicit statuses, and there is no global wildcard event type.
 
-| Kind | Valid statuses |
+| Event type | Valid statuses |
 |---|---|
 | `transaction.fiat_transfer` | `PENDING`, `PAID`, `TAKEN`, `USER_PENDING`, `COMPLETED`, `CANCELED` |
 | `transaction.fast_fiat_transfer` | `PENDING`, `PAID`, `TAKEN`, `USER_PENDING`, `COMPLETED`, `CANCELED` |
@@ -564,8 +564,8 @@ The secret is never sent over the wire.
 | Field | Type | Description |
 |-------|------|-------------|
 | `event_id` | UUID | Unique per event, stable across retries. Use it to deduplicate. |
-| `event_type` | string | The subscribed `kind`, for example `transaction.fiat_transfer`. |
-| `status` | string | The status reached, uppercase, valid for the kind. |
+| `event_type` | string | The subscribed event type, for example `transaction.fiat_transfer`. |
+| `status` | string | The status reached, uppercase, valid for the event type. |
 | `created_at` | string | Event creation time, ISO 8601 UTC. |
 | `business_user_uuid` | UUID | The business owner account. |
 | `is_test` | boolean | `true` only for events sent by `POST /webhook/test`. Ignore them in your business logic. |
@@ -649,7 +649,7 @@ The body never contains bank identity, recipient details, secrets or internal nu
 }
 ```
 
-**Test event** (`is_test: true`), sent by `POST /webhook/test` with `{"kind": "tentative.fiat_transfer", "status": "COMPLETED"}`. Same envelope, with a random `event_id`, `previous_status` `null`, UUIDs that refer to no record and fictitious amounts. `business_user_uuid` and `sub_user_uuid` are your own account.
+**Test event** (`is_test: true`), sent by `POST /webhook/test` with `{"event_type": "tentative.fiat_transfer", "status": "COMPLETED"}`. Same envelope, with a random `event_id`, `previous_status` `null`, UUIDs that refer to no record and fictitious amounts. `business_user_uuid` and `sub_user_uuid` are your own account.
 
 ```json
 {
@@ -847,11 +847,11 @@ Returns the current selections, or an empty list until you subscribe. **Auth:** 
 {
   "subscriptions": [
     {
-      "kind": "transaction.fiat_transfer",
+      "event_type": "transaction.fiat_transfer",
       "statuses": ["TAKEN", "COMPLETED"]
     },
     {
-      "kind": "tentative.fiat_transfer",
+      "event_type": "tentative.fiat_transfer",
       "statuses": ["*"]
     }
   ]
@@ -862,18 +862,18 @@ Returns the current selections, or an empty list until you subscribe. **Auth:** 
 
 #### `PUT /webhook/subscriptions`
 
-Atomically replaces the whole selection. Each entry has exactly `kind` and `statuses` (see the event catalog). `["*"]` means every current and future status of that kind and cannot be mixed with explicit statuses. The request is validated entirely before anything changes: unknown kinds, a status that is not valid for the kind, duplicates, empty `statuses` and mixed wildcard lists return `400` and leave the previous selection untouched. Pending events that no longer match are canceled. Subscribing again never replays history. **Auth:** `[JWT | API Key]` (business owner only).
+Atomically replaces the whole selection. Each entry has exactly `event_type` and `statuses` (see the event catalog). `["*"]` means every current and future status of that event type and cannot be mixed with explicit statuses. The request is validated entirely before anything changes: unknown event types, a status that is not valid for the event type, duplicates, empty `statuses` and mixed wildcard lists return `400` and leave the previous selection untouched. Pending events that no longer match are canceled. Subscribing again never replays history. **Auth:** `[JWT | API Key]` (business owner only).
 
 **Request body:**
 ```json
 {
   "subscriptions": [
     {
-      "kind": "transaction.fiat_transfer",
+      "event_type": "transaction.fiat_transfer",
       "statuses": ["TAKEN", "COMPLETED"]
     },
     {
-      "kind": "tentative.fiat_transfer",
+      "event_type": "tentative.fiat_transfer",
       "statuses": ["*"]
     }
   ]
@@ -890,12 +890,12 @@ Atomically replaces the whole selection. Each entry has exactly `kind` and `stat
 
 #### `POST /webhook/test`
 
-Synchronously sends one signed synthetic event for a supported `kind` and `status`, even if the pair is not subscribed. The body is the real envelope with `is_test: true`. Nothing is stored. It requires an active webhook and never changes the failure counter. Limited to **5 requests per minute** per account. The error message never includes network details. **Auth:** `[JWT | API Key]` (business owner only).
+Synchronously sends one signed synthetic event for a supported `event_type` and `status`, even if the pair is not subscribed. The body is the real envelope with `is_test: true`. Nothing is stored. It requires an active webhook and never changes the failure counter. Limited to **5 requests per minute** per account. The error message never includes network details. **Auth:** `[JWT | API Key]` (business owner only).
 
 **Request body** (both fields are required and must be a pair of the event catalog):
 ```json
 {
-  "kind": "tentative.fiat_transfer",
+  "event_type": "tentative.fiat_transfer",
   "status": "COMPLETED"
 }
 ```
@@ -915,7 +915,7 @@ Synchronously sends one signed synthetic event for a supported `kind` and `statu
 
 | Status | Message |
 |--------|---------|
-| `400` | `kind` or `status` missing, the pair is not in the catalog, or the registered URL is no longer a valid public HTTPS destination |
+| `400` | `event_type` or `status` missing, the pair is not in the catalog, or the registered URL is no longer a valid public HTTPS destination |
 | `401` / `403` | As above |
 | `404` | `"No active webhook registered"` (none, disabled or suspended) |
 | `429` | `"Too many test requests, try again in a minute"` |

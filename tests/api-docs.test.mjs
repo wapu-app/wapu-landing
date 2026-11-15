@@ -345,11 +345,11 @@ for (const [locale, spec] of specs) {
     assert.deepEqual(empty, { subscriptions: [] });
   });
 
-  test(`${locale}: subscriptions schema covers every catalog kind, status and the wildcard`, () => {
+  test(`${locale}: subscriptions schema covers every catalog event_type, status and the wildcard`, () => {
     const entry = schemas.WebhookSubscription;
-    assert.deepEqual(entry.required, ['kind', 'statuses']);
+    assert.deepEqual(entry.required, ['event_type', 'statuses']);
     assert.equal(entry.additionalProperties, false);
-    assert.deepEqual(entry.properties.kind.enum, Object.keys(webhookCatalog));
+    assert.deepEqual(entry.properties.event_type.enum, Object.keys(webhookCatalog));
     const statuses = entry.properties.statuses;
     assert.equal(statuses.type, 'array');
     assert.equal(statuses.minItems, 1);
@@ -362,31 +362,31 @@ for (const [locale, spec] of specs) {
     assert.ok(examples.some((item) => item.statuses.length === 1 && item.statuses[0] === '*'));
     for (const item of examples) {
       for (const status of item.statuses) {
-        assert.ok(status === '*' || webhookCatalog[item.kind].includes(status), `${item.kind} ${status}`);
+        assert.ok(status === '*' || webhookCatalog[item.event_type].includes(status), `${item.event_type} ${status}`);
       }
     }
     assert.match(paths['/webhook/subscriptions'].put.description, /\["\*"\]/);
     assert.ok(Object.hasOwn(body.examples, 'clear'));
   });
 
-  test(`${locale}: every catalog kind and status pair is documented`, () => {
-    for (const [kind, statuses] of Object.entries(webhookCatalog)) {
-      const row = tag.description.split('\n').find((line) => line.startsWith(`| \`${kind}\` |`));
-      assert.ok(row, `catalog row missing for ${kind}`);
-      for (const status of statuses) assert.ok(row.includes(`\`${status}\``), `${kind} ${status}`);
-      assert.ok(schemas.WebhookEvent.properties.event_type.enum.includes(kind));
+  test(`${locale}: every catalog event_type and status pair is documented`, () => {
+    for (const [event_type, statuses] of Object.entries(webhookCatalog)) {
+      const row = tag.description.split('\n').find((line) => line.startsWith(`| \`${event_type}\` |`));
+      assert.ok(row, `catalog row missing for ${event_type}`);
+      for (const status of statuses) assert.ok(row.includes(`\`${status}\``), `${event_type} ${status}`);
+      assert.ok(schemas.WebhookEvent.properties.event_type.enum.includes(event_type));
     }
     assert.match(tag.description, /tentative\.\*/);
   });
 
-  test(`${locale}: test endpoint requires a catalog kind and status`, () => {
+  test(`${locale}: test endpoint requires a catalog event_type and status`, () => {
     const post = paths['/webhook/test'].post;
     const schema = post.requestBody.content['application/json'].schema;
-    assert.deepEqual(schema.required, ['kind', 'status']);
-    assert.deepEqual(schema.properties.kind.enum, Object.keys(webhookCatalog));
+    assert.deepEqual(schema.required, ['event_type', 'status']);
+    assert.deepEqual(schema.properties.event_type.enum, Object.keys(webhookCatalog));
     const pairs = requestExamples(post);
-    assert.deepEqual(pairs.map((pair) => pair.kind), Object.keys(webhookCatalog));
-    for (const { kind, status } of pairs) assert.ok(webhookCatalog[kind].includes(status));
+    assert.deepEqual(pairs.map((pair) => pair.event_type), Object.keys(webhookCatalog));
+    for (const { event_type, status } of pairs) assert.ok(webhookCatalog[event_type].includes(status));
     assert.match(post.description, /is_test/);
     assert.match(post.description, /never changes the failure counter|nunca cambia el contador de fallos/);
   });
@@ -446,7 +446,7 @@ for (const [locale, spec] of specs) {
     assert.match(schemas.WebhookStatus.properties.last_delivery.properties.status.description, /legacy|heredado/);
     assert.match(schemas.WebhookCreated.properties.secret.description, /only in this response|solo en esta respuesta/);
     assert.match(schemas.WebhookUpdated.properties.secret.description, /rotation|rotación/);
-    assert.match(paths['/webhook/test'].post.requestBody.content['application/json'].schema.properties.status.description, /`kind`/);
+    assert.match(paths['/webhook/test'].post.requestBody.content['application/json'].schema.properties.status.description, /`event_type`/);
     for (const name of ['WebhookEvent', 'WebhookTestEvent']) {
       assert.match(schemas[name].properties.data.properties.tentative_uuid.description, /EXECUTED/);
     }
@@ -514,10 +514,10 @@ test('api reference markdown documents the webhook subscriptions contract and ha
   }
   assert.doesNotMatch(reference, /pix|qr_|\bqr\b/i);
   assert.doesNotMatch(reference, /transaction\.status_changed|webhook\.test/);
-  for (const [kind, statuses] of Object.entries(webhookCatalog)) {
-    const row = reference.split('\n').find((line) => line.startsWith(`| \`${kind}\` |`));
-    assert.ok(row, `markdown catalog row missing for ${kind}`);
-    for (const status of statuses) assert.ok(row.includes(`\`${status}\``), `${kind} ${status}`);
+  for (const [event_type, statuses] of Object.entries(webhookCatalog)) {
+    const row = reference.split('\n').find((line) => line.startsWith(`| \`${event_type}\` |`));
+    assert.ok(row, `markdown catalog row missing for ${event_type}`);
+    for (const status of statuses) assert.ok(row.includes(`\`${status}\``), `${event_type} ${status}`);
   }
   const blocks = reference.match(/```json[\s\S]*?```/g).join('\n');
   assert.match(blocks, /"is_test": true/);
