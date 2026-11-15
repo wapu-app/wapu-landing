@@ -3423,7 +3423,7 @@
           "Transactions"
         ],
         "summary": "List my transactions",
-        "description": "Without page or per_page: full legacy transaction list, without swaps, kind or pagination. Send either parameter to get paginated history merging transactions and swaps, newest first; each item has kind=transaction or kind=swap. Defaults: page=1, per_page=7; maximum 50. Deposits linked to historical swaps are excluded in paginated mode to avoid duplicates. Track direct-fiat purchases through /transactions/direct-fiat/tentatives, not as swaps. This list serializes base transactions; tentative_id and Liquid links from the detail endpoint are not added here.\n\nAuthenticate with JWT or API Key (never both). Reads only return the effective user's operations. B2B: send `X-Wapu-User-Id` with an owned sub-user UUID.",
+        "description": "Without page or per_page: legacy list of the 30 newest transactions, without swaps, kind or pagination. With limit=all it returns every transaction. Send either parameter to get paginated history merging transactions and swaps, newest first; each item has kind=transaction or kind=swap. Defaults: page=1, per_page=7; maximum 50. Deposits linked to historical swaps are excluded in paginated mode to avoid duplicates. Track direct-fiat purchases through /transactions/direct-fiat/tentatives, not as swaps. This list serializes base transactions; tentative_id and Liquid links from the detail endpoint are not added here.\n\nAuthenticate with JWT or API Key (never both). Reads only return the effective user's operations. B2B: send `X-Wapu-User-Id` with an owned sub-user UUID.",
         "operationId": "listMyTransactions",
         "security": [
           {
@@ -3603,7 +3603,7 @@
             }
           },
           "400": {
-            "description": "Invalid page or per_page: page must be an integer >= 1 and per_page an integer between 1 and 50.",
+            "description": "Without page or per_page, returns the 30 newest transactions; use limit=all for all. Returns 400 for invalid page (integer >= 1), per_page (integer 1–50), limit other than all, or combining limit with page/per_page.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3636,6 +3636,17 @@
               "default": 7
             },
             "description": "Sending it enables pagination."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Legacy mode only. Without it, the response holds the 30 newest transactions; `all` returns every transaction. Any other value, or combining it with page/per_page, returns 400.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "all"
+              ]
+            }
           },
           {
             "$ref": "#/components/parameters/OnBehalfOf"

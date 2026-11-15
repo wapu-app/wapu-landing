@@ -1212,7 +1212,7 @@ Liquid deposit example:
 
 #### `GET /transactions/my-transactions`
 
-Without `page` or `per_page`, get all transactions for the effective user, newest first, preserving the legacy response below (no swaps, no `kind`, no `pagination`).
+Without `page` or `per_page`, get the **30 newest** transactions for the effective user, newest first, preserving the legacy response below (no swaps, no `kind`, no `pagination`). Send `limit=all` to get every transaction. `limit` accepts only `all`; any other value, or combining it with `page`/`per_page`, returns `400`.
 
 Sending **either** query parameter enables merged paginated history:
 
