@@ -466,9 +466,19 @@ for (const [locale, spec] of specs) {
     assert.match(tag.description, /at least once\*\* while the destination stays active and subscribed|al menos una vez\*\* mientras el destino siga activo y suscrito/);
     assert.match(tag.description, /never replayed|nunca se reenvían/);
     const schema = paths['/webhook'].patch.requestBody.content['application/json'].schema;
-    assert.deepEqual(schema.anyOf, [{ required: ['url'] }, { required: ['rotate_secret'] }]);
+    assert.deepEqual(schema.anyOf, [
+      { required: ['url'], properties: { url: { minLength: 1 } } },
+      { required: ['rotate_secret'], properties: { rotate_secret: { enum: [true] } } },
+    ]);
     assert.equal(paths['/webhook'].patch.requestBody.required, true);
     assert.match(schema.description, /rotate_secret: false/);
+  });
+
+  test(`${locale}: suspended example is CANCELED at suspension time and URL/secret changes reset the streak`, () => {
+    const { value } = jsonBody(paths['/webhook'].get, '200').examples.suspended;
+    assert.equal(value.last_delivery.status, 'CANCELED');
+    assert.equal(value.last_delivery.at, value.suspended_at);
+    assert.match(tag.description, /resets `consecutive_failures` to 0; it never reactivates a suspended one|reinicia `consecutive_failures` a 0; nunca reactiva uno suspendido/);
   });
 
   test(`${locale}: retry and suspension defaults are documented`, () => {
@@ -522,6 +532,10 @@ test('api reference markdown documents the webhook subscriptions contract and ha
   assert.match(reference, /30th consecutive failed attempt/);
   assert.match(reference, /at least once\*\* while the destination stays active and subscribed/);
   assert.match(reference, /`rotate_secret: false` alone is rejected/);
+  assert.match(reference, /resets `consecutive_failures` to 0; it never reactivates a suspended one/);
+  const suspended = JSON.parse(blocks.match(/```json\s*\n(\{[^`]*"suspension_reason": "consecutive_delivery_failures"[^`]*)\n```/)[1]);
+  assert.equal(suspended.last_delivery.status, 'CANCELED');
+  assert.equal(suspended.last_delivery.at, suspended.suspended_at);
   assert.match(reference, /up to \*\*3 attempts\*\*/);
   assert.match(reference, /every \*\*30 seconds\*\*/);
   assert.doesNotMatch(reference, /"type": "withdrawal"|"type_name": "Withdrawal"/);

@@ -722,6 +722,7 @@ def verify(secret: str, raw_body: bytes, signature: str, timestamp: str, max_age
 - **Changes take effect before each attempt:** if you remove a subscription or disable the webhook, the pending event is canceled and not sent. A request that has already started cannot be withdrawn, so you may still receive one event right after the change.
 - **Automatic suspension:** every failed attempt increments one counter for your endpoint, across all events, and a `2xx` resets it to zero. On the **30th consecutive failed attempt** the webhook is suspended: `is_active` becomes `false`, `suspended_at` and `suspension_reason: "consecutive_delivery_failures"` are recorded, and all pending deliveries are canceled. The URL, secret and subscriptions are kept, and no new events are queued while it is inactive. Do not rely on an exact time to suspension.
 - **Notice:** WapuPay emails the business owner's account address once per suspension. It is best effort, so check `GET /webhook` as the source of truth (`consecutive_failures`, `suspended_at`, `suspension_reason`).
+- **Streak reset:** Changing the URL or rotating the secret of an active webhook resets `consecutive_failures` to 0; it never reactivates a suspended one.
 - **Manual reactivation:** fix the destination and call `POST /webhook` with the URL. It sets `is_active` to `true`, resets `consecutive_failures` to 0, clears the suspension fields and keeps your subscriptions. Events canceled by the suspension or by `DELETE` are **not replayed**. `PUT`, `PATCH` and the test endpoint never reactivate a webhook.
 
 ---
@@ -780,8 +781,8 @@ Returns the webhook status and delivery health. The secret is never returned, on
   "suspended_at": "2026-11-15T12:00:00Z",
   "suspension_reason": "consecutive_delivery_failures",
   "last_delivery": {
-    "status": "PENDING",
-    "at": "2026-11-15T11:59:30Z",
+    "status": "CANCELED",
+    "at": "2026-11-15T12:00:00Z",
     "status_code": 500
   }
 }
