@@ -462,6 +462,15 @@ for (const [locale, spec] of specs) {
     assert.match(tag.description, /not replayed|no se reenvían/);
   });
 
+  test(`${locale}: delivery guarantee is qualified and PATCH requires url or rotate_secret`, () => {
+    assert.match(tag.description, /at least once\*\* while the destination stays active and subscribed|al menos una vez\*\* mientras el destino siga activo y suscrito/);
+    assert.match(tag.description, /never replayed|nunca se reenvían/);
+    const schema = paths['/webhook'].patch.requestBody.content['application/json'].schema;
+    assert.deepEqual(schema.anyOf, [{ required: ['url'] }, { required: ['rotate_secret'] }]);
+    assert.equal(paths['/webhook'].patch.requestBody.required, true);
+    assert.match(schema.description, /rotate_secret: false/);
+  });
+
   test(`${locale}: retry and suspension defaults are documented`, () => {
     assert.match(tag.description, /\*\*30 seconds\*\*|\*\*30 segundos\*\*/);
     assert.match(tag.description, /\*\*3 attempts\*\*|\*\*3 intentos\*\*/);
@@ -511,6 +520,8 @@ test('api reference markdown documents the webhook subscriptions contract and ha
   assert.match(reference, /aborted after 10 s in total/);
   assert.match(reference, /punycode/);
   assert.match(reference, /30th consecutive failed attempt/);
+  assert.match(reference, /at least once\*\* while the destination stays active and subscribed/);
+  assert.match(reference, /`rotate_secret: false` alone is rejected/);
   assert.match(reference, /up to \*\*3 attempts\*\*/);
   assert.match(reference, /every \*\*30 seconds\*\*/);
   assert.doesNotMatch(reference, /"type": "withdrawal"|"type_name": "Withdrawal"/);

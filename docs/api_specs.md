@@ -547,7 +547,7 @@ Each subscription is a `kind` plus a list of `statuses`. Statuses are uppercase 
 - **Success:** any `2xx` response. Anything else, a timeout or a network error counts as a failure. Redirects (`3xx`) are **not** followed and count as a failure. The response body is ignored.
 - **Timeouts:** 3 s to connect and 5 s to read the response. Each attempt is also aborted after 10 s in total, so a receiver that trickles bytes cannot hold it open.
 - **URL rules:** `https` only, at most 2048 characters, and the host must resolve only to public addresses. An internationalized (unicode) host is accepted and stored in its punycode form (`https://例え.jp/hook` becomes `https://xn--r8jz45g.jp/hook`), which is the `url` the API returns. A host that cannot be encoded is rejected with `400 Invalid webhook URL`. Private, loopback, link-local, carrier-grade NAT (`100.64.0.0/10`) and other non-public addresses are rejected, both when you register and on every delivery.
-- **Guarantees:** delivery is **at least once**: deduplicate by `event_id`, which is stable across retries. Events of one endpoint may arrive out of order: use `data.updated_at` and `data.previous_status`. The body is a snapshot taken when the event happened, so a retry resends the same bytes.
+- **Guarantees:** delivery is **at least once** while the destination stays active and subscribed: an event can arrive more than once (deduplicate by `event_id`, which is stable across retries), but pending events are canceled, and never replayed, if you unsubscribe from their pair, disable the destination, or it is suspended after 30 consecutive failures. Events of one endpoint may arrive out of order: use `data.updated_at` and `data.previous_status`. The body is a snapshot taken when the event happened, so a retry resends the same bytes.
 
 #### Headers
 
@@ -797,7 +797,7 @@ When no webhook was ever registered the response is `{"has_webhook": false, "is_
 
 Changes the URL, rotates the secret, or both. Rotation is always explicit. It never changes the active state, so it cannot reactivate a suspended webhook. **Auth:** `[JWT | API Key]` (business owner only).
 
-**Request body** (`application/json`): at least one of the fields.
+**Request body** (`application/json`): at least one of the fields. Provide at least one of a non-empty `url` or `rotate_secret: true`; otherwise the response is `400`, and `rotate_secret: false` alone is rejected.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
