@@ -514,9 +514,32 @@ Revoke the API token for a B2B sub-user.
 
 All endpoints in this section accept `[JWT]` or `[API Key]` (not both) and are only available to **business owner** accounts. Non-business accounts get `403 "Webhooks are only available for business accounts"` and managed sub-users get `403 "Sub-users cannot manage webhooks"`.
 
-Outbound webhooks for **business accounts**. WapuPay sends a signed `POST` to the HTTPS URL you register whenever a transaction of your account, or of one of your managed sub-users, reaches a terminal status.
+Outbound webhooks for **business accounts**. You register one HTTPS destination and then choose, explicitly, which events it receives. WapuPay sends a signed `POST` to that URL whenever a transaction or direct-fiat payment of your account, or of one of your managed sub-users, reaches a status you subscribed to.
 
-Only the business owner can manage the webhook. Sub-users and non-business accounts get `403`. There is one webhook per business: registering again replaces the URL and **rotates the secret**.
+**Registering a destination subscribes you to nothing.** No production event is sent until you call `PUT /webhook/subscriptions`. The flow is: `POST /webhook` (store the secret), `PUT /webhook/subscriptions`, then `POST /webhook/test` to check your receiver.
+
+Only the business owner can manage the webhook. Sub-users and non-business accounts get `403`. There is one webhook per business. Authenticate with Bearer JWT or X-API-Key, not both.
+
+The secret is shown only when the webhook is created and when you rotate it. `POST /webhook` on an existing webhook **keeps the secret** unless you send `{"url": "...", "rotate_secret": true}`: rotation is always explicit.
+
+#### Event catalog
+
+Each subscription is an `event_type` plus a list of `statuses`. Statuses are uppercase enum names (`TAKEN`), not the display values of the transactions API (`Processing`). `["*"]` means every current and future status of that event type. It never subscribes you to future event types, it cannot be mixed with explicit statuses, and there is no global wildcard event type.
+
+| Event type | Valid statuses |
+|---|---|
+| `transaction.fiat_transfer` | `PENDING`, `PAID`, `TAKEN`, `USER_PENDING`, `COMPLETED`, `CANCELED` |
+| `transaction.fast_fiat_transfer` | `PENDING`, `PAID`, `TAKEN`, `USER_PENDING`, `COMPLETED`, `CANCELED` |
+| `transaction.deposit` | `PENDING`, `COMPLETED`, `CANCELED` |
+| `transaction.liquid_deposit` | `PENDING`, `COMPLETED`, `CANCELED` |
+| `transaction.withdraw` | `PENDING`, `COMPLETED`, `CANCELED` |
+| `transaction.send_inner_transf` | `PENDING`, `COMPLETED`, `CANCELED` |
+| `transaction.receive_inner_transf` | `PENDING`, `COMPLETED`, `CANCELED` |
+| `transaction.refund` | `PENDING`, `COMPLETED`, `CANCELED` |
+| `tentative.fiat_transfer` | `CREATED`, `FUNDING_ISSUED`, `EXECUTED`, `COMPLETED`, `CANCELED`, `EXPIRED`, `SETTLED_TO_BALANCE`, `FAILED`, `PROCESSING_REFUND`, `REFUNDED` |
+| `tentative.fast_fiat_transfer` | `CREATED`, `FUNDING_ISSUED`, `EXECUTED`, `COMPLETED`, `CANCELED`, `EXPIRED`, `SETTLED_TO_BALANCE`, `FAILED`, `PROCESSING_REFUND`, `REFUNDED` |
+
+`tentative.*` events cover direct-fiat **ramp-off** payments only. Swaps and ramp-on orders emit no events. An event is sent when a subscribed status is reached, on creation as well as on a transition. A repeated status, or a change to other fields alone, sends nothing. The history is never replayed when you subscribe.
 
 #### Delivery
 
@@ -524,66 +547,163 @@ Only the business owner can manage the webhook. Sub-users and non-business accou
 - **Success:** any `2xx` response. Anything else, a timeout or a network error counts as a failure. Redirects (`3xx`) are **not** followed and count as a failure. The response body is ignored.
 - **Timeouts:** 3 s to connect and 5 s to read the response. Each attempt is also aborted after 10 s in total, so a receiver that trickles bytes cannot hold it open.
 - **URL rules:** `https` only, at most 2048 characters, and the host must resolve only to public addresses. An internationalized (unicode) host is accepted and stored in its punycode form (`https://例え.jp/hook` becomes `https://xn--r8jz45g.jp/hook`), which is the `url` the API returns. A host that cannot be encoded is rejected with `400 Invalid webhook URL`. Private, loopback, link-local, carrier-grade NAT (`100.64.0.0/10`) and other non-public addresses are rejected, both when you register and on every delivery.
-- **Retries:** each delivery round makes up to 3 attempts, 1 s apart. If they all fail, the event is retried on the next round (every 30 s by default). After 100 failed rounds (about 50 minutes) the event is dropped. Delivery is **at least once** and ordering is **not guaranteed**.
+- **Guarantees:** delivery is **at least once** while the destination stays active and subscribed: an event can arrive more than once (deduplicate by `event_id`, which is stable across retries), but pending events are canceled, and never replayed, if you unsubscribe from their pair, disable the destination, or it is suspended after 30 consecutive failures. Events of one endpoint may arrive out of order: use `data.updated_at` and `data.previous_status`. The body is a snapshot taken when the event happened, so a retry resends the same bytes.
 
 #### Headers
 
 | Header | Value |
 |--------|-------|
 | `X-Wapu-Timestamp` | Unix time in seconds, as a string, taken when the request was signed. |
-| `X-Wapu-Signature` | `sha256=<hex>`, the HMAC-SHA256 of `"<timestamp>.<raw body>"` using your webhook secret. |
+| `X-Wapu-Signature` | `sha256=<hex>`, the lowercase hex HMAC-SHA256 of `"<timestamp>.<raw body>"` using your webhook secret. |
 | `Content-Type` | `application/json` |
 
-The secret is never sent over the wire. It is returned once by `POST /business/webhook`.
+The secret is never sent over the wire.
 
 #### Event payload
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `event_id` | UUID | Unique per event. Use it to deduplicate. |
-| `event_type` | string | `transaction.status_changed`, or `webhook.test` for test events. |
+| `event_id` | UUID | Unique per event, stable across retries. Use it to deduplicate. |
+| `event_type` | string | The subscribed event type, for example `transaction.fiat_transfer`. |
+| `status` | string | The status reached, uppercase, valid for the event type. |
 | `created_at` | string | Event creation time, ISO 8601 UTC. |
 | `business_user_uuid` | UUID | The business owner account. |
-| `data.transaction_uuid` | UUID | Public transaction id (same as `transaction_id` in the transactions API). |
-| `data.status` | string | New status: `Completed` or `Canceled`. |
-| `data.previous_status` | string or null | Status before the change. `null` when the transaction was created already in a terminal status. |
-| `data.type` | string | Transaction type, see the list below. |
-| `data.amount` | number | Amount **in `data.currency` units**: a decimal for fiat and stablecoins (`1500.0` ARS, `25.5` USDT), an **integer number of sats** for `SAT` and `LBTC`. |
-| `data.currency` | string | Currency of `data.amount`. For deposits made with Lightning or Liquid it is `SAT` or `LBTC` and the amount is the sats received. |
-| `data.external_reference` | string or null | The reference you sent when creating the transaction, if any. |
-| `data.sub_user_uuid` | UUID or null | The user that initiated the transaction. It equals `business_user_uuid` when the business itself initiated it. |
-| `data.updated_at` | string | Last update of the transaction, ISO 8601 UTC. |
+| `is_test` | boolean | `true` only for events sent by `POST /webhook/test`. Ignore them in your business logic. |
+| `data.transaction_uuid` | UUID or null | Public transaction id. `null` when there is no such entity yet. A `tentative.*` event carries the executed transfer, never the funding deposit. |
+| `data.tentative_uuid` | UUID or null | Public direct-fiat payment id, when the transaction is linked to one. On the creation (`PENDING`) event of a ramp-off transfer it can be `null`, because the link is assigned right after creation; correlate through the `tentative.*` `EXECUTED` event (which carries `transaction_uuid`) or through later transaction events. |
+| `data.sub_user_uuid` | UUID | The user the source object belongs to. It equals `business_user_uuid` when the business itself initiated it. |
+| `data.previous_status` | string or null | Previous status, uppercase. `null` on creation. |
+| `data.amount` | number | Amount **in `data.currency` units**: an **integer number of sats** for `SAT` and `LBTC`, a decimal otherwise (`1500.0` ARS). A tentative reports its ARS amount in pesos. |
+| `data.currency` | string | Currency of `data.amount`. |
+| `data.external_reference` | string or null | The reference you sent when creating the object, if any. |
+| `data.updated_at` | string | Last update of the source object, ISO 8601 UTC. |
 
-Only these transaction types notify: `fiat_transfer`, `fast_fiat_transfer`, `deposit`, `liquid_deposit`, `withdraw`, `send_inner_transf`, `receive_inner_transf` and `refund`. Internal ledger types never notify. Only the terminal statuses `Completed` and `Canceled` notify.
+The body never contains bank identity, recipient details, secrets or internal numeric ids.
 
-Example:
+**Real event** (`is_test: false`), `transaction.fiat_transfer` reaching `COMPLETED`:
 
 ```json
 {
-  "event_id": "5b1e7c1a-3f0e-4c1b-9d57-0a4b6f2e8c11",
-  "event_type": "transaction.status_changed",
-  "created_at": "2026-11-07T14:03:21.123456Z",
-  "business_user_uuid": "a91c0d2e-7b34-4f6a-8e15-2c9d4b7a1f30",
+  "event_id": "e5c370a2-19aa-48ec-a73e-93e096647873",
+  "event_type": "transaction.fiat_transfer",
+  "status": "COMPLETED",
+  "created_at": "2026-11-15T12:00:00Z",
+  "business_user_uuid": "2015f38f-f058-4527-b29d-d5e5d1c042a3",
+  "is_test": false,
   "data": {
-    "transaction_uuid": "f0c2b8d4-1a96-4e7b-b3c5-6d8e9f0a1b2c",
-    "status": "Completed",
-    "previous_status": "Pending",
-    "type": "fiat_transfer",
+    "transaction_uuid": "a244ce39-b5a8-45cd-af8d-0f60e3af9282",
+    "tentative_uuid": "5ee406a2-3c5d-42b5-8aca-5b3d398f2210",
+    "sub_user_uuid": "2015f38f-f058-4527-b29d-d5e5d1c042a3",
+    "previous_status": "TAKEN",
     "amount": 1500.0,
     "currency": "ARS",
-    "external_reference": "ORDER-123",
-    "sub_user_uuid": "7de4a3b1-92c0-4d58-a6f7-3e1b5c8d0a49",
-    "updated_at": "2026-11-07T14:03:20.654321Z"
+    "external_reference": "merchant-order-123",
+    "updated_at": "2026-11-15T12:00:00Z"
   }
 }
 ```
+
+**Real event**, a `transaction.deposit` in sats:
+
+```json
+{
+  "event_id": "71a4e8c3-52d9-4f06-b8e1-3a9c0d5f7b42",
+  "event_type": "transaction.deposit",
+  "status": "COMPLETED",
+  "created_at": "2026-11-15T12:00:00Z",
+  "business_user_uuid": "2015f38f-f058-4527-b29d-d5e5d1c042a3",
+  "is_test": false,
+  "data": {
+    "transaction_uuid": "9b6f2d10-4c7a-4e83-a1b5-0d3c8e7f6a21",
+    "tentative_uuid": null,
+    "sub_user_uuid": "2015f38f-f058-4527-b29d-d5e5d1c042a3",
+    "previous_status": "PENDING",
+    "amount": 100000,
+    "currency": "SAT",
+    "external_reference": null,
+    "updated_at": "2026-11-15T12:00:00Z"
+  }
+}
+```
+
+**Real event**, a direct-fiat payment (`tentative.fiat_transfer`) that was executed:
+
+```json
+{
+  "event_id": "3c9d7a52-6e41-4b0f-8d1a-7f2e5b9c0a13",
+  "event_type": "tentative.fiat_transfer",
+  "status": "EXECUTED",
+  "created_at": "2026-11-15T12:00:00Z",
+  "business_user_uuid": "2015f38f-f058-4527-b29d-d5e5d1c042a3",
+  "is_test": false,
+  "data": {
+    "transaction_uuid": "a244ce39-b5a8-45cd-af8d-0f60e3af9282",
+    "tentative_uuid": "5ee406a2-3c5d-42b5-8aca-5b3d398f2210",
+    "sub_user_uuid": "2015f38f-f058-4527-b29d-d5e5d1c042a3",
+    "previous_status": "FUNDING_ISSUED",
+    "amount": 1500.0,
+    "currency": "ARS",
+    "external_reference": "merchant-order-123",
+    "updated_at": "2026-11-15T12:00:00Z"
+  }
+}
+```
+
+**Test event** (`is_test: true`), sent by `POST /webhook/test` with `{"event_type": "tentative.fiat_transfer", "status": "COMPLETED"}`. Same envelope, with a random `event_id`, `previous_status` `null`, UUIDs that refer to no record and fictitious amounts. `business_user_uuid` and `sub_user_uuid` are your own account.
+
+```json
+{
+  "event_id": "0b1f6b5e-7f3e-4d77-9a07-0f1d2c9a41aa",
+  "event_type": "tentative.fiat_transfer",
+  "status": "COMPLETED",
+  "created_at": "2026-11-15T12:00:00Z",
+  "business_user_uuid": "2015f38f-f058-4527-b29d-d5e5d1c042a3",
+  "is_test": true,
+  "data": {
+    "transaction_uuid": null,
+    "tentative_uuid": "5ee406a2-3c5d-42b5-8aca-5b3d398f2210",
+    "sub_user_uuid": "2015f38f-f058-4527-b29d-d5e5d1c042a3",
+    "previous_status": null,
+    "amount": 1500.0,
+    "currency": "ARS",
+    "external_reference": "test-order-123",
+    "updated_at": "2026-11-15T12:00:00Z"
+  }
+}
+```
+
+**Test event** for a `transaction.deposit`, `COMPLETED`:
+
+```json
+{
+  "event_id": "d4f20b9e-8a13-4c75-b6e9-1f7a3c5d2e80",
+  "event_type": "transaction.deposit",
+  "status": "COMPLETED",
+  "created_at": "2026-11-15T12:00:00Z",
+  "business_user_uuid": "2015f38f-f058-4527-b29d-d5e5d1c042a3",
+  "is_test": true,
+  "data": {
+    "transaction_uuid": "c8e1a5f7-3b02-49d6-9a74-e6d0b2f81c35",
+    "tentative_uuid": null,
+    "sub_user_uuid": "2015f38f-f058-4527-b29d-d5e5d1c042a3",
+    "previous_status": null,
+    "amount": 100000,
+    "currency": "SAT",
+    "external_reference": "test-order-123",
+    "updated_at": "2026-11-15T12:00:00Z"
+  }
+}
+```
+
+A test event is sent even if the pair is not subscribed. Nothing is stored, and it never changes the failure counter or reactivates a suspended webhook.
 
 #### What your receiver must do
 
 1. **Verify the signature** over the **raw** request body, not over re-serialized JSON, and compare in constant time.
 2. **Reject stale timestamps.** Discard requests whose `X-Wapu-Timestamp` is more than 5 minutes away from your clock. WapuPay does not enforce this window for you.
 3. **Deduplicate by `event_id`.** Retries can deliver the same event more than once.
-4. Answer `2xx` quickly and do the heavy work asynchronously.
+4. **Ignore `is_test: true`** events in your business logic.
+5. Answer `2xx` quickly and do the heavy work asynchronously.
 
 ```python
 import hashlib, hmac, time
@@ -596,19 +716,38 @@ def verify(secret: str, raw_body: bytes, signature: str, timestamp: str, max_age
     return hmac.compare_digest(expected, signature)
 ```
 
+#### Retries, cancellation and suspension
+
+- **Retries:** each delivery round makes up to **3 attempts**, 1 s apart. If they all fail, the event is retried on the next round, every **30 seconds** by default. There is no exponential backoff.
+- **Changes take effect before each attempt:** if you remove a subscription or disable the webhook, the pending event is canceled and not sent. A request that has already started cannot be withdrawn, so you may still receive one event right after the change.
+- **Automatic suspension:** every failed attempt increments one counter for your endpoint, across all events, and a `2xx` resets it to zero. On the **30th consecutive failed attempt** the webhook is suspended: `is_active` becomes `false`, `suspended_at` and `suspension_reason: "consecutive_delivery_failures"` are recorded, and all pending deliveries are canceled. The URL, secret and subscriptions are kept, and no new events are queued while it is inactive. Do not rely on an exact time to suspension.
+- **Notice:** WapuPay emails the business owner's account address once per suspension. It is best effort, so check `GET /webhook` as the source of truth (`consecutive_failures`, `suspended_at`, `suspension_reason`).
+- **Streak reset:** Changing the URL or rotating the secret resets `consecutive_failures` to 0.
+- **Manual reactivation:** fix the destination and call `POST /webhook` with the URL. It sets `is_active` to `true`, resets `consecutive_failures` to 0, clears the suspension fields and keeps your subscriptions. Events canceled by the suspension or by `DELETE` are **not replayed**. `PUT` and the test endpoint never reactivate a webhook; every `POST` does, including one sent only to rotate the secret.
+
 ---
 
-#### `POST /business/webhook`
+#### `POST /webhook`
 
-Register the business webhook, or replace it (upsert). Re-registering updates the URL and **rotates the secret**. The secret is returned **only in this response**.
+Creates the destination. It returns the signing secret **only in this response** and subscribes you to **no events**. A new webhook always gets a secret, whatever `rotate_secret` says. Calling it again never changes the selections: an active webhook gets its URL updated, and a disabled or suspended one is **reactivated** (see "Retries, cancellation and suspension"). The secret is kept unless `rotate_secret` is `true`: then the new secret is returned once and the old one stops working. **Auth:** `[JWT | API Key]` (business owner only).
 
 **Request body** (`application/json` or form):
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `url` | string | yes | Public `https` URL (max 2048 characters). Hosts that resolve to non-public addresses are rejected. |
+| `rotate_secret` | boolean | no (default `false`) | `true` replaces the signing secret of an existing webhook; the new secret is returned once. |
 
-**Response `201`:**
+To rotate the secret, send the current (or a new) URL with the flag:
+
+```json
+{
+  "url": "https://example.com/wapu-webhook",
+  "rotate_secret": true
+}
+```
+
+**Response `201`** (created):
 ```json
 {
   "url": "https://example.com/wapu-webhook",
@@ -618,42 +757,66 @@ Register the business webhook, or replace it (upsert). Re-registering updates th
 }
 ```
 
+**Response `200`** (existing webhook updated or reactivated; no secret unless `rotate_secret` was `true`):
+```json
+{
+  "url": "https://example.com/wapu-webhook",
+  "secret_prefix": "3Kf9sQe1V0",
+  "message": "Webhook updated"
+}
+```
+
+With `"rotate_secret": true` the response also carries the new secret, shown once:
+```json
+{
+  "url": "https://example.com/wapu-webhook",
+  "secret_prefix": "9Qw2LmZ7xR",
+  "secret": "9Qw2LmZ7xR4tY8uK1pB6vN3cH5jD0sF2gA7eW9oIqXy",
+  "message": "Webhook updated"
+}
+```
+
 **Errors:**
 
 | Status | Message |
 |--------|---------|
-| `400` | `"url is required"`, `"Invalid webhook URL"`, `"Webhook URL must use https"`, `"Webhook URL host could not be resolved"`, `"Webhook URL host resolution timed out"`, `"Webhook URL resolves to a disallowed address"` |
+| `400` | `"url is required"`, `"rotate_secret must be a boolean"`, `"Invalid webhook URL"`, `"Webhook URL must use https"`, `"Webhook URL host could not be resolved"`, `"Webhook URL host resolution timed out"`, `"Webhook URL resolves to a disallowed address"` |
 | `401` | Missing or invalid credentials |
 | `403` | Not a business account, or a managed sub-user |
 
 ---
 
-#### `GET /business/webhook`
+#### `GET /webhook`
 
-Returns the webhook status. The secret is never returned, only its prefix.
+Returns the webhook status and delivery health. The secret is never returned, only its prefix. **Auth:** `[JWT | API Key]` (business owner only).
 
-**Response `200`:**
+**Response `200`** (suspended after 30 consecutive failures):
 ```json
 {
   "has_webhook": true,
-  "is_active": true,
+  "is_active": false,
   "url": "https://example.com/wapu-webhook",
   "secret_prefix": "3Kf9sQe1V0",
+  "consecutive_failures": 30,
+  "suspended_at": "2026-11-15T12:00:00Z",
+  "suspension_reason": "consecutive_delivery_failures",
   "last_delivery": {
-    "status": "DELIVERED",
-    "at": "2026-11-07T14:03:21.500000Z",
-    "status_code": 200
+    "status": "CANCELED",
+    "at": "2026-11-15T12:00:00Z",
+    "status_code": 500
   }
 }
 ```
 
-`last_delivery` is `null` until the first event is queued. `last_delivery.status` is one of `PENDING`, `DELIVERED`, `CANCELED` or `DEAD` (uppercase). When no webhook was ever registered the response is `{"has_webhook": false, "is_active": false, "url": null, "secret_prefix": null, "last_delivery": null}`.
+`is_active` is `false` when the webhook is disabled or suspended. `consecutive_failures` counts failed attempts in a row and resets to 0 on a `2xx`. `suspended_at` and `suspension_reason` are `null` unless the webhook was suspended automatically, in which case `suspension_reason` is `consecutive_delivery_failures`. `last_delivery` is `null` until the first event is queued. `last_delivery.status` is the internal delivery state, one of `PENDING`, `DELIVERED`, `CANCELED` or the legacy `DEAD` (uppercase; historical rows can still return it, new code never sets it), and `status_code` is the receiver's last HTTP status or `null`.
+
+When no webhook was ever registered the response is `{"has_webhook": false, "is_active": false, "url": null, "secret_prefix": null, "consecutive_failures": 0, "suspended_at": null, "suspension_reason": null, "last_delivery": null}`.
 
 ---
 
-#### `DELETE /business/webhook`
+#### `DELETE /webhook`
 
-Disables the webhook. Pending deliveries are canceled and no new events are queued. It succeeds even when there is no active webhook.
+Disables the webhook and cancels its pending deliveries. Canceled events are never replayed, and a request already started cannot be withdrawn. Subscriptions are kept, and `POST /webhook` reactivates it. **Auth:** `[JWT | API Key]` (business owner only).
 
 **Response `200`:**
 ```json
@@ -664,9 +827,67 @@ Disables the webhook. Pending deliveries are canceled and no new events are queu
 
 ---
 
-#### `POST /business/webhook/test`
+#### `GET /webhook/subscriptions`
 
-Synchronously sends a signed `webhook.test` event to the registered URL. Limited to **5 requests per minute** per account. The error message never includes network details.
+Returns the current selections, or an empty list until you subscribe. **Auth:** `[JWT | API Key]` (business owner only).
+
+**Response `200`:**
+```json
+{
+  "subscriptions": [
+    {
+      "event_type": "transaction.fiat_transfer",
+      "statuses": ["TAKEN", "COMPLETED"]
+    },
+    {
+      "event_type": "tentative.fiat_transfer",
+      "statuses": ["*"]
+    }
+  ]
+}
+```
+
+---
+
+#### `PUT /webhook/subscriptions`
+
+Atomically replaces the whole selection. Each entry has exactly `event_type` and `statuses` (see the event catalog). `["*"]` means every current and future status of that event type and cannot be mixed with explicit statuses. The request is validated entirely before anything changes: unknown event types, a status that is not valid for the event type, duplicates, empty `statuses` and mixed wildcard lists return `400` and leave the previous selection untouched. Pending events that no longer match are canceled. Subscribing again never replays history. **Auth:** `[JWT | API Key]` (business owner only).
+
+**Request body:**
+```json
+{
+  "subscriptions": [
+    {
+      "event_type": "transaction.fiat_transfer",
+      "statuses": ["TAKEN", "COMPLETED"]
+    },
+    {
+      "event_type": "tentative.fiat_transfer",
+      "statuses": ["*"]
+    }
+  ]
+}
+```
+
+`{"subscriptions": []}` unsubscribes from everything without disabling the destination.
+
+**Response `200`:** the same `{"subscriptions": [...]}` as `GET`.
+
+**Errors:** `400` invalid subscriptions, `401` / `403` as above, `404` when no webhook is registered.
+
+---
+
+#### `POST /webhook/test`
+
+Synchronously sends one signed synthetic event for a supported `event_type` and `status`, even if the pair is not subscribed. The body is the real envelope with `is_test: true`. Nothing is stored. It requires an active webhook and never changes the failure counter. Limited to **5 requests per minute** per account. The error message never includes network details. **Auth:** `[JWT | API Key]` (business owner only).
+
+**Request body** (both fields are required and must be a pair of the event catalog):
+```json
+{
+  "event_type": "tentative.fiat_transfer",
+  "status": "COMPLETED"
+}
+```
 
 **Response `200`** (receiver answered `2xx`):
 ```json
@@ -679,24 +900,13 @@ Synchronously sends a signed `webhook.test` event to the registered URL. Limited
 
 **Response `502`** (unreachable or non-`2xx`): same shape with `"delivered": false`, and `"error"` set to `"Could not reach the webhook URL"` (no response) or `"HTTP <status>"`.
 
-The test event body:
-```json
-{
-  "event_id": "0c6d2f8e-4b1a-4e93-8a27-9f3b5d7c1e64",
-  "event_type": "webhook.test",
-  "created_at": "2026-11-07T14:05:00.000000Z",
-  "business_user_uuid": "a91c0d2e-7b34-4f6a-8e15-2c9d4b7a1f30",
-  "data": { "message": "WapuPay webhook test event" }
-}
-```
-
 **Errors:**
 
 | Status | Message |
 |--------|---------|
-| `400` | The registered URL is no longer a valid public HTTPS destination (same messages as registration) |
+| `400` | `event_type` or `status` missing, the pair is not in the catalog, or the registered URL is no longer a valid public HTTPS destination |
 | `401` / `403` | As above |
-| `404` | `"No active webhook registered"` |
+| `404` | `"No active webhook registered"` (none, disabled or suspended) |
 | `429` | `"Too many test requests, try again in a minute"` |
 | `502` | See above |
 
