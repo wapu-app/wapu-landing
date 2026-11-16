@@ -520,7 +520,7 @@ Outbound webhooks for **business accounts**. You register one HTTPS destination 
 
 Only the business owner can manage the webhook. Sub-users and non-business accounts get `403`. There is one webhook per business. Authenticate with Bearer JWT or X-API-Key, not both.
 
-The secret is shown only when the webhook is created and when you rotate it. `POST /webhook` on an existing webhook **never rotates the secret**: rotation is explicit, with `PATCH /webhook` and `{"rotate_secret": true}`.
+The secret is shown only when the webhook is created and when you rotate it. `POST /webhook` on an existing webhook **keeps the secret** unless you send `{"url": "...", "rotate_secret": true}`: rotation is always explicit.
 
 #### Event catalog
 
@@ -722,20 +722,30 @@ def verify(secret: str, raw_body: bytes, signature: str, timestamp: str, max_age
 - **Changes take effect before each attempt:** if you remove a subscription or disable the webhook, the pending event is canceled and not sent. A request that has already started cannot be withdrawn, so you may still receive one event right after the change.
 - **Automatic suspension:** every failed attempt increments one counter for your endpoint, across all events, and a `2xx` resets it to zero. On the **30th consecutive failed attempt** the webhook is suspended: `is_active` becomes `false`, `suspended_at` and `suspension_reason: "consecutive_delivery_failures"` are recorded, and all pending deliveries are canceled. The URL, secret and subscriptions are kept, and no new events are queued while it is inactive. Do not rely on an exact time to suspension.
 - **Notice:** WapuPay emails the business owner's account address once per suspension. It is best effort, so check `GET /webhook` as the source of truth (`consecutive_failures`, `suspended_at`, `suspension_reason`).
-- **Streak reset:** Changing the URL or rotating the secret of an active webhook resets `consecutive_failures` to 0; it never reactivates a suspended one.
-- **Manual reactivation:** fix the destination and call `POST /webhook` with the URL. It sets `is_active` to `true`, resets `consecutive_failures` to 0, clears the suspension fields and keeps your subscriptions. Events canceled by the suspension or by `DELETE` are **not replayed**. `PUT`, `PATCH` and the test endpoint never reactivate a webhook.
+- **Streak reset:** Changing the URL or rotating the secret resets `consecutive_failures` to 0.
+- **Manual reactivation:** fix the destination and call `POST /webhook` with the URL. It sets `is_active` to `true`, resets `consecutive_failures` to 0, clears the suspension fields and keeps your subscriptions. Events canceled by the suspension or by `DELETE` are **not replayed**. `PUT` and the test endpoint never reactivate a webhook; every `POST` does, including one sent only to rotate the secret.
 
 ---
 
 #### `POST /webhook`
 
-Creates the destination. It returns the signing secret **only in this response** and subscribes you to **no events**. Calling it again never rotates the secret or changes the selections: an active webhook only gets its URL updated, and a disabled or suspended one is **reactivated** (see "Retries, cancellation and suspension"). **Auth:** `[JWT | API Key]` (business owner only).
+Creates the destination. It returns the signing secret **only in this response** and subscribes you to **no events**. A new webhook always gets a secret, whatever `rotate_secret` says. Calling it again never changes the selections: an active webhook gets its URL updated, and a disabled or suspended one is **reactivated** (see "Retries, cancellation and suspension"). The secret is kept unless `rotate_secret` is `true`: then the new secret is returned once and the old one stops working. **Auth:** `[JWT | API Key]` (business owner only).
 
 **Request body** (`application/json` or form):
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `url` | string | yes | Public `https` URL (max 2048 characters). Hosts that resolve to non-public addresses are rejected. |
+| `rotate_secret` | boolean | no (default `false`) | `true` replaces the signing secret of an existing webhook; the new secret is returned once. |
+
+To rotate the secret, send the current (or a new) URL with the flag:
+
+```json
+{
+  "url": "https://example.com/wapu-webhook",
+  "rotate_secret": true
+}
+```
 
 **Response `201`** (created):
 ```json
@@ -747,7 +757,7 @@ Creates the destination. It returns the signing secret **only in this response**
 }
 ```
 
-**Response `200`** (existing webhook updated or reactivated, no secret):
+**Response `200`** (existing webhook updated or reactivated; no secret unless `rotate_secret` was `true`):
 ```json
 {
   "url": "https://example.com/wapu-webhook",
@@ -756,11 +766,21 @@ Creates the destination. It returns the signing secret **only in this response**
 }
 ```
 
+With `"rotate_secret": true` the response also carries the new secret, shown once:
+```json
+{
+  "url": "https://example.com/wapu-webhook",
+  "secret_prefix": "9Qw2LmZ7xR",
+  "secret": "9Qw2LmZ7xR4tY8uK1pB6vN3cH5jD0sF2gA7eW9oIqXy",
+  "message": "Webhook updated"
+}
+```
+
 **Errors:**
 
 | Status | Message |
 |--------|---------|
-| `400` | `"url is required"`, `"Invalid webhook URL"`, `"Webhook URL must use https"`, `"Webhook URL host could not be resolved"`, `"Webhook URL host resolution timed out"`, `"Webhook URL resolves to a disallowed address"` |
+| `400` | `"url is required"`, `"rotate_secret must be a boolean"`, `"Invalid webhook URL"`, `"Webhook URL must use https"`, `"Webhook URL host could not be resolved"`, `"Webhook URL host resolution timed out"`, `"Webhook URL resolves to a disallowed address"` |
 | `401` | Missing or invalid credentials |
 | `403` | Not a business account, or a managed sub-user |
 
@@ -791,37 +811,6 @@ Returns the webhook status and delivery health. The secret is never returned, on
 `is_active` is `false` when the webhook is disabled or suspended. `consecutive_failures` counts failed attempts in a row and resets to 0 on a `2xx`. `suspended_at` and `suspension_reason` are `null` unless the webhook was suspended automatically, in which case `suspension_reason` is `consecutive_delivery_failures`. `last_delivery` is `null` until the first event is queued. `last_delivery.status` is the internal delivery state, one of `PENDING`, `DELIVERED`, `CANCELED` or the legacy `DEAD` (uppercase; historical rows can still return it, new code never sets it), and `status_code` is the receiver's last HTTP status or `null`.
 
 When no webhook was ever registered the response is `{"has_webhook": false, "is_active": false, "url": null, "secret_prefix": null, "consecutive_failures": 0, "suspended_at": null, "suspension_reason": null, "last_delivery": null}`.
-
----
-
-#### `PATCH /webhook`
-
-Changes the URL, rotates the secret, or both. Rotation is always explicit. It never changes the active state, so it cannot reactivate a suspended webhook. **Auth:** `[JWT | API Key]` (business owner only).
-
-**Request body** (`application/json`): at least one of the fields. Provide at least one of a non-empty `url` or `rotate_secret: true`; otherwise the response is `400`, and `rotate_secret: false` alone is rejected.
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `url` | string | no | New public `https` URL. |
-| `rotate_secret` | boolean | no | `true` generates a new signing secret, returned once. |
-
-```json
-{
-  "rotate_secret": true
-}
-```
-
-**Response `200`:** a URL-only change never returns the secret; a rotation returns the new `secret` once.
-```json
-{
-  "url": "https://example.com/wapu-webhook",
-  "secret_prefix": "3Kf9sQe1V0",
-  "secret": "3Kf9sQe1V0aZb7mXcP2rT8uYhLw4NdGjOiBvCxE5yMk",
-  "message": "Webhook updated"
-}
-```
-
-**Errors:** `400` when neither `url` nor `rotate_secret` is provided or the types are wrong, `401` / `403` as above, `404` when no webhook is registered.
 
 ---
 

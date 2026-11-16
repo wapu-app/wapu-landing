@@ -318,7 +318,7 @@ for (const [locale, spec] of specs) {
     .map((example) => example.value);
 
   test(`${locale}: webhook management uses /webhook and no /business/webhook path`, () => {
-    assert.deepEqual(Object.keys(paths['/webhook']).sort(), ['delete', 'get', 'patch', 'post']);
+    assert.deepEqual(Object.keys(paths['/webhook']).sort(), ['delete', 'get', 'post']);
     assert.deepEqual(Object.keys(paths['/webhook/subscriptions']).sort(), ['get', 'put']);
     assert.deepEqual(Object.keys(paths['/webhook/test']), ['post']);
     assert.ok(!Object.keys(paths).some((path) => path.startsWith('/business')));
@@ -333,15 +333,14 @@ for (const [locale, spec] of specs) {
     assert.ok(paths['/webhook/test'].post.responses['429']);
     assert.ok(paths['/webhook/test'].post.responses['502']);
     assert.ok(paths['/webhook/subscriptions'].put.responses['404']);
-    assert.ok(paths['/webhook'].patch.responses['404']);
   });
 
-  test(`${locale}: registration subscribes to nothing and never rotates the secret`, () => {
+  test(`${locale}: registration subscribes to nothing and keeps the secret by default`, () => {
     const post = paths['/webhook'].post;
     assert.ok(post.responses['201'] && post.responses['200']);
     const created = jsonBody(post, '201').example;
     assert.ok(created.secret && created.secret_prefix);
-    assert.ok(!Object.hasOwn(jsonBody(post, '200').example, 'secret'));
+    assert.ok(!Object.hasOwn(jsonBody(post, '200').examples.updated.value, 'secret'));
     assert.match(post.description, /PUT \/webhook\/subscriptions/);
     assert.match(tag.description, /subscribes you to nothing|no te suscribe a nada/);
     const empty = jsonBody(paths['/webhook/subscriptions'].get, '200').examples.empty.value;
@@ -394,16 +393,17 @@ for (const [locale, spec] of specs) {
     assert.match(post.description, /never changes the failure counter|nunca cambia el contador de fallos/);
   });
 
-  test(`${locale}: secret rotation is explicit through PATCH rotate_secret`, () => {
-    const patch = paths['/webhook'].patch;
-    const schema = patch.requestBody.content['application/json'].schema;
+  test(`${locale}: secret rotation is explicit through POST rotate_secret`, () => {
+    const post = paths['/webhook'].post;
+    const schema = post.requestBody.content['application/json'].schema;
+    assert.deepEqual(schema.required, ['url']);
     assert.equal(schema.properties.rotate_secret.type, 'boolean');
-    assert.ok(Object.hasOwn(schema.properties, 'url'));
-    assert.ok(requestExamples(patch).some((value) => value.rotate_secret === true));
-    assert.ok(Object.hasOwn(jsonBody(patch, '200').example, 'secret'));
-    assert.ok(patch.responses['400']);
-    assert.match(tag.description, /never rotates the secret|nunca rota el secret/);
-    assert.doesNotMatch(paths['/webhook'].post.description, /rotates the signing secret|rota el secret de firma/);
+    assert.equal(schema.properties.rotate_secret.default, false);
+    assert.ok(requestExamples(post).some((value) => value.url && value.rotate_secret === true));
+    assert.ok(Object.hasOwn(jsonBody(post, '200').examples.rotated.value, 'secret'));
+    assert.match(post.responses['400'].description, /rotate_secret/);
+    assert.match(tag.description, /\*\*keeps the secret\*\*|\*\*conserva el secret\*\*/);
+    assert.doesNotMatch(JSON.stringify(spec), /PATCH \/webhook/);
   });
 
   test(`${locale}: real and test payload examples are separate and match the catalog`, () => {
@@ -465,23 +465,17 @@ for (const [locale, spec] of specs) {
     assert.match(tag.description, /not replayed|no se reenvían/);
   });
 
-  test(`${locale}: delivery guarantee is qualified and PATCH requires url or rotate_secret`, () => {
+  test(`${locale}: delivery guarantee is qualified`, () => {
     assert.match(tag.description, /at least once\*\* while the destination stays active and subscribed|al menos una vez\*\* mientras el destino siga activo y suscrito/);
     assert.match(tag.description, /never replayed|nunca se reenvían/);
-    const schema = paths['/webhook'].patch.requestBody.content['application/json'].schema;
-    assert.deepEqual(schema.anyOf, [
-      { required: ['url'], properties: { url: { minLength: 1 } } },
-      { required: ['rotate_secret'], properties: { rotate_secret: { enum: [true] } } },
-    ]);
-    assert.equal(paths['/webhook'].patch.requestBody.required, true);
-    assert.match(schema.description, /rotate_secret: false/);
   });
 
   test(`${locale}: suspended example is CANCELED at suspension time and URL/secret changes reset the streak`, () => {
     const { value } = jsonBody(paths['/webhook'].get, '200').examples.suspended;
     assert.equal(value.last_delivery.status, 'CANCELED');
     assert.equal(value.last_delivery.at, value.suspended_at);
-    assert.match(tag.description, /resets `consecutive_failures` to 0; it never reactivates a suspended one|reinicia `consecutive_failures` a 0; nunca reactiva uno suspendido/);
+    assert.match(tag.description, /rotating the secret resets `consecutive_failures` to 0|rotar el secret reinicia `consecutive_failures` a 0/);
+    assert.match(tag.description, /every `POST` does|todo `POST` sí/);
   });
 
   test(`${locale}: retry and suspension defaults are documented`, () => {
@@ -511,7 +505,8 @@ test('webhook example checker tells uppercase envelopes from transaction-detail 
 });
 
 test('api reference markdown documents the webhook subscriptions contract and has no QR/PIX', () => {
-  for (const heading of ['POST /webhook', 'GET /webhook', 'PATCH /webhook', 'DELETE /webhook',
+  assert.ok(!reference.includes('#### `PATCH /webhook`'));
+  for (const heading of ['POST /webhook', 'GET /webhook', 'DELETE /webhook',
     'GET /webhook/subscriptions', 'PUT /webhook/subscriptions', 'POST /webhook/test']) {
     assert.ok(reference.includes(`#### \`${heading}\``), `missing ${heading}`);
   }
@@ -534,8 +529,9 @@ test('api reference markdown documents the webhook subscriptions contract and ha
   assert.match(reference, /punycode/);
   assert.match(reference, /30th consecutive failed attempt/);
   assert.match(reference, /at least once\*\* while the destination stays active and subscribed/);
-  assert.match(reference, /`rotate_secret: false` alone is rejected/);
-  assert.match(reference, /resets `consecutive_failures` to 0; it never reactivates a suspended one/);
+  assert.match(reference, /A new webhook always gets a secret/);
+  assert.match(reference, /rotating the secret resets `consecutive_failures` to 0/);
+  assert.match(reference, /every `POST` does/);
   const suspended = JSON.parse(blocks.match(/```json\s*\n(\{[^`]*"suspension_reason": "consecutive_delivery_failures"[^`]*)\n```/)[1]);
   assert.equal(suspended.last_delivery.status, 'CANCELED');
   assert.equal(suspended.last_delivery.at, suspended.suspended_at);
