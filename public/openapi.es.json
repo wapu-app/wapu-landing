@@ -1795,6 +1795,52 @@
             "nullable": true
           }
         }
+      },
+      "ApiKeyItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "label": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_prefix": {
+            "type": "string"
+          },
+          "last_used_at": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        }
+      },
+      "ApiKeyLimitError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Cantidad máxima de keys activas."
+          }
+        }
+      },
+      "ApiKeySelectionError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "keys": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApiKeyItem"
+            }
+          }
+        }
       }
     },
     "parameters": {
@@ -2541,10 +2587,8 @@
                       "description": "Id de la key. Se usa para revocarla."
                     },
                     "label": {
-                      "type": [
-                        "string",
-                        "null"
-                      ],
+                      "type": "string",
+                      "nullable": true,
                       "description": "Etiqueta de la key, o null."
                     }
                   }
@@ -2555,6 +2599,19 @@
                   "message": "API token generated",
                   "id": 12,
                   "label": "wapu-cli"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Label inválido (no es string o supera los 64 caracteres).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "label must be at most 64 characters"
                 }
               }
             }
@@ -2574,7 +2631,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/ApiKeyLimitError"
                 },
                 "example": {
                   "error": "API key limit reached: revoke a key before creating another",
@@ -2633,7 +2690,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/ApiKeySelectionError"
                 },
                 "example": {
                   "error": "Several API keys are active: specify the key id",
@@ -2771,44 +2828,19 @@
                       "type": "boolean"
                     },
                     "last_used_at": {
-                      "type": [
-                        "string",
-                        "null"
-                      ],
+                      "type": "string",
+                      "nullable": true,
                       "format": "date-time"
                     },
                     "token_prefix": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "type": "string",
+                      "nullable": true
                     },
                     "keys": {
                       "type": "array",
                       "description": "Keys activas, la más nueva primero.",
                       "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "integer"
-                          },
-                          "label": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "token_prefix": {
-                            "type": "string"
-                          },
-                          "last_used_at": {
-                            "type": [
-                              "string",
-                              "null"
-                            ],
-                            "format": "date-time"
-                          }
-                        }
+                        "$ref": "#/components/schemas/ApiKeyItem"
                       }
                     },
                     "limit": {
@@ -2918,6 +2950,19 @@
           "201": {
             "description": "API key creada"
           },
+          "400": {
+            "description": "Label inválido (no es string o supera los 64 caracteres).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "label must be at most 64 characters"
+                }
+              }
+            }
+          },
           "403": {
             "description": "No autorizado para esta operación",
             "content": {
@@ -2943,7 +2988,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/ApiKeyLimitError"
                 },
                 "example": {
                   "error": "API key limit reached: revoke a key before creating another",
@@ -3029,7 +3074,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/ApiKeySelectionError"
                 },
                 "example": {
                   "error": "Several API keys are active: specify the key id",

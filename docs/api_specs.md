@@ -395,7 +395,7 @@ Check if a username is valid and available. No authentication required.
 
 ### API Token Management
 
-Endpoints in this section require `[JWT]` auth, except `GET /users/api-token/status`, which also accepts an API key. The user's `api_enabled` flag must be `true` to create a key.
+`POST /users/api-token` and `DELETE /users/api-token[/{token_id}]` require `[JWT]` auth. `GET /users/api-token/status` and the B2B sub-user token endpoints also accept an API key. The user's `api_enabled` flag must be `true` to create a key.
 
 An account can hold up to **3 active API keys**. Creating a key **adds** one; it never rotates or replaces an existing key. Keys share the account's rate limit, and each key records its own last use. Revoking a key frees a slot, and works even if API access was later disabled.
 
@@ -433,6 +433,7 @@ Create a new API key. The plaintext token is returned **only once**.
 
 | Status | Message |
 |--------|---------|
+| `400` | `"label must be a string"` or `"label must be at most 64 characters"` |
 | `403` | `"API token access is not enabled for this user"` |
 | `409` | `"API key limit reached: revoke a key before creating another"` (the body also carries `"limit": 3`) |
 
@@ -558,6 +559,8 @@ Create an API key for a B2B sub-user. Same rules as `POST /users/api-token`: it 
 **Request body (JSON, optional):** `{"label": "<string, max 64>"}`
 
 **Response `201`:** API key response (`token`, `token_prefix`, `message`, `id`, `label`).
+
+**Errors:** `400` (`"label must be a string"` or `"label must be at most 64 characters"`), `409` (limit reached; the body also carries `"limit": 3`).
 
 ---
 
