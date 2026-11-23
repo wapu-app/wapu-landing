@@ -3,7 +3,7 @@
   "info": {
     "title": "WapuPay API",
     "version": "v36.0",
-    "description": "WapuPay is a platform that allows users to pay in local currency (ARS) using cryptocurrency (USDT) as the underlying asset.\n\n## Authentication\n\nTwo schemes are supported:\n- **Bearer JWT** — obtained via `POST /users/login`. Short-lived; refresh with `GET /users/refresh`.\n- **API Key** — header `X-API-Key`. Requires `api_enabled = true` on the user account.\n\n> Never send both schemes at once — the server returns `400`.\n\n## How to get an API Key\n\nYou can generate the API Key from this same Scalar web UI:\n1. Log in with `POST /users/login` using your username and password for the selected environment.\n2. Copy the `access_token` returned by login and use it as the Bearer token in the **Authorize** button.\n3. Run `POST /users/api-token` authenticated with that Bearer token.\n4. That endpoint returns the API token. Use it for server-to-server requests with the `X-API-Key` header.\n\nThis works for both **staging** and **production**. The only requirement is to have a user created in the environment you want to use. If you want access to both environments, you must create the account twice: once in staging and once in production.\n\n## Rate Limiting\n\nAPI Key requests: **60 requests / 60 seconds** (sliding window). Exceeding returns `429`.\n\n## Error Format\n\nAll errors return `{ \"error\": \"message\" }`.\n\n---\n\n🇦🇷 [Versión en español](/api-docs)\n\n## ARS → Lightning\n\n1. Quote with `GET /transactions/direct-fiat/quote`, `type=crypto_purchase`, `payout_currency=SAT`, `payout_network=LIGHTNING` and exactly one of `amount_ars_cents` or `amount_out`.\n2. Create with `POST /transactions/direct-fiat/tentatives` and a Lightning Address in `payout_address` (not BOLT11).\n3. Call `POST /transactions/direct-fiat/tentatives/{tentative_id}/funding` and transfer the exact returned amount to the indicated alias/CVU.\n4. Poll `GET /transactions/direct-fiat/tentatives/{tentative_id}` while `watch_pending=true`. Only `payout_status=completed` means external delivery.\n\nPurchase amounts use base units: ARS cents, sats and USDT cents. Do not mix them with decimal amounts from crypto → ARS payments. Examples are fictional and are not current quotes.\n"
+    "description": "WapuPay is a platform that allows users to pay in local currency (ARS) using cryptocurrency (USDT) as the underlying asset.\n\n## Authentication\n\nTwo schemes are supported:\n- **Bearer JWT** — obtained via `POST /users/login`. Short-lived; refresh with `GET /users/refresh`.\n- **API Key** — header `X-API-Key`. Requires `api_enabled = true` on the user account.\n\n> Never send both schemes at once — the server returns `400`.\n\n## How to get an API Key\n\nYou can generate the API Key from this same Scalar web UI:\n1. Log in with `POST /users/login` using your username and password for the selected environment.\n2. Copy the `access_token` returned by login and use it as the Bearer token in the **Authorize** button.\n3. Run `POST /users/api-token` authenticated with that Bearer token. Optionally send `{\"label\": \"my-server\"}` to name the key.\n4. That endpoint returns the API token. Use it for server-to-server requests with the `X-API-Key` header.\n\nAn account can hold up to **3 active API keys**. Each `POST /users/api-token` adds a new key (it does not rotate or replace an existing one); at the limit it returns `409`. To free a slot, revoke a key with `DELETE /users/api-token/{token_id}`; list your active keys and their ids with `GET /users/api-token/status`. To rotate a key: create the new one, switch your integration to it, then revoke the old one by id.\n\nThis works for both **staging** and **production**. The only requirement is to have a user created in the environment you want to use. If you want access to both environments, you must create the account twice: once in staging and once in production.\n\n## Rate Limiting\n\nAPI Key requests: **60 requests / 60 seconds** (sliding window). Exceeding returns `429`.\n\n## Error Format\n\nAll errors return `{ \"error\": \"message\" }`.\n\n---\n\n🇦🇷 [Versión en español](/api-docs)\n\n## ARS → Lightning\n\n1. Quote with `GET /transactions/direct-fiat/quote`, `type=crypto_purchase`, `payout_currency=SAT`, `payout_network=LIGHTNING` and exactly one of `amount_ars_cents` or `amount_out`.\n2. Create with `POST /transactions/direct-fiat/tentatives` and a Lightning Address in `payout_address` (not BOLT11).\n3. Call `POST /transactions/direct-fiat/tentatives/{tentative_id}/funding` and transfer the exact returned amount to the indicated alias/CVU.\n4. Poll `GET /transactions/direct-fiat/tentatives/{tentative_id}` while `watch_pending=true`. Only `payout_status=completed` means external delivery.\n\nPurchase amounts use base units: ARS cents, sats and USDT cents. Do not mix them with decimal amounts from crypto → ARS payments. Examples are fictional and are not current quotes.\n"
   },
   "servers": [
     {
@@ -27,7 +27,7 @@
         "type": "apiKey",
         "in": "header",
         "name": "X-API-Key",
-        "description": "API token generated via POST /users/api-token. Requires api_enabled=true on account."
+        "description": "API key generated via POST /users/api-token (up to 3 active keys per account; 1 for B2B sub-users). Requires api_enabled=true on account."
       }
     },
     "schemas": {
@@ -1795,6 +1795,52 @@
             "nullable": true
           }
         }
+      },
+      "ApiKeyItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "label": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_prefix": {
+            "type": "string"
+          },
+          "last_used_at": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        }
+      },
+      "ApiKeyLimitError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum number of active keys."
+          }
+        }
+      },
+      "ApiKeySelectionError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "keys": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApiKeyItem"
+            }
+          }
+        }
       }
     },
     "parameters": {
@@ -2511,8 +2557,8 @@
         "tags": [
           "API Token"
         ],
-        "summary": "Generate or rotate API token",
-        "description": "Generate a new API token for server-to-server use. If a token already exists it is rotated. The plaintext token is returned **only once** — store it securely. Requires `api_enabled = true`.",
+        "summary": "Create API key",
+        "description": "Create a new API key for server-to-server use. Creating a key **adds** one: it never rotates or replaces an existing key (keys of B2B sub-users do rotate: see `POST /users/b2b/{user_uuid}/api-token`). An account can hold up to 3 active keys; at the limit it returns `409` until you revoke one. The plaintext token is returned **only once** — store it securely. Requires `api_enabled = true`.\n\nTo rotate a key, create the new one, switch your integration, then revoke the old one with `DELETE /users/api-token/{token_id}`.",
         "operationId": "generateApiToken",
         "security": [
           {
@@ -2521,13 +2567,51 @@
         ],
         "responses": {
           "201": {
-            "description": "Token generated",
+            "description": "API key created",
             "content": {
               "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": {
+                      "type": "string"
+                    },
+                    "token_prefix": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "integer",
+                      "description": "Key id. Use it to revoke the key."
+                    },
+                    "label": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "Label of the key, or null."
+                    }
+                  }
+                },
                 "example": {
                   "token": "xK9mP2qL8rN5tW3uY7vZ0aB4cD6eF1g",
                   "token_prefix": "xK9mP2qL8r",
-                  "message": "API token generated"
+                  "message": "API token generated",
+                  "id": 12,
+                  "label": "wapu-cli"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid label (not a string or longer than 64 characters).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "label must be at most 64 characters"
                 }
               }
             }
@@ -2541,6 +2625,40 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "API key limit reached (3 active keys). Revoke one before creating another.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyLimitError"
+                },
+                "example": {
+                  "error": "API key limit reached: revoke a key before creating another",
+                  "limit": 3
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "description": "Optional name for the key (maximum 64 characters). Labels may repeat."
+                  }
+                }
+              },
+              "example": {
+                "label": "wapu-cli"
+              }
+            }
           }
         }
       },
@@ -2548,8 +2666,8 @@
         "tags": [
           "API Token"
         ],
-        "summary": "Revoke API token",
-        "description": "Immediately revoke the user's current API token.",
+        "summary": "Revoke API key (no id)",
+        "description": "Revokes the user's only active key. With 0 or 1 active key it behaves as before. With 2 or more active keys it returns `400` and lists them: use `DELETE /users/api-token/{token_id}` instead.",
         "operationId": "revokeApiToken",
         "security": [
           {
@@ -2566,6 +2684,78 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Several API keys are active: specify the key id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeySelectionError"
+                },
+                "example": {
+                  "error": "Several API keys are active: specify the key id",
+                  "keys": [
+                    {
+                      "id": 12,
+                      "label": "wapu-cli",
+                      "token_prefix": "xK9mP2qL8r",
+                      "last_used_at": null
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/api-token/{token_id}": {
+      "delete": {
+        "tags": [
+          "API Token"
+        ],
+        "summary": "Revoke API key by id",
+        "description": "Immediately revokes one API key, if it belongs to the authenticated user (otherwise `404`). It frees one of the 3 slots and works even if API access was disabled afterwards.",
+        "operationId": "revokeApiTokenById",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "token_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Id of the key to revoke, as returned by creation or by `GET /users/api-token/status`."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Token revoked",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "API token revoked"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "API key not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "API key not found"
+                }
+              }
+            }
           }
         }
       }
@@ -2575,8 +2765,8 @@
         "tags": [
           "API Token"
         ],
-        "summary": "Get API token status",
-        "description": "Checks the current API token status without exposing its value. Authenticate with Bearer JWT or X-API-Key, not both.",
+        "summary": "Get API keys status",
+        "description": "Checks the status of the API keys without exposing their values. `token_prefix`, `is_active` and `last_used_at` summarize the key used in the request, or, with JWT, the most recent active key. `keys` lists every active key, newest first, and `limit` is the maximum number of active keys per account (3, or 1 for a B2B sub-user, whose key rotates). Authenticate with Bearer JWT or X-API-Key, not both.",
         "operationId": "getApiTokenStatus",
         "security": [
           {
@@ -2593,21 +2783,69 @@
               "application/json": {
                 "examples": {
                   "has_token": {
-                    "summary": "Token exists",
+                    "summary": "Keys exist",
                     "value": {
                       "has_token": true,
                       "is_active": true,
                       "last_used_at": "2026-03-15T14:30:00Z",
-                      "token_prefix": "xK9mP2qL8r"
+                      "token_prefix": "xK9mP2qL8r",
+                      "keys": [
+                        {
+                          "id": 12,
+                          "label": "wapu-cli",
+                          "token_prefix": "xK9mP2qL8r",
+                          "last_used_at": "2026-03-15T14:30:00Z"
+                        },
+                        {
+                          "id": 9,
+                          "label": "billing-server",
+                          "token_prefix": "bQ3nR7sT1u",
+                          "last_used_at": null
+                        }
+                      ],
+                      "limit": 3
                     }
                   },
                   "no_token": {
-                    "summary": "No token created",
+                    "summary": "No key created",
                     "value": {
                       "has_token": false,
                       "is_active": false,
                       "last_used_at": null,
-                      "token_prefix": null
+                      "token_prefix": null,
+                      "keys": [],
+                      "limit": 3
+                    }
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "has_token": {
+                      "type": "boolean"
+                    },
+                    "is_active": {
+                      "type": "boolean"
+                    },
+                    "last_used_at": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date-time"
+                    },
+                    "token_prefix": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "keys": {
+                      "type": "array",
+                      "description": "Active keys, newest first.",
+                      "items": {
+                        "$ref": "#/components/schemas/ApiKeyItem"
+                      }
+                    },
+                    "limit": {
+                      "type": "integer",
+                      "description": "Maximum number of active keys per account."
                     }
                   }
                 }
@@ -2686,8 +2924,8 @@
         "tags": [
           "API Token"
         ],
-        "summary": "Create API token for B2B sub-user",
-        "description": "Manages the API token for a B2B sub-user.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
+        "summary": "Create API key for B2B sub-user",
+        "description": "Issues an API key for a B2B sub-user. It **rotates**: the sub-user's previous active key is revoked in the same transaction, so a sub-user has at most one active key and this endpoint never returns `409`. It accepts an optional `label` (maximum 64 characters). The plaintext token is returned **only once**.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
         "operationId": "createB2BApiToken",
         "security": [
           {
@@ -2710,7 +2948,20 @@
         ],
         "responses": {
           "201": {
-            "description": "Resource created"
+            "description": "API key created"
+          },
+          "400": {
+            "description": "Invalid label (not a string or longer than 64 characters).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "label must be at most 64 characters"
+                }
+              }
+            }
           },
           "403": {
             "description": "Not authorized for this operation",
@@ -2732,14 +2983,34 @@
               }
             }
           }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "description": "Optional name for the key (maximum 64 characters). Labels may repeat."
+                  }
+                }
+              },
+              "example": {
+                "label": "wapu-cli"
+              }
+            }
+          }
         }
       },
       "delete": {
         "tags": [
           "API Token"
         ],
-        "summary": "Revoke API token for B2B sub-user",
-        "description": "Manages the API token for a B2B sub-user.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
+        "summary": "Revoke API key of B2B sub-user",
+        "description": "Revokes the API key of a B2B sub-user. A sub-user has at most one active key, so no id is needed. To target a key explicitly use `DELETE /users/b2b/{user_uuid}/api-token/{token_id}`.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
         "operationId": "deleteB2BApiToken",
         "security": [
           {
@@ -2780,6 +3051,86 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Several API keys are active: specify the key id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeySelectionError"
+                },
+                "example": {
+                  "error": "Several API keys are active: specify the key id",
+                  "keys": []
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/b2b/{user_uuid}/api-token/{token_id}": {
+      "delete": {
+        "tags": [
+          "API Token"
+        ],
+        "summary": "Revoke API key of B2B sub-user by id",
+        "description": "Revokes one API key of a B2B sub-user by id. A sub-user has at most one active key. Same rules as `DELETE /users/api-token/{token_id}`.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
+        "operationId": "deleteB2BApiTokenById",
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Sub-user UUID"
+          },
+          {
+            "name": "token_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Id of the key to revoke, as returned by creation or by `GET /users/api-token/status`."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "403": {
+            "description": "Not authorized for this operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "API key not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "API key not found"
                 }
               }
             }
@@ -6301,7 +6652,7 @@
     },
     {
       "name": "API Token",
-      "description": "Generate and manage API keys for server-to-server integrations"
+      "description": "Generate and manage API keys for server-to-server integrations. An account can hold up to 3 active keys; creating a key adds one and never rotates an existing one, except for B2B sub-users, whose key rotates (at most 1 active key)."
     },
     {
       "name": "Users",

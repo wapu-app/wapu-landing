@@ -43,7 +43,7 @@ Access tokens are short-lived. Use `GET /users/refresh` with the `refresh_cookie
 
 ### API Key (`X-API-Key`)
 
-For server-to-server integrations. Users must have `api_enabled = true` (enabled by an admin). Generate a token via `POST /users/api-token` using JWT auth.
+For server-to-server integrations. Users must have `api_enabled = true` (enabled by an admin). Generate a key via `POST /users/api-token` using JWT auth. An account can hold up to **3 active API keys**; each call adds one (see [API Token Management](#api-token-management)).
 
 ```
 X-API-Key: <api_token>
@@ -395,36 +395,78 @@ Check if a username is valid and available. No authentication required.
 
 ### API Token Management
 
-All endpoints in this section require `[JWT]` auth. The user's `api_enabled` flag must be `true` to generate a token.
+`POST /users/api-token` and `DELETE /users/api-token[/{token_id}]` require `[JWT]` auth. `GET /users/api-token/status` and the B2B sub-user token endpoints also accept an API key. The user's `api_enabled` flag must be `true` to create a key.
+
+An account can hold up to **3 active API keys**. Creating a key **adds** one; it never rotates or replaces an existing key (keys of B2B sub-users are the exception: `POST /users/b2b/<user_uuid>/api-token` rotates, so a sub-user has one active key and `GET /users/api-token/status` reports `limit: 1` for it). Keys share the account's rate limit, and each key records its own last use. Revoking a key frees a slot, and works even if API access was later disabled.
 
 #### `POST /users/api-token`
 
-Generate or rotate the user's API token. The plaintext token is returned **only once**. If a token already exists, it is rotated (same DB record, new value).
+Create a new API key. The plaintext token is returned **only once**.
 
 **Auth:** `[JWT]` + `api_enabled = true`
+
+**Request body (JSON, optional):**
+```json
+{
+  "label": "billing-server"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `label` | string | no | Name for the key, up to 64 characters. Labels may repeat. |
 
 **Response `201`:**
 ```json
 {
   "token": "xK9mP2qL8rN5tW3uY7vZ0aB4cD6eF1g",
   "token_prefix": "xK9mP2qL8r",
-  "message": "API token generated"
+  "message": "API token generated",
+  "id": 12,
+  "label": "billing-server"
 }
 ```
 
-> Store `token` securely — it will never be shown again.
+> Store `token` securely — it will never be shown again. Keep `id` to revoke the key later.
 
 **Errors:**
 
 | Status | Message |
 |--------|---------|
+| `400` | `"label must be a string"` or `"label must be at most 64 characters"` |
 | `403` | `"API token access is not enabled for this user"` |
+| `409` | `"API key limit reached: revoke a key before creating another"` (the body also carries `"limit": 3`) |
+
+> **Integrations that used this call as a rotation:** it no longer replaces the existing key. To rotate, create the new key, switch your integration to it, then revoke the old one with `DELETE /users/api-token/{token_id}`. If you are at the limit, revoke an unused key first.
+
+---
+
+#### `DELETE /users/api-token/{token_id}`
+
+Revoke one API key by id. Takes effect immediately.
+
+**Auth:** `[JWT]`
+
+**Path param:** `token_id` — Key id, as returned by `POST /users/api-token` or listed in `GET /users/api-token/status`.
+
+**Response `200`:**
+```json
+{
+  "message": "API token revoked"
+}
+```
+
+**Errors:**
+
+| Status | Message |
+|--------|---------|
+| `404` | `"API key not found"` (also returned when the key belongs to another user) |
 
 ---
 
 #### `DELETE /users/api-token`
 
-Revoke the user's current API token. Takes effect immediately.
+Revoke the user's API key without giving an id. With 0 or 1 active key it behaves as before and returns `200`. With 2 or more active keys it returns `400` and lists them: use `DELETE /users/api-token/{token_id}` instead.
 
 **Auth:** `[JWT]`
 
@@ -435,13 +477,26 @@ Revoke the user's current API token. Takes effect immediately.
 }
 ```
 
+**Error `400`** (2 or more active keys):
+```json
+{
+  "error": "Several API keys are active: specify the key id",
+  "keys": [
+    { "id": 12, "label": "billing-server", "token_prefix": "xK9mP2qL8r", "last_used_at": "2026-03-15T14:30:00Z" },
+    { "id": 9, "label": null, "token_prefix": "bQ3nR7sT1u", "last_used_at": null }
+  ]
+}
+```
+
 ---
 
 #### `GET /users/api-token/status`
 
-Check current API token status without exposing the token.
+Check the status of the API keys without exposing any token.
 
 **Auth:** `[JWT | API Key]`
+
+`token_prefix`, `is_active` and `last_used_at` summarize the key used in the request or, with JWT, the most recent active key. `keys` lists every active key, newest first. `limit` is the maximum number of active keys per account.
 
 **Response `200`:**
 ```json
@@ -449,17 +504,24 @@ Check current API token status without exposing the token.
   "has_token": true,
   "is_active": true,
   "last_used_at": "2026-03-15T14:30:00Z",
-  "token_prefix": "xK9mP2qL8r"
+  "token_prefix": "xK9mP2qL8r",
+  "keys": [
+    { "id": 12, "label": "billing-server", "token_prefix": "xK9mP2qL8r", "last_used_at": "2026-03-15T14:30:00Z" },
+    { "id": 9, "label": null, "token_prefix": "bQ3nR7sT1u", "last_used_at": null }
+  ],
+  "limit": 3
 }
 ```
 
-If no token has ever been created:
+If no key has ever been created:
 ```json
 {
   "has_token": false,
   "is_active": false,
   "last_used_at": null,
-  "token_prefix": null
+  "token_prefix": null,
+  "keys": [],
+  "limit": 3
 }
 ```
 
@@ -488,23 +550,39 @@ Create a B2B sub-user for the authenticated account.
 
 #### `POST /users/b2b/<user_uuid>/api-token`
 
-Create an API token for a B2B sub-user.
+Issue an API key for a B2B sub-user. Unlike `POST /users/api-token`, it **rotates**: the sub-user's previous active key is revoked in the same transaction, so a sub-user has at most one active key and this endpoint never returns `409`. It accepts an optional `label` (up to 64 characters). The token is returned only once.
 
 **Auth:** `[JWT | API Key]`
 
 **Path param:** `user_uuid` — Sub-user UUID.
 
-**Response `201`:** API token response.
+**Request body (JSON, optional):** `{"label": "<string, max 64>"}`
+
+**Response `201`:** API key response (`token`, `token_prefix`, `message`, `id`, `label`).
+
+**Errors:** `400` (`"label must be a string"` or `"label must be at most 64 characters"`).
 
 ---
 
 #### `DELETE /users/b2b/<user_uuid>/api-token`
 
-Revoke the API token for a B2B sub-user.
+Revoke the API key of a B2B sub-user without giving an id. A sub-user has at most one active key, so the id is not needed.
 
 **Auth:** `[JWT | API Key]`
 
 **Path param:** `user_uuid` — Sub-user UUID.
+
+**Response `200`:** Token revoked.
+
+---
+
+#### `DELETE /users/b2b/<user_uuid>/api-token/<token_id>`
+
+Revoke one API key of a B2B sub-user by id (a sub-user has at most one active key). Returns `404` if the key does not belong to that sub-user.
+
+**Auth:** `[JWT | API Key]`
+
+**Path params:** `user_uuid` — Sub-user UUID. `token_id` — Key id.
 
 **Response `200`:** Token revoked.
 
