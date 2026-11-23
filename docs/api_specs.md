@@ -397,7 +397,7 @@ Check if a username is valid and available. No authentication required.
 
 `POST /users/api-token` and `DELETE /users/api-token[/{token_id}]` require `[JWT]` auth. `GET /users/api-token/status` and the B2B sub-user token endpoints also accept an API key. The user's `api_enabled` flag must be `true` to create a key.
 
-An account can hold up to **3 active API keys**. Creating a key **adds** one; it never rotates or replaces an existing key. Keys share the account's rate limit, and each key records its own last use. Revoking a key frees a slot, and works even if API access was later disabled.
+An account can hold up to **3 active API keys**. Creating a key **adds** one; it never rotates or replaces an existing key (keys of B2B sub-users are the exception: `POST /users/b2b/<user_uuid>/api-token` rotates, so a sub-user has one active key and `GET /users/api-token/status` reports `limit: 1` for it). Keys share the account's rate limit, and each key records its own last use. Revoking a key frees a slot, and works even if API access was later disabled.
 
 #### `POST /users/api-token`
 
@@ -550,7 +550,7 @@ Create a B2B sub-user for the authenticated account.
 
 #### `POST /users/b2b/<user_uuid>/api-token`
 
-Create an API key for a B2B sub-user. Same rules as `POST /users/api-token`: it adds a key, accepts an optional `label` (up to 64 characters), and returns `409` when the sub-user already has 3 active keys.
+Issue an API key for a B2B sub-user. Unlike `POST /users/api-token`, it **rotates**: the sub-user's previous active key is revoked in the same transaction, so a sub-user has at most one active key and this endpoint never returns `409`. It accepts an optional `label` (up to 64 characters). The token is returned only once.
 
 **Auth:** `[JWT | API Key]`
 
@@ -560,13 +560,13 @@ Create an API key for a B2B sub-user. Same rules as `POST /users/api-token`: it 
 
 **Response `201`:** API key response (`token`, `token_prefix`, `message`, `id`, `label`).
 
-**Errors:** `400` (`"label must be a string"` or `"label must be at most 64 characters"`), `409` (limit reached; the body also carries `"limit": 3`).
+**Errors:** `400` (`"label must be a string"` or `"label must be at most 64 characters"`).
 
 ---
 
 #### `DELETE /users/b2b/<user_uuid>/api-token`
 
-Revoke the API key of a B2B sub-user without giving an id. With 0 or 1 active key it behaves as before; with 2 or more it returns `400` and lists them.
+Revoke the API key of a B2B sub-user without giving an id. A sub-user has at most one active key, so the id is not needed.
 
 **Auth:** `[JWT | API Key]`
 
@@ -578,7 +578,7 @@ Revoke the API key of a B2B sub-user without giving an id. With 0 or 1 active ke
 
 #### `DELETE /users/b2b/<user_uuid>/api-token/<token_id>`
 
-Revoke one API key of a B2B sub-user by id. Returns `404` if the key does not belong to that sub-user.
+Revoke one API key of a B2B sub-user by id (a sub-user has at most one active key). Returns `404` if the key does not belong to that sub-user.
 
 **Auth:** `[JWT | API Key]`
 

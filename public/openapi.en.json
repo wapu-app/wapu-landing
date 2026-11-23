@@ -27,7 +27,7 @@
         "type": "apiKey",
         "in": "header",
         "name": "X-API-Key",
-        "description": "API key generated via POST /users/api-token (up to 3 active keys per account). Requires api_enabled=true on account."
+        "description": "API key generated via POST /users/api-token (up to 3 active keys per account; 1 for B2B sub-users). Requires api_enabled=true on account."
       }
     },
     "schemas": {
@@ -2558,7 +2558,7 @@
           "API Token"
         ],
         "summary": "Create API key",
-        "description": "Create a new API key for server-to-server use. Creating a key **adds** one: it never rotates or replaces an existing key. An account can hold up to 3 active keys; at the limit it returns `409` until you revoke one. The plaintext token is returned **only once** — store it securely. Requires `api_enabled = true`.\n\nTo rotate a key, create the new one, switch your integration, then revoke the old one with `DELETE /users/api-token/{token_id}`.",
+        "description": "Create a new API key for server-to-server use. Creating a key **adds** one: it never rotates or replaces an existing key (keys of B2B sub-users do rotate: see `POST /users/b2b/{user_uuid}/api-token`). An account can hold up to 3 active keys; at the limit it returns `409` until you revoke one. The plaintext token is returned **only once** — store it securely. Requires `api_enabled = true`.\n\nTo rotate a key, create the new one, switch your integration, then revoke the old one with `DELETE /users/api-token/{token_id}`.",
         "operationId": "generateApiToken",
         "security": [
           {
@@ -2766,7 +2766,7 @@
           "API Token"
         ],
         "summary": "Get API keys status",
-        "description": "Checks the status of the API keys without exposing their values. `token_prefix`, `is_active` and `last_used_at` summarize the key used in the request, or, with JWT, the most recent active key. `keys` lists every active key, newest first, and `limit` is the maximum number of active keys per account. Authenticate with Bearer JWT or X-API-Key, not both.",
+        "description": "Checks the status of the API keys without exposing their values. `token_prefix`, `is_active` and `last_used_at` summarize the key used in the request, or, with JWT, the most recent active key. `keys` lists every active key, newest first, and `limit` is the maximum number of active keys per account (3, or 1 for a B2B sub-user, whose key rotates). Authenticate with Bearer JWT or X-API-Key, not both.",
         "operationId": "getApiTokenStatus",
         "security": [
           {
@@ -2925,7 +2925,7 @@
           "API Token"
         ],
         "summary": "Create API key for B2B sub-user",
-        "description": "Creates an API key for a B2B sub-user. It follows the same rules as `POST /users/api-token`: it adds a key, accepts an optional `label` (maximum 64 characters), and returns `409` when the sub-user already has 3 active keys.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
+        "description": "Issues an API key for a B2B sub-user. It **rotates**: the sub-user's previous active key is revoked in the same transaction, so a sub-user has at most one active key and this endpoint never returns `409`. It accepts an optional `label` (maximum 64 characters). The plaintext token is returned **only once**.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
         "operationId": "createB2BApiToken",
         "security": [
           {
@@ -2982,20 +2982,6 @@
                 }
               }
             }
-          },
-          "409": {
-            "description": "API key limit reached (3 active keys). Revoke one before creating another.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiKeyLimitError"
-                },
-                "example": {
-                  "error": "API key limit reached: revoke a key before creating another",
-                  "limit": 3
-                }
-              }
-            }
           }
         },
         "requestBody": {
@@ -3024,7 +3010,7 @@
           "API Token"
         ],
         "summary": "Revoke API key of B2B sub-user",
-        "description": "Revokes an API key of a B2B sub-user. With 0 or 1 active key, no id is needed; with 2 or more it returns `400` and lists them: use `DELETE /users/b2b/{user_uuid}/api-token/{token_id}`.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
+        "description": "Revokes the API key of a B2B sub-user. A sub-user has at most one active key, so no id is needed. To target a key explicitly use `DELETE /users/b2b/{user_uuid}/api-token/{token_id}`.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
         "operationId": "deleteB2BApiToken",
         "security": [
           {
@@ -3092,7 +3078,7 @@
           "API Token"
         ],
         "summary": "Revoke API key of B2B sub-user by id",
-        "description": "Revokes one API key of a B2B sub-user by id. Same rules as `DELETE /users/api-token/{token_id}`.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
+        "description": "Revokes one API key of a B2B sub-user by id. A sub-user has at most one active key. Same rules as `DELETE /users/api-token/{token_id}`.\n\nUse `Authorization: Bearer <jwt>` or `X-API-Key: <api_token>`. Do not send both headers in the same request.",
         "operationId": "deleteB2BApiTokenById",
         "security": [
           {
@@ -6666,7 +6652,7 @@
     },
     {
       "name": "API Token",
-      "description": "Generate and manage API keys for server-to-server integrations. An account can hold up to 3 active keys; creating a key adds one and never rotates an existing one."
+      "description": "Generate and manage API keys for server-to-server integrations. An account can hold up to 3 active keys; creating a key adds one and never rotates an existing one, except for B2B sub-users, whose key rotates (at most 1 active key)."
     },
     {
       "name": "Users",
